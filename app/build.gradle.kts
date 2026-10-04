@@ -43,8 +43,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // K2 compiler is default in Kotlin 2.0+; stable enough for our use.
-        // languageVersion 2.0 is implicit.
+        // Generate real JVM 8+ default methods for interface methods with bodies.
+        // Required so Room's @Transaction default methods on DAO interfaces
+        // (e.g. FolderClosureDao.rebuildClosureFor) compile correctly.
+        freeCompilerArgs = listOf("-Xjvm-default=all")
     }
 
     buildFeatures {
