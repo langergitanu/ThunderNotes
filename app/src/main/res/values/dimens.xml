@@ -1,0 +1,52 @@
+<resources>
+    <!-- ─── Touch targets (spec: ≥44×44dp) ─────────────────────────────────── -->
+    <dimen name="touch_target_min">44dp</dimen>
+
+    <!-- ─── Spacing scale (matches Mock UI design tokens) ──────────────────── -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">16dp</dimen>
+    <dimen name="space_lg">24dp</dimen>
+    <dimen name="space_xl">32dp</dimen>
+    <dimen name="space_xxl">48dp</dimen>
+
+    <!-- Tablet layout -->
+    <dimen name="sidebar_width">280dp</dimen>
+    <dimen name="sidebar_width_max">320dp</dimen>
+    <dimen name="top_app_bar_height">56dp</dimen>
+
+    <!-- Card radii -->
+    <dimen name="card_radius_lg">20dp</dimen>      <!-- primary content cards -->
+    <dimen name="card_radius_md">16dp</dimen>      <!-- folder/note cards -->
+    <dimen name="card_radius_sm">12dp</dimen>      <!-- tool sub-panels, status tags -->
+    <dimen name="card_radius_xs">8dp</dimen>       <!-- micro UI -->
+
+    <!-- Tool strip -->
+    <dimen name="tool_strip_radius">12dp</dimen>
+    <dimen name="tool_icon_size">36dp</dimen>
+    <dimen name="color_swatch_size">20dp</dimen>
+
+    <!-- Floating action button -->
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="fab_radius">28dp</dimen>
+
+    <!-- Page side strip (number badges down the side of canvas pages) -->
+    <dimen name="page_number_strip_width">24dp</dimen>
+    <dimen name="page_number_strip_text_size">11sp</dimen>
+
+    <!-- Page separator (dotted line between pages — spec §6.10 Canvas Area) -->
+    <dimen name="page_separator_dash">6dp</dimen>
+    <dimen name="page_separator_gap">4dp</dimen>
+    <dimen name="page_separator_stroke">1dp</dimen>
+
+    <!-- Snip overlay button -->
+    <dimen name="snip_overlay_size">56dp</dimen>
+    <dimen name="snip_overlay_margin">16dp</dimen>
+
+    <!-- Pen tray -->
+    <dimen name="pen_tray_height">64dp</dimen>
+    <dimen name="pen_tray_item_size">48dp</dimen>
+
+    <!-- Textbox defaults (when textbox has no explicit font size) -->
+    <dimen name="textbox_default_font_size">16sp</dimen>
+</resources>

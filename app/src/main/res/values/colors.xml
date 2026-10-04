@@ -1,0 +1,62 @@
+<resources>
+    <!-- ─── Obsidian Precision Note System ───────────────────────────────────
+         The design system documented in
+         docs/Mock-UI-README.md and the canvasLayoutPage.md design spec.
+
+         Dark Tactile Modernism: deep charcoal grounds + high-chroma functional accents.
+         Surfaces scale through 4 distinct dark neutral steps rather than pure black,
+         preserving depth while maintaining comfortable contrast.
+
+         Primary   = Vivid Crimson   — primary CTAs, active nav, primary pen tools
+         Secondary = Vibrant Emerald — additive actions (Create Folder), success
+         Tertiary  = Warm Amber       — favorites, starred, pinned
+         Accent    = Sky/Cobalt Blue  — tool sub-actions, stylus status, cloud chips
+    ─────────────────────────────────────────────────────────────────────────── -->
+
+    <!-- Brand palette -->
+    <color name="thunder_primary">#DC2646</color>
+    <color name="thunder_primary_bright">#E63956</color>
+    <color name="thunder_primary_dark">#920025</color>
+
+    <color name="thunder_secondary">#10B981</color>
+    <color name="thunder_secondary_dark">#059669</color>
+
+    <color name="thunder_tertiary">#F59E0B</color>
+    <color name="thunder_tertiary_dark">#A16600</color>
+
+    <color name="thunder_accent_blue">#3B82F6</color>
+
+    <!-- Surface tiers (dark by default — app-level theme is always dark per spec) -->
+    <color name="surface_base">#111115</color>              <!-- Layer 0: canvas backdrop -->
+    <color name="surface_container_low">#18181C</color>     <!-- Layer 1: sidebar, top bar -->
+    <color name="surface_container">#1F1F23</color>        <!-- Layer 2: cards, toolbar -->
+    <color name="surface_container_high">#222228</color>   <!-- Layer 2 raised -->
+    <color name="surface_overlay">#2A2A32</color>           <!-- Layer 3: popovers, dialogs -->
+
+    <!-- Text -->
+    <color name="text_high_contrast">#F9FAFB</color>
+    <color name="text_muted">#9CA3AF</color>
+    <color name="text_subtle">#6B7280</color>
+
+    <!-- Borders / dividers -->
+    <color name="border_default">#14FFFFFF</color>          <!-- rgba(255,255,255,0.08) -->
+    <color name="border_strong">#33FFFFFF</color>
+
+    <!-- Whites / blacks -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+
+    <!-- ─── Launcher icon colors ───────────────────────────────────────────── -->
+    <!-- Per spec §1.3: "A large thunder icon in the center with a red background." -->
+    <color name="ic_launcher_background">@color/thunder_primary</color>
+    <color name="ic_launcher_foreground">#FFFFFFFF</color>
+
+    <!-- ─── Theme-toggle smart inversion reference colors ─────────────────────
+         The canvas theme toggle (dark ↔ light) MUST preserve hue and invert
+         lightness only. Reference pairs:
+           dark stroke -> light stroke (preserving hue)
+         These will be used by SmartThemeInverter.kt (phase 4) and are kept here
+         as the canonical lookup.
+    ─────────────────────────────────────────────────────────────────────────── -->
+    <!-- (Will be added when theme/inversion lands.) -->
+</resources>

@@ -1,0 +1,54 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ─── App-level theme (always dark per spec §6.10 Row 1 right) ──────────
+         Base: Material3 Dark, NoActionBar (we use a custom app bar).
+         The canvas theme toggle (dark↔light) is IN-CANVAS ONLY; the app-level
+         chrome is always dark.
+    ─────────────────────────────────────────────────────────────────────────── -->
+    <style name="Theme.ThunderNotes" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Surfaces -->
+        <item name="android:windowBackground">@color/surface_base</item>
+        <item name="android:statusBarColor">@color/surface_base</item>
+        <item name="android:navigationBarColor">@color/surface_base</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+
+        <!-- Window drawing behavior -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+
+        <!-- Brand colors -->
+        <item name="colorPrimary">@color/thunder_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/thunder_primary_dark</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+
+        <item name="colorSecondary">@color/thunder_secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/thunder_secondary_dark</item>
+        <item name="colorOnSecondaryContainer">@color/white</item>
+
+        <item name="colorTertiary">@color/thunder_tertiary</item>
+        <item name="colorOnTertiary">@color/black</item>
+
+        <!-- Default text colors -->
+        <item name="android:textColorPrimary">@color/text_high_contrast</item>
+        <item name="android:textColorSecondary">@color/text_muted</item>
+
+        <!-- Default background -->
+        <item name="android:colorBackground">@color/surface_base</item>
+        <item name="colorSurface">@color/surface_container_low</item>
+        <item name="colorOnSurface">@color/text_high_contrast</item>
+    </style>
+
+    <!-- ─── Canvas activity theme ─────────────────────────────────────────────
+         Full-bleed canvas (no system bar tint), used by CanvasActivity.
+         The canvas itself manages its own theme (dark/light toggle).
+    ─────────────────────────────────────────────────────────────────────────── -->
+    <style name="Theme.ThunderNotes.Canvas" parent="Theme.ThunderNotes">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/surface_base</item>
+    </style>
+</resources>

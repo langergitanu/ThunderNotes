@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <!-- Material Symbols "bolt" path — a thunder/lightning bolt.
+         Used in: app bar, status badges, anywhere we need a small thunder glyph. -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M11,21h-1l1,-7L7.5,13c-0.59,0 -1,-0.41 -1,-1 0,-0.17 0.06,-0.34 0.18,-0.5L13,3h1l-1,7 3.5,0c0.59,0 1,0.41 1,1 0,0.17 -0.06,0.34 -0.18,0.5L11,21z"/>
+</vector>

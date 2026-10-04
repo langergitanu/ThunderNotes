@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup / device-transfer rules.
+     We exclude nothing for now (the app stores nothing user-identifying).
+     Phase 5 will add <exclude> rules for AI API keys stored under
+     shared_prefs / DataStore so they never enter cloud backup. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- empty for now -->
+    </cloud-backup>
+    <device-transfer>
+        <!-- empty for now -->
+    </device-transfer>
+</data-extraction-rules>

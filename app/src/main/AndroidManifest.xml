@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ─── Permissions ───────────────────────────────────────────────────────
+         INTERNET                  — snip API calls (Gemini / GLM) + future sync
+         ACCESS_NETWORK_STATE      — detect online before snip chain
+         SYSTEM_ALERT_WINDOW       — AI-snip floating button (overlay on other apps)
+         FOREGROUND_SERVICE        — for the snip overlay service
+         FOREGROUND_SERVICE_MEDIA_PROJECTION — screen capture for snip
+         READ_MEDIA_IMAGES         — add images from gallery to canvas
+         POST_NOTIFICATIONS        — Android 13+ foreground-service notification
+         RECEIVE_BOOT_COMPLETED    — restore snip overlay after reboot (optional)
+         WAKE_LOCK                 — keep CPU awake during long OCR runs
+         READ_EXTERNAL_STORAGE     — legacy (<= API 28) gallery access (maxSdk 28)
+    ─────────────────────────────────────────────────────────────────────────── -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- Stylus features (declared so Play filters us visible to tablet users with stylus) -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+    <uses-feature android:name="android.hardware.faketouch" android:required="false" />
+    <uses-feature android:name="android.hardware.type.tablet" android:required="false" />
+
+    <application
+        android:name=".ThunderNotesApp"
+        android:allowBackup="true"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="false"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="false"
+        android:theme="@style/Theme.ThunderNotes"
+        tools:targetApi="34">
+
+        <!-- Launcher activity (will become a NavHost once we wire up screens) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode|smallestScreenSize|screenLayout|density|fontScale|locale"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ThunderNotes">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ─── External stroke/textbox injection ingress (phase 2+) ──────────
+             ContentProvider exposing content://com.thundernotes.inject/inject
+             Used by:
+               - the AI-snip floating service (in-process)
+               - external plugin tools (signature-permission protected)
+               - ADB intent action com.thundernotes.action.INJECT_CONTENT (debug builds)
+        ───────────────────────────────────────────────────────────────────────────
+        (Uncomment when InjectContentProvider lands.)
+
+        <provider
+            android:name=".inject.InjectContentProvider"
+            android:authorities="com.thundernotes.inject"
+            android:exported="true"
+            android:grantUriPermissions="false"
+            android:readPermission="com.thundernotes.permission.INJECT"
+            android:writePermission="com.thundernotes.permission.INJECT" />
+
+        <intent-filter>
+            <action android:name="com.thundernotes.action.INJECT_CONTENT" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+        -->
+
+        <!-- ─── AI-snip overlay service (phase 5+) ───────────────────────────
+             Foreground service hosting the SYSTEM_ALERT_WINDOW floating snip button.
+             Started on app launch; survives app backgrounding as long as the user
+             has granted overlay permission.
+        ───────────────────────────────────────────────────────────────────────────
+        (Uncomment when SnipOverlayService lands.)
+
+        <service
+            android:name=".snip.SnipOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="false" />
+        -->
+    </application>
+</manifest>

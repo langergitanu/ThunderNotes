@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Foreground for the adaptive launcher icon.
+         Per spec §1.3: "A large thunder icon in the center with a red background."
+         The adaptive-icon background (solid red @color/ic_launcher_background) is set
+         in mipmap-anydpi-v26/ic_launcher.xml. This vector draws a large white bolt
+         centered in the 108x108 viewport.
+
+         The bolt path (24x24 source) is scaled 3.2× and translated by (16, 16) so
+         it occupies roughly the central 60% of the viewport — within the adaptive
+         icon "safe zone" (~72x72 inner) so OEM mask shapes (circle, squircle, etc.)
+         don't clip it. -->
+    <group
+        android:scaleX="3.2"
+        android:scaleY="3.2"
+        android:translateX="16"
+        android:translateY="16">
+        <path
+            android:fillColor="@color/ic_launcher_foreground"
+            android:pathData="M11,21h-1l1,-7L7.5,13c-0.59,0 -1,-0.41 -1,-1 0,-0.17 0.06,-0.34 0.18,-0.5L13,3h1l-1,7 3.5,0c0.59,0 1,0.41 1,1 0,0.17 -0.06,0.34 -0.18,0.5L11,21z"/>
+    </group>
+</vector>

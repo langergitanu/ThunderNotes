@@ -1,0 +1,49 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc) — NEVER commit
+local.properties
+
+# Log Files
+*.log
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+.cxx/
+
+# External native build folder
+.externalNativeBuild/
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Secrets / credentials — NEVER commit
+**/secrets.properties
+**/api_keys.properties
+**/*.keystore
+**/*.jks
+
+# Backup files (*~)
+*~

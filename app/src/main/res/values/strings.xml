@@ -1,0 +1,99 @@
+<resources>
+    <!-- App identity -->
+    <string name="app_name">ThunderNotes</string>
+    <string name="placeholder_phase_1">Phase 1 — project skeleton\nRoom schema + .thunder format coming next</string>
+
+    <!-- ─── Common actions ─────────────────────────────────────────────────── -->
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_move">Move</string>
+    <string name="action_export">Export</string>
+    <string name="action_bookmark">Bookmark</string>
+    <string name="action_information">Information</string>
+    <string name="action_trash">Trash</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_restore_all">Restore All</string>
+    <string name="action_empty_trash">Empty Trash</string>
+    <string name="action_import">Import</string>
+
+    <!-- ─── Top-level page titles ─────────────────────────────────────────── -->
+    <string name="title_home">Home</string>
+    <string name="title_notes">All Notes</string>
+    <string name="title_folders">All Folders</string>
+    <string name="title_bookmarks">Bookmarks</string>
+    <string name="title_trash">Trash</string>
+    <string name="title_canvas">Canvas</string>
+    <string name="title_create_note">Create Note</string>
+    <string name="title_create_folder">Create Folder</string>
+    <string name="title_select_cover">Select Cover</string>
+    <string name="title_import_file">Import File</string>
+    <string name="title_templates">Templates</string>
+    <string name="title_plugins">Plugins</string>
+
+    <!-- ─── Sidebar ───────────────────────────────────────────────────────── -->
+    <string name="sidebar_home">Home</string>
+    <string name="sidebar_notes">Notes</string>
+    <string name="sidebar_folders">Folders</string>
+    <string name="sidebar_bookmarks">Bookmarks</string>
+    <string name="sidebar_trash">Trash</string>
+    <string name="sidebar_templates">Templates</string>
+    <string name="sidebar_plugins">Plugins</string>
+
+    <!-- ─── Note card overflow (the 7 spec'd functions + extras) ───────────── -->
+    <string name="note_overflow_rename">Rename</string>
+    <string name="note_overflow_change_cover">Change Cover</string>
+    <string name="note_overflow_move">Move</string>
+    <string name="note_overflow_export">Export</string>
+    <string name="note_overflow_bookmark">Bookmark</string>
+    <string name="note_overflow_information">Information</string>
+    <string name="note_overflow_trash">Trash</string>
+
+    <!-- ─── Create-note page types ────────────────────────────────────────── -->
+    <string name="page_type_blank">Blank</string>
+    <string name="page_type_lined">Lined</string>
+    <string name="page_orientation_portrait">Portrait</string>
+    <string name="page_orientation_landscape">Landscape</string>
+    <string name="page_type_infinite_canvas">Infinite Canvas</string>
+    <string name="infinite_canvas_unavailable">Infinite Canvas is not available yet — may be added in a future release.</string>
+
+    <!-- ─── Canvas tool strip ────────────────────────────────────────────── -->
+    <string name="tool_fountain_pen">Fountain Pen</string>
+    <string name="tool_ballpoint_pen">Ballpoint Pen</string>
+    <string name="tool_highlighter">Highlighter</string>
+    <string name="tool_eraser">Eraser</string>
+    <string name="tool_lasso">Lasso</string>
+    <string name="tool_filler">Filler</string>
+
+    <!-- ─── Canvas top-right buttons ──────────────────────────────────────── -->
+    <string name="canvas_btn_bookmark">Bookmark</string>
+    <string name="canvas_btn_read_mode">Read Mode</string>
+    <string name="canvas_btn_fullscreen">Fullscreen</string>
+    <string name="canvas_btn_lock_canvas">Lock Canvas</string>
+    <string name="canvas_btn_change_margin">Change Page Margin</string>
+    <string name="canvas_btn_change_cover">Change Cover Page</string>
+    <string name="canvas_btn_add_page">Add Page</string>
+    <string name="canvas_btn_settings">Settings</string>
+    <string name="canvas_btn_minimap">Page Minimap</string>
+
+    <!-- ─── Snip ─────────────────────────────────────────────────────────── -->
+    <string name="snip_text">Text</string>
+    <string name="snip_equation">Equation</string>
+    <string name="snip_code">Code</string>
+    <string name="snip_diagram">Diagram</string>
+    <string name="snip_latex_direct_input">LaTeX Direct-Input</string>
+
+    <!-- ─── Content descriptions ───────────────────────────────────────────── -->
+    <string name="cd_app_icon">ThunderNotes app icon</string>
+    <string name="cd_create_note">Create a new note</string>
+    <string name="cd_create_folder">Create a new folder</string>
+    <string name="cd_search">Search notes and folders by title</string>
+    <string name="cd_snip_overlay">AI snip floating button</string>
+
+    <!-- ─── Errors ───────────────────────────────────────────────────────── -->
+    <string name="err_import_unsupported">Only .thunder files can be imported. PDFs and other file types are not supported.</string>
+    <string name="err_load_failed">Failed to load note.</string>
+    <string name="err_save_failed">Failed to save note. Your last edits are still in memory; please try saving again.</string>
+</resources>
