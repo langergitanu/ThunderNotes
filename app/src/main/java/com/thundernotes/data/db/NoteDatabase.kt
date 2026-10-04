@@ -4,10 +4,30 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.thundernotes.data.dao.CommentDao
+import com.thundernotes.data.dao.HyperLinkDao
+import com.thundernotes.data.dao.ImageDao
+import com.thundernotes.data.dao.LayerDao
 import com.thundernotes.data.dao.NoteContentDao
 import com.thundernotes.data.dao.NotePageDao
+import com.thundernotes.data.dao.OutlineDao
+import com.thundernotes.data.dao.PdfInfoDao
+import com.thundernotes.data.dao.ShapeDao
+import com.thundernotes.data.dao.SpacerDao
+import com.thundernotes.data.dao.StrokeDao
+import com.thundernotes.data.dao.TextBoxDao
+import com.thundernotes.data.entity.CommentEntity
+import com.thundernotes.data.entity.HyperLinkEntity
+import com.thundernotes.data.entity.ImageEntity
 import com.thundernotes.data.entity.NoteContentEntity
 import com.thundernotes.data.entity.NotePageEntity
+import com.thundernotes.data.entity.OutlineEntity
+import com.thundernotes.data.entity.PageLayerEntity
+import com.thundernotes.data.entity.PdfInfoEntity
+import com.thundernotes.data.entity.ShapeEntity
+import com.thundernotes.data.entity.SpacerEntity
+import com.thundernotes.data.entity.StrokeEntity
+import com.thundernotes.data.entity.TextBoxEntity
 import java.io.File
 
 /**
@@ -30,17 +50,24 @@ import java.io.File
  * (single-file DB) so the ZIP always carries exactly `note.sqlite`. Slightly
  * slower for very large notes but ThunderNotes targets <1000-page notes.
  *
- * **Phase 2b will add the stroke/textbox/shape/image/etc. entities here.**
- * For now this DB has only `note_content` (1 row) + `pages` (N rows) so we
- * can validate the per-note DB round-trip before adding the heavy tables.
+ * **Schema evolution:** when this schema changes after release, we will write
+ * a proper `Migration` from version N to N+1. For the unreleased initial
+ * schema, `fallbackToDestructiveMigrationOnDowngrade` covers development.
  */
 @Database(
     entities = [
         NoteContentEntity::class,
-        NotePageEntity::class
-        // Phase 2b adds: StrokeEntity, ShapeEntity, TextBoxEntity, ImageEntity,
-        // OutlineEntity, CommentEntity, HyperLinkEntity, SpacerEntity,
-        // PdfInfoEntity, LayerEntity, etc.
+        NotePageEntity::class,
+        PageLayerEntity::class,
+        StrokeEntity::class,
+        ShapeEntity::class,
+        TextBoxEntity::class,
+        ImageEntity::class,
+        OutlineEntity::class,
+        CommentEntity::class,
+        HyperLinkEntity::class,
+        SpacerEntity::class,
+        PdfInfoEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -48,6 +75,16 @@ import java.io.File
 abstract class NoteDatabase : RoomDatabase() {
     abstract fun noteContentDao(): NoteContentDao
     abstract fun notePageDao(): NotePageDao
+    abstract fun layerDao(): LayerDao
+    abstract fun strokeDao(): StrokeDao
+    abstract fun shapeDao(): ShapeDao
+    abstract fun textBoxDao(): TextBoxDao
+    abstract fun imageDao(): ImageDao
+    abstract fun outlineDao(): OutlineDao
+    abstract fun commentDao(): CommentDao
+    abstract fun hyperLinkDao(): HyperLinkDao
+    abstract fun spacerDao(): SpacerDao
+    abstract fun pdfInfoDao(): PdfInfoDao
 
     companion object {
         /**
@@ -72,9 +109,9 @@ abstract class NoteDatabase : RoomDatabase() {
 
 /**
  * Note bootstrap (insert the single [NoteContentEntity] row + the first
- * [NotePageEntity] row inside a single transaction) lives in
- * `data/repository/NotesRepository.kt` (phase 4) — it pairs the per-note DB
- * writes with the corresponding [com.thundernotes.data.entity.NoteEntity]
- * insert in the app-global DB, so it can't live here without dragging in
- * cross-DB coupling.
+ * [NotePageEntity] row + the bottom-most [PageLayerEntity] row inside a
+ * single transaction) lives in `data/repository/NotesRepository.kt`
+ * (phase 4) — it pairs the per-note DB writes with the corresponding
+ * [com.thundernotes.data.entity.NoteEntity] insert in the app-global DB,
+ * so it can't live here without dragging in cross-DB coupling.
  */
