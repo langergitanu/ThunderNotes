@@ -95,8 +95,12 @@ dependencies {
     // ─── Coroutines ──────────────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // ─── Serialization (manifest.json + .thunder JSON parts) ─────────────
+    // ─── Serialization (manifest.json + .thunder JSON parts + stroke proto) ───
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+    // Stroke blobs use kotlinx-serialization-protobuf (wire-compatible with
+    // standard protobuf, pure-Kotlin — no protoc needed). Mirrors Notein's
+    // 14-field InkStrokeProto with our own field numbers via @ProtoNumber.
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.1")
 
     // ─── Networking (snip API calls: Gemini, GLM, PaddleOCR remote) ──────
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
