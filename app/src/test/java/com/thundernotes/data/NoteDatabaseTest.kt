@@ -463,6 +463,80 @@ class NoteDatabaseTest {
         assertEquals(5, updatedPdf?.currentPage)
     }
 
+    // ─── Test 6: duplicate-offset spacers — regression test for BigPickle Sync 4 Open Issue 1 ─
+
+    /**
+     * Regression test for BigPickle.txt Sync 4 Open Issue 1: the previous
+     * SpacerManager had a duplicate-offset bug where two spacers at the same
+     * `offset_in_page` caused the in-memory Fenwick tree to diverge from the
+     * DB. Remove/update silently failed in memory while the DB mutated, and
+     * the error was sticky (survived later operations).
+     *
+     * This test pins the fix (invalidate-on-mutation design): manager's
+     * cumulative height must ALWAYS match the DB ground truth, even with
+     * duplicate offsets + remove + resize + later insert.
+     */
+    @Test
+    fun `duplicate-offset spacers - remove and resize keep manager consistent with DB`() = runBlocking {
+        val pageId = "test-page-dup-offset"
+
+        // Insert two spacers at the SAME offset (50) with different heights.
+        val spacerId1 = spacerManager.insertSpacer(pageId, offsetInPage = 50f, height = 50f)
+        val spacerId2 = spacerManager.insertSpacer(pageId, offsetInPage = 50f, height = 100f)
+
+        // Ground truth: both spacers are above Y=100, cumulative = 50 + 100 = 150.
+        assertManagerMatchesDb(pageId, y = 100f)
+
+        // ── Remove the FIRST spacer (height=50) ───────────────────────────────
+        // The old SpacerManager would silently fail to remove this from the
+        // in-memory tree (it looked up by (offset, height) at the first index,
+        // which was the SECOND spacer). Manager would return 150 (wrong) while
+        // DB correctly returned 100.
+        spacerManager.removeSpacer(spacerId1)
+        assertManagerMatchesDb(pageId, y = 100f)  // should be 100
+
+        // ── Resize the remaining spacer (100 -> 300) ───────────────────────────
+        // The old SpacerManager would silently fail to resize in memory (same
+        // (offset, height) lookup issue). Manager would return 100 (wrong) while
+        // DB correctly returned 300.
+        spacerManager.resizeSpacer(spacerId2, newHeight = 300f)
+        assertManagerMatchesDb(pageId, y = 100f)  // should be 300
+
+        // ── Insert a third spacer at a DIFFERENT offset to verify no stickiness ──
+        // BigPickle's S6 scenario: after the duplicate-offset divergence, a later
+        // UNRELATED insert at a different offset should NOT carry forward the
+        // stale +50 from the failed remove. The old SpacerManager returned
+        // manager=157 (db=107) — the +50 error was sticky. With the
+        // invalidate-on-mutation fix, the cache is cleared on every mutation,
+        // so stickiness is impossible.
+        spacerManager.insertSpacer(pageId, offsetInPage = 200f, height = 30f)
+        assertManagerMatchesDb(pageId, y = 100f)   // should be 300 (only offset-50 spacer above)
+        assertManagerMatchesDb(pageId, y = 300f)  // should be 330 (both spacers above)
+
+        // ── Final state: verify total height too ───────────────────────────────
+        val dbSpacers = db.spacerDao().getByPageOrdered(pageId)
+        val dbTotal = dbSpacers.sumOf { it.height.toDouble() }.toFloat()
+        assertEquals(dbTotal, spacerManager.totalHeightOnPage(pageId))
+        assertEquals(330f, spacerManager.totalHeightOnPage(pageId))
+    }
+
+    /**
+     * Helper: assert the SpacerManager's cumulativeHeightAbove matches the
+     * DB ground truth (sum of heights of all spacers where offset < y).
+     */
+    private suspend fun assertManagerMatchesDb(pageId: String, y: Float) {
+        val managerValue = spacerManager.cumulativeHeightAbove(pageId, y)
+        val dbSpacers = db.spacerDao().getByPageOrdered(pageId)
+        val dbTruth = dbSpacers
+            .filter { it.offsetInPage < y }
+            .sumOf { it.height.toDouble() }
+            .toFloat()
+        assertEquals(
+            "Manager ($managerValue) must match DB ground truth ($dbTruth) at y=$y",
+            dbTruth, managerValue
+        )
+    }
+
     // ─── Helper: construct a StrokeEntity with a valid InkStrokeProto blob ────
 
     private fun makeStrokeEntity(
