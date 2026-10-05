@@ -26,12 +26,30 @@
 
     <color name="thunder_accent_blue">#3B82F6</color>
 
-    <!-- Surface tiers (dark by default — app-level theme is always dark per spec) -->
-    <color name="surface_base">#111115</color>              <!-- Layer 0: canvas backdrop -->
-    <color name="surface_container_low">#18181C</color>     <!-- Layer 1: sidebar, top bar -->
-    <color name="surface_container">#1F1F23</color>        <!-- Layer 2: cards, toolbar -->
-    <color name="surface_container_high">#222228</color>   <!-- Layer 2 raised -->
-    <color name="surface_overlay">#2A2A32</color>           <!-- Layer 3: popovers, dialogs -->
+    <!-- ─── Surface tiers ──────────────────────────────────────────────────────
+         Values aligned with the FORMAL DESIGN TOKENS at the top of the spec
+         (canvasLayoutPage.md `colors:` block), NOT the body "Surface Hierarchy"
+         prose which had stale values (#111115, #18181C, #222228, #2A2A32).
+
+         BigPickle verified on the OnePlus Pad 2 (BigPickle.txt Sync 2 round 3,
+         Open Issue 2) that the OLD colors rendered as #111115; we updated to
+         #131317 to match the formal tokens. The visual difference is minimal
+         (slightly lighter charcoal) but this gives us a consistent Material 3
+         design-token naming scheme.
+
+         The custom `surface_overlay` token is KEPT at #2A2A32 (matches the
+         spec body's "Layer 3 Floating Overlays & Tooltips" rendered value)
+         for popovers/dialogs that need a slightly different shade than
+         `surface_container_highest`. Phase 5 UI can choose either.
+    ─────────────────────────────────────────────────────────────────────────── -->
+    <color name="surface_base">#131317</color>              <!-- spec: surface — Layer 0: canvas backdrop -->
+    <color name="surface_container_lowest">#0E0E12</color> <!-- spec: surface-container-lowest -->
+    <color name="surface_container_low">#1B1B1F</color>    <!-- spec: surface-container-low — Layer 1: sidebar, top bar -->
+    <color name="surface_container">#1F1F23</color>        <!-- spec: surface-container — Layer 2: cards, toolbar -->
+    <color name="surface_container_high">#2A292E</color>   <!-- spec: surface-container-high — Layer 2 raised -->
+    <color name="surface_container_highest">#353439</color><!-- spec: surface-container-highest — deepest container -->
+    <color name="surface_bright">#39393D</color>           <!-- spec: surface-bright — brightest surface (for inverse themes) -->
+    <color name="surface_overlay">#2A2A32</color>           <!-- custom: Layer 3 floating overlays (popovers, dialogs) — matches spec body's rendered value -->
 
     <!-- Text -->
     <color name="text_high_contrast">#F9FAFB</color>
