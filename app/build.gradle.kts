@@ -1,20 +1,24 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "com.thundernotes"
-    compileSdk = 34
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "com.thundernotes"
         // minSdk 31 = Android 12 — AndroidX Ink low-latency stylus paths require API 29+;
         // 31 ensures we get the S-pen / OnePlus Pen low-latency Surface APIs.
         minSdk = 31
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -23,7 +27,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false  // will flip to true once we have proper R8 keep rules
+            optimization {
+                enable = false
+            }
+            isMinifyEnabled = false // will flip to true once we have proper R8 keep rules
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -31,26 +38,16 @@ android {
         }
         debug {
             isDebuggable = true
-            applicationIdSuffix = ".debug"
         }
     }
 
     compileOptions {
-        // AGP 8.5 requires JDK 17+. The build host JDK must be 17+.
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        // Generate real JVM 8+ default methods for interface methods with bodies.
-        // Required so Room's @Transaction default methods on DAO interfaces
-        // (e.g. FolderClosureDao.rebuildClosureFor) compile correctly.
-        freeCompilerArgs = listOf("-Xjvm-default=all")
-    }
-
     buildFeatures {
-        viewBinding = true   // spec: XML Views (not Compose)
+        viewBinding = true // spec: XML Views (not Compose)
         buildConfig = true
         // aidl = true   // will enable when we add the AIDL bound service for injection
     }
@@ -62,57 +59,72 @@ android {
             excludes += "/META-INF/INDEX.LIST"
         }
     }
+}
 
-    // We don't want flavors yet; once we split into "stable" vs "experimental" or "lite" vs "full"
-    // (e.g., base APK vs the 5 GB pack with the heavy VL/formula models), we can add them here.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        // Generate real JVM default methods for interface methods with bodies.
+        // Required so Room's @Transaction default methods on DAO interfaces
+        // (e.g. FolderClosureDao.rebuildClosureFor) compile correctly.
+        freeCompilerArgs.add("-jvm-default=enable")
+        // kotlinx-serialization-protobuf (used for .thunder stroke blobs) is still
+        // marked experimental; opt in project-wide instead of annotating each file.
+        freeCompilerArgs.add("-opt-in=kotlinx.serialization.ExperimentalSerializationApi")
+    }
+}
+
+ksp {
+    // Export the Room schema so future migrations can be written + tested
+    // against real JSON schemas instead of guesswork.
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
     // ─── AndroidX core ───────────────────────────────────────────────────
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("androidx.activity:activity-ktx:1.9.0")
-    implementation("androidx.fragment:fragment-ktx:1.8.2")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.fragment.ktx)
 
     // ─── Lifecycle + ViewModel + LiveData ────────────────────────────────
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.4")
-    implementation("androidx.lifecycle:lifecycle-common-java8:2.8.4")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.common.java8)
 
-    // ─── Navigation (single-Activity host) ──────────────────────────────
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
+    // ─── Navigation (single-Activity host) ────────────────────────────────
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
 
     // ─── Room ────────────────────────────────────────────────────────────
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // ─── Coroutines ──────────────────────────────────────────────────────
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation(libs.kotlinx.coroutines.android)
 
     // ─── Serialization (manifest.json + .thunder JSON parts + stroke proto) ───
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+    implementation(libs.kotlinx.serialization.json)
     // Stroke blobs use kotlinx-serialization-protobuf (wire-compatible with
     // standard protobuf, pure-Kotlin — no protoc needed). Mirrors Notein's
     // 14-field InkStrokeProto with our own field numbers via @ProtoNumber.
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.1")
+    implementation(libs.kotlinx.serialization.protobuf)
 
     // ─── Networking (snip API calls: Gemini, GLM, PaddleOCR remote) ──────
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.okhttp)
 
     // ─── Testing ─────────────────────────────────────────────────────────
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-    testImplementation("androidx.room:room-testing:2.6.1")
-    testImplementation("org.robolectric:robolectric:4.13")
-    testImplementation("androidx.test:core:1.6.1")
-    testImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation("androidx.room:room-testing:2.6.1")
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
 }

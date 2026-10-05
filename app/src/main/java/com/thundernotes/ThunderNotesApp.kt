@@ -11,9 +11,14 @@ import android.util.Log
  * initialize process-level singletons:
  *
  *   - Phase 1 (now)         — log a startup marker so we can confirm the wiring works.
- *   - Phase 2              — initialize the Room database (ThunderNotesDatabase).
+ *   - Phase 2              — initialize the Room database (AppDatabase —
+ *                            the app-global DB singleton, see `data/db/AppDatabase.kt`).
  *   - Phase 3              — initialize the InkBrushProvider (loads the brush-family
- *                            definitions from assets/brushes/*.brushfamily).
+ *                            definitions from assets/brushes/<brush-id>.brushfamily).
+ *                            (NOTE: never write the literal "/*" sequence inside a Kotlin
+ *                            KDoc — Kotlin supports NESTED block comments, so the "*/"
+ *                            on the next line would only close the inner comment and leave
+ *                            the outer comment open to EOF.)
  *   - Phase 5              — initialize the SnipEngine fallback chain
  *                            (Gemini → GLM-4.6V-Flash → PaddleOCR-VL-1.6).
  *   - Phase 5              — start SnipOverlayService if the user has already

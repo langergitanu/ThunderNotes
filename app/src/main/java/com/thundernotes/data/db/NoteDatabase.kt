@@ -101,7 +101,7 @@ abstract class NoteDatabase : RoomDatabase() {
                 sqliteFile.absolutePath
             )
                 .setJournalMode(JournalMode.TRUNCATE)
-                .fallbackToDestructiveMigrationOnDowngrade()
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
         }
     }
