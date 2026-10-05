@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FoldersLibraryPage — top bar (title + search + Create Folder) + grid + empty state. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface_base">
+
+    <!-- ─── Top bar ─────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/space_lg"
+        android:paddingVertical="@dimen/space_md"
+        android:background="@color/surface_container_low">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/title_folders"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/search_view"
+            android:layout_width="240dp"
+            android:layout_height="wrap_content"
+            app:queryHint="@string/search_hint"
+            app:searchIcon="@drawable/ic_search"
+            app:closeIcon="@drawable/ic_close"
+            android:background="@color/surface_container"
+            app:iconifiedByDefault="false" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/create_folder_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_sm"
+            android:text="@string/title_create_folder"
+            app:icon="@drawable/ic_create_folder"
+            app:iconTint="@color/white"
+            android:backgroundTint="@color/thunder_secondary"
+            android:textColor="@color/white" />
+    </LinearLayout>
+
+    <!-- ─── Folders grid ────────────────────────────────────────────────── -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/folders_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="@dimen/space_sm"
+        android:clipToPadding="false" />
+
+    <!-- ─── Empty state ─────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_sidebar_folders"
+            app:tint="@color/text_subtle"
+            android:contentDescription="@string/cd_create_folder" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
+            android:text="@string/empty_folders_title"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:text="@string/empty_folders_message"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp" />
+    </LinearLayout>
+</LinearLayout>

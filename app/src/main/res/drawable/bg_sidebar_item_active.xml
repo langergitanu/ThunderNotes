@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Active sidebar item background: crimson (#DC2646) rounded rectangle.
+     Applied by SidebarAdapter when the item's destinationId matches the
+     current NavHost destination. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/thunder_primary" />
+    <corners android:radius="@dimen/card_radius_sm" />
+</shape>

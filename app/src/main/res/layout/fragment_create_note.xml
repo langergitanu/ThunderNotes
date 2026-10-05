@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Create Note modal (BottomSheetDialogFragment). Shows 4 page-type × orientation
+     cards + Infinite Canvas (disabled). Per spec §6.6. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_container_low"
+    android:padding="@dimen/space_lg">
+
+    <!-- ─── Title + close ─────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/title_create_note"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/close_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_muted"
+            android:contentDescription="@string/action_cancel"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:text="@string/create_note_choose_layout"
+        android:textColor="@color/text_muted"
+        android:textSize="13sp" />
+
+    <!-- ─── 2×2 grid of page-type × orientation cards ─────────────────────── -->
+    <androidx.gridlayout.widget.GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        app:columnCount="2"
+        app:rowCount="2"
+        app:orientation="horizontal">
+
+        <!-- Blank Portrait -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_blank_portrait"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_columnWeight="1"
+            app:layout_margin="@dimen/space_xs"
+            app:cardBackgroundColor="@color/surface_container"
+            app:cardCornerRadius="@dimen/card_radius_md"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_default"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/space_lg">
+
+                <View
+                    android:layout_width="48dp"
+                    android:layout_height="68dp"
+                    android:background="@color/surface_container_high" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/create_note_blank_card"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_note_portrait_card"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Blank Landscape -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_blank_landscape"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_columnWeight="1"
+            app:layout_margin="@dimen/space_xs"
+            app:cardBackgroundColor="@color/surface_container"
+            app:cardCornerRadius="@dimen/card_radius_md"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_default"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/space_lg">
+
+                <View
+                    android:layout_width="68dp"
+                    android:layout_height="48dp"
+                    android:background="@color/surface_container_high" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/create_note_blank_card"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_note_landscape_card"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Lined Portrait -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_lined_portrait"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_columnWeight="1"
+            app:layout_margin="@dimen/space_xs"
+            app:cardBackgroundColor="@color/surface_container"
+            app:cardCornerRadius="@dimen/card_radius_md"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_default"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/space_lg">
+
+                <LinearLayout
+                    android:layout_width="48dp"
+                    android:layout_height="68dp"
+                    android:orientation="vertical"
+                    android:background="@color/surface_container_high"
+                    android:padding="6dp">
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_weight="1" android:background="@color/border_strong" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/create_note_lined_card"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_note_portrait_card"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Lined Landscape -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_lined_landscape"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_columnWeight="1"
+            app:layout_margin="@dimen/space_xs"
+            app:cardBackgroundColor="@color/surface_container"
+            app:cardCornerRadius="@dimen/card_radius_md"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_default"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/space_lg">
+
+                <LinearLayout
+                    android:layout_width="68dp"
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:background="@color/surface_container_high"
+                    android:padding="6dp">
+
+                    <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@color/border_strong" />
+                    <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@color/border_strong" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/create_note_lined_card"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_note_landscape_card"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.gridlayout.widget.GridLayout>
+
+    <!-- ─── Infinite Canvas (disabled) ───────────────────────────────────── -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_infinite_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        app:cardBackgroundColor="@color/surface_container"
+        app:cardCornerRadius="@dimen/card_radius_md"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/border_default"
+        android:clickable="true"
+        android:focusable="true"
+        android:alpha="0.5"
+        android:foreground="?attr/selectableItemBackground">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="@dimen/space_md">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/create_note_infinite_canvas"
+                android:textColor="@color/text_muted"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Coming soon"
+                android:textColor="@color/text_subtle"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>

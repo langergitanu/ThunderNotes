@@ -1,53 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder launcher screen. Will be replaced by ThunderHomePage
-     (sidebar + dashboard + recent folders/files + floating create dock)
-     once we wire up the NavHost in phase 2. -->
+<!-- Master-detail layout for tablet: persistent sidebar (280dp) + NavHost content area.
+     The sidebar is a RecyclerView managed by MainActivity; the content area is a
+     NavHostFragment that swaps between the 9 library pages.
+
+     Per spec §6.1: sidebar items are Home, Notes, Folders, Bookmarks, Trash,
+     Templates, Plugins. The sidebar is always present on library pages; it will
+     be hidden on Canvas pages (Phase 6) via a separate canvas activity. -->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface_base"
-    android:fitsSystemWindows="true">
+    android:background="@color/surface_base">
 
-    <ImageView
-        android:id="@+id/img_logo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:contentDescription="@string/cd_app_icon"
-        android:src="@drawable/ic_thunder"
-        app:tint="@color/thunder_primary"
-        app:layout_constraintBottom_toTopOf="@+id/text_app_name"
-        app:layout_constraintEnd_toEndOf="parent"
+    <!-- ─── Sidebar (left, 280dp fixed) ─────────────────────────────────────── -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/sidebar_card"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:cardBackgroundColor="@color/surface_container_low"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
-
-    <TextView
-        android:id="@+id/text_app_name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:fontFamily="sans-serif-condensed-medium"
-        android:text="@string/app_name"
-        android:textColor="@color/text_high_contrast"
-        android:textSize="36sp"
-        app:layout_constraintBottom_toTopOf="@+id/text_phase"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/img_logo" />
-
-    <TextView
-        android:id="@+id/text_phase"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/placeholder_phase_1"
-        android:textColor="@color/text_muted"
-        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintWidth_percent="0.22"
+        android:layout_marginEnd="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- App logo + name -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/space_md">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_thunder"
+                    app:tint="@color/thunder_primary"
+                    android:contentDescription="@string/cd_app_icon" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:text="@string/app_name"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/border_default" />
+
+            <!-- Sidebar items (RecyclerView) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/sidebar_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:padding="@dimen/space_xs"
+                android:clipToPadding="false" />
+
+            <!-- Bottom: Upgrade to Premium (per spec §6.1 — purely for advertisement;
+                 app is completely free; this is a placeholder for future cloud features) -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/border_default" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/space_md">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_sidebar_premium"
+                    app:tint="@color/thunder_tertiary"
+                    android:contentDescription="@string/cd_app_icon" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:text="@string/sidebar_upgrade_premium"
+                    android:textColor="@color/text_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- ─── NavHost content area (right, fills remaining) ──────────────────── -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:defaultNavHost="true"
+        app:navGraph="@navigation/nav_graph"
+        app:layout_constraintStart_toEndOf="@id/sidebar_card"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/text_app_name" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

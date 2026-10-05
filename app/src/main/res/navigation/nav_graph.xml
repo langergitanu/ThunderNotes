@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Navigation graph for the 9 library pages + 2 placeholder pages (Templates, Plugins).
+     CreateNotePage + CreateFolderPage are NOT here — they're modal BottomSheetDialogFragments
+     shown directly from the parent fragment via .show(childFragmentManager, ...). -->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/thunderHomeFragment">
+
+    <fragment
+        android:id="@+id/thunderHomeFragment"
+        android:name="com.thundernotes.ui.home.ThunderHomeFragment"
+        android:label="@string/title_home" />
+
+    <fragment
+        android:id="@+id/notesLibraryFragment"
+        android:name="com.thundernotes.ui.notes.NotesLibraryFragment"
+        android:label="@string/title_notes" />
+
+    <fragment
+        android:id="@+id/foldersLibraryFragment"
+        android:name="com.thundernotes.ui.folders.FoldersLibraryFragment"
+        android:label="@string/title_folders" />
+
+    <fragment
+        android:id="@+id/bookmarksFragment"
+        android:name="com.thundernotes.ui.bookmarks.BookmarksFragment"
+        android:label="@string/title_bookmarks" />
+
+    <fragment
+        android:id="@+id/trashFragment"
+        android:name="com.thundernotes.ui.trash.TrashFragment"
+        android:label="@string/title_trash" />
+
+    <fragment
+        android:id="@+id/templatesFragment"
+        android:name="com.thundernotes.ui.create.TemplatesFragment"
+        android:label="@string/title_templates" />
+
+    <fragment
+        android:id="@+id/pluginsFragment"
+        android:name="com.thundernotes.ui.create.PluginsFragment"
+        android:label="@string/title_plugins" />
+
+    <fragment
+        android:id="@+id/coverSelectionFragment"
+        android:name="com.thundernotes.ui.create.CoverSelectionFragment"
+        android:label="@string/title_select_cover" />
+
+    <fragment
+        android:id="@+id/importFileFragment"
+        android:name="com.thundernotes.ui.create.ImportFileFragment"
+        android:label="@string/title_import_file" />
+
+</navigation>

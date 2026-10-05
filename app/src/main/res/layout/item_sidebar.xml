@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One sidebar item: icon + label + optional count badge.
+     The active item gets bg_sidebar_item_active (crimson rounded rect) via
+     the adapter; inactive items get transparent background. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="@dimen/space_md"
+    android:layout_marginVertical="@dimen/space_xs"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="?attr/selectableItemBackgroundBorderless">
+
+    <ImageView
+        android:id="@+id/sidebar_item_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_sidebar_home"
+        android:contentDescription="@string/cd_app_icon"
+        app:tint="@color/text_muted" />
+
+    <TextView
+        android:id="@+id/sidebar_item_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="@dimen/space_md"
+        android:text="@string/sidebar_home"
+        android:textColor="@color/text_muted"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium" />
+
+    <TextView
+        android:id="@+id/sidebar_item_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_sidebar_badge"
+        android:paddingHorizontal="@dimen/space_sm"
+        android:paddingVertical="2dp"
+        android:text="12"
+        android:textColor="@color/text_muted"
+        android:textSize="11sp"
+        android:fontFamily="sans-serif-medium"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Create Folder modal (BottomSheetDialogFragment). Shows folder-name input +
+     6 color swatches + Create button. Per spec §6.7. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_container_low"
+    android:padding="@dimen/space_lg">
+
+    <!-- ─── Title + close ─────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/title_create_folder"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/close_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_muted"
+            android:contentDescription="@string/action_cancel"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+    </LinearLayout>
+
+    <!-- ─── Folder name input ──────────────────────────────────────────────── -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/folder_name_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:hint="@string/hint_folder_name"
+        app:boxStrokeColor="@color/thunder_secondary"
+    app:boxBackgroundColor="@color/surface_container"
+    app:hintTextColor="@color/thunder_secondary">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/folder_name_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_high_contrast"
+            android:inputType="textCapWords"
+            android:imeOptions="actionDone" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- ─── Folder color label ─────────────────────────────────────────────── -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_lg"
+        android:text="@string/create_folder_color_label"
+        android:textColor="@color/text_muted"
+        android:textSize="13sp" />
+
+    <!-- ─── Color swatches (6 circles) ────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/space_sm"
+        android:gravity="start">
+
+        <ImageView
+            android:id="@+id/swatch0"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/space_md"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:id="@+id/swatch1"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/space_md"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:id="@+id/swatch2"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/space_md"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:id="@+id/swatch3"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/space_md"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:id="@+id/swatch4"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="@dimen/space_md"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <ImageView
+            android:id="@+id/swatch5"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="@string/create_folder_color_label"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <!-- ─── Create button ──────────────────────────────────────────────────── -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/create_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xl"
+        android:text="@string/action_create"
+        app:icon="@drawable/ic_create_folder"
+        app:iconTint="@color/white"
+        android:backgroundTint="@color/thunder_secondary"
+        android:textColor="@color/white" />
+</LinearLayout>

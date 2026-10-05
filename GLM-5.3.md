@@ -14,6 +14,68 @@
 
 ---
 
+## Phase 5 — UI for 9 library pages (2026-10-05)
+
+### What was built
+
+The full library UI — **9 pages + persistent sidebar + NavHost + 2 create modals** — translated from the mock HTML/Tailwind UIs to Android XML layouts + Fragments + ViewModels. **40 new/modified files** (5 modified + 35 new).
+
+**Infrastructure:**
+- `activity_main.xml` — rewritten as master-detail: persistent 22%-width sidebar (RecyclerView) + NavHostFragment
+- `MainActivity.kt` — rewritten to wire sidebar + NavHost + active-destination tracking
+- `res/navigation/nav_graph.xml` — 9 destinations (Home, Notes, Folders, Bookmarks, Trash, Templates, Plugins, CoverSelection, ImportFile)
+- `ui/common/SidebarAdapter.kt` — RecyclerView adapter with active-item highlighting (crimson background + white icon/label)
+- `res/layout/item_sidebar.xml` — sidebar item layout (icon + label + optional count badge)
+- 8 sidebar icons (home, notes, folders, bookmarks, trash, templates, plugins, premium) + 7 action icons (search, add, create-note, create-folder, more-vert, close, import) + 4 background drawables
+
+**9 library pages (Fragment + ViewModel + layout each):**
+1. **ThunderHomePage** — dashboard with top bar (search + import + create-note button) + Recent Folders horizontal scroll + Recent Notes grid + empty state + floating create dock (Create Folder FAB + Create Note FAB)
+2. **NotesLibraryPage** — top bar (search + Import Note + Create Note) + 3-column notes grid + empty state
+3. **FoldersLibraryPage** — top bar (search + Create Folder) + 3-column folders grid + empty state
+4. **BookmarksPage** — bookmarked notes grid + bookmarked folders list + empty state
+5. **TrashPage** — top bar (Restore All + Empty Trash buttons) + trashed notes grid + trashed folders list + empty state
+6. **CreateNotePage** (modal BottomSheetDialogFragment) — 2×2 grid of page-type × orientation cards (Blank/Lined × Portrait/Landscape) + Infinite Canvas card (disabled with "coming soon" popup per spec §6.6)
+7. **CreateFolderPage** (modal BottomSheetDialogFragment) — folder-name text input + 6 color swatches (brand palette) + Create button
+8. **CoverSelectionPage** — grid of placeholder cover cards (Phase 12 will add 50+ real covers)
+9. **ImportFilePage** — "Select .thunder file" button using ActivityResultContracts.OpenDocument; rejects non-.thunder files with error message
+10. **TemplatesPage** — placeholder "coming soon" (Phase 12 will add Template Library)
+11. **PluginsPage** — placeholder "coming soon" (Plugin system under development; first plugin = text translator)
+
+**Shared components:**
+- `NoteAdapter` + `item_note_card.xml` — note card with cover preview (placeholder), title, date + page count, bookmark indicator, 3-dots overflow button
+- `FolderAdapter` + `item_folder_card.xml` — folder card with folder icon, name, bookmark indicator, overflow button
+
+**Reactive wiring:** Each Fragment observes its ViewModel's StateFlow via `repeatOnLifecycle(STARTED)`. The ViewModels call into `RepositoryModule.notes` / `folders` / `trash` / `bookmarks` — this is the **first time the Room layer runs live** (not just in tests). The `AppDatabaseTest` + `NoteDatabaseTest` (25 tests) are the safety net.
+
+**Create flow works end-to-end:** clicking Create Note → modal → pick Blank/Lined + Portrait/Landscape → `NotesRepository.createNote()` → new `.thunder` file on disk + new `NoteEntity` row in `thundernotes-app.db` → modal dismisses → the notes grid auto-updates (Flow). Same for Create Folder.
+
+### ⚠️ UI verification guidelines for BigPickle (from the USER directly)
+
+**The user explicitly said: do NOT try to match the mock UIs pixel by pixel.** The mock UIs are HTML+Tailwind reference for button positions + general overview — NOT pixel-perfect specs. They're all in landscape orientation; the app must support both portrait + landscape. The mock UIs are not optimized for Android either.
+
+**BigPickle should ONLY look for genuine UI bugs:**
+- Overlapping buttons
+- Sidebar not working (navigation broken, active item not highlighting)
+- Misplacement of elements (button off-screen, text cut off)
+- Crashes on any page
+- Layout that doesn't fit the tablet screen
+- RecyclerView not scrolling
+- Modal not dismissing after create
+
+**BigPickle should NOT waste time on:**
+- Color matching (the mock UIs use #111115 for library pages vs #131317 in colors.xml — this is a known discrepancy; we use `@color/surface_base` tokens, not hex literals)
+- Exact pixel positions
+- Matching every icon from the mock UI
+- Typography/spacing exactness
+
+The mock UI is a **concept reference**, not a spec. The app's design system (Obsidian Precision Note System color tokens in `colors.xml`) is the source of truth.
+
+### Penset + shape icons deferred to Phase 6
+
+The user specified 10 icons to copy from the mock UI (5 penset: ballpoint, fountain, highlighter, eraser, lasso + 5 shape: shape picker, table maker, add extra space, 3 shift icons, finger/stylus mode). These are **canvas icons (Phase 6)**, not library page icons. Phase 5 uses standard Material-style icons for everything. The 10 canvas icons will be extracted from the mock UI source code (SVG) in Phase 6.
+
+---
+
 ## Sync 5 — 2026-10-05 — BigPickle found + I fixed the SpacerManager duplicate-offset bug
 
 ### What BigPickle did (in BigPickle.txt Sync 4 round)

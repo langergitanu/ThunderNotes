@@ -12,6 +12,7 @@ activityKtx = "1.13.0"
 constraintlayout = "2.2.2"
 recyclerview = "1.3.2"
 fragment = "1.8.2"
+gridlayout = "1.0.0"
 lifecycle = "2.8.4"
 navigation = "2.7.7"
 room = "2.7.2"
@@ -32,6 +33,7 @@ androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", ve
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+androidx-gridlayout = { group = "androidx.gridlayout", name = "gridlayout", version.ref = "gridlayout" }
 
 # Lifecycle + ViewModel + LiveData
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }

@@ -96,4 +96,50 @@
     <string name="err_import_unsupported">Only .thunder files can be imported. PDFs and other file types are not supported.</string>
     <string name="err_load_failed">Failed to load note.</string>
     <string name="err_save_failed">Failed to save note. Your last edits are still in memory; please try saving again.</string>
+
+    <!-- ─── Sidebar extras ────────────────────────────────────────────────── -->
+    <string name="sidebar_upgrade_premium">Upgrade to Premium</string>
+
+    <!-- ─── Empty states ─────────────────────────────────────────────────── -->
+    <string name="empty_notes_title">No notes yet</string>
+    <string name="empty_notes_message">Create your first note to get started.</string>
+    <string name="empty_folders_title">No folders yet</string>
+    <string name="empty_folders_message">Create a folder to organize your notes.</string>
+    <string name="empty_bookmarks_title">No bookmarks yet</string>
+    <string name="empty_bookmarks_message">Bookmark notes and folders to find them quickly.</string>
+    <string name="empty_trash_title">Trash is empty</string>
+    <string name="empty_trash_message">Trashed items will appear here.</string>
+
+    <!-- ─── Coming-soon placeholders ──────────────────────────────────────── -->
+    <string name="templates_coming_soon_title">Templates</string>
+    <string name="templates_coming_soon_message">The Template Library will be available in a future release. The app ships with 50+ preinstalled engineering-subject covers.</string>
+    <string name="plugins_coming_soon_title">Plugins</string>
+    <string name="plugins_coming_soon_message">The Plugin system is under development. The first plugin (a text translator) is being tested.</string>
+
+    <!-- ─── Create-note modal ────────────────────────────────────────────── -->
+    <string name="create_note_blank_card">Blank</string>
+    <string name="create_note_lined_card">Lined</string>
+    <string name="create_note_portrait_card">Portrait</string>
+    <string name="create_note_landscape_card">Landscape</string>
+    <string name="create_note_infinite_canvas">Infinite Canvas</string>
+    <string name="create_note_choose_layout">Choose page type and orientation</string>
+
+    <!-- ─── Create-folder modal ──────────────────────────────────────────── -->
+    <string name="hint_folder_name">Folder name</string>
+    <string name="create_folder_color_label">Folder color</string>
+
+    <!-- ─── Cover selection ──────────────────────────────────────────────── -->
+    <string name="cover_selection_message">Choose a cover for your note. More covers available in the Template Library.</string>
+
+    <!-- ─── Import file ──────────────────────────────────────────────────── -->
+    <string name="import_file_button">Select .thunder file</string>
+    <string name="import_file_message">Choose a .thunder file from your device to import it into ThunderNotes.</string>
+
+    <!-- ─── Home dashboard ───────────────────────────────────────────────── -->
+    <string name="recent_folders">Recent Folders</string>
+    <string name="recent_files">Recent Notes</string>
+    <string name="search_hint">Search by title…</string>
+    <string name="filter_all">All</string>
+    <string name="filter_recent">Recent</string>
+    <string name="filter_bookmarked">Bookmarked</string>
 </resources>

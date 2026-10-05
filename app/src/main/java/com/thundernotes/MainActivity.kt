@@ -2,25 +2,77 @@ package com.thundernotes
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.NavController
+import androidx.navigation.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.thundernotes.databinding.ActivityMainBinding
+import com.thundernotes.ui.common.SidebarAdapter
+import com.thundernotes.ui.common.SidebarItem
 
 /**
- * Launcher Activity. Currently hosts a placeholder screen showing the app logo
- * and a phase marker. In phase 2 this becomes a NavHost that routes to the
- * ThunderHomePage (sidebar + dashboard + floating create dock).
+ * Launcher Activity + NavHost host.
  *
- * Config changes are handled in-place (see AndroidManifest: orientation, screen
- * size, keyboard hidden, uiMode, etc.) so the activity is not recreated when
- * the user rotates the tablet — important for an ink-canvas-heavy app where we
- * don't want the canvas view to be destroyed mid-stroke.
+ * Tablet-first master-detail layout:
+ *   - Persistent left sidebar (280dp, RecyclerView with 7 items: Home, Notes,
+ *     Folders, Bookmarks, Trash, Templates, Plugins).
+ *   - NavHostFragment on the right that swaps between the 9 library pages.
+ *
+ * The sidebar is always present on library pages. It will be hidden on Canvas
+ * pages (Phase 6) via a separate CanvasActivity (the canvas needs the full
+ * screen for the pen tray + page minimap + AI snip overlay).
+ *
+ * The active sidebar item is tracked via [NavController.addOnDestinationChangedListener]
+ * + reflects the current destination. Clicking a sidebar item navigates to
+ * that destination.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
+    private lateinit var sidebarAdapter: SidebarAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Set up NavController for the NavHostFragment.
+        navController = findNavController(R.id.nav_host)
+
+        // Set up sidebar RecyclerView + adapter.
+        sidebarAdapter = SidebarAdapter { item ->
+            item.destinationId?.let { destId ->
+                navController.navigate(destId) {
+                    // Avoid stacking the same destination on top of itself.
+                    launchSingleTop = true
+                }
+            }
+        }
+        binding.sidebarRecycler.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = sidebarAdapter
+            itemAnimator = null  // avoid flicker on active-item updates
+        }
+        sidebarAdapter.submitList(sidebarItems())
+
+        // Track the active destination → highlight the matching sidebar item.
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            sidebarAdapter.setActiveDestination(destination.id)
+        }
     }
+
+    /**
+     * The 7 sidebar items. Per spec §6.1: Home, Notes, Folders, Bookmarks, Trash,
+     * Templates, Plugins. The "Upgrade to Premium" item at the bottom of the
+     * sidebar is a static TextView in activity_main.xml (not clickable yet).
+     */
+    private fun sidebarItems(): List<SidebarItem> = listOf(
+        SidebarItem(R.string.sidebar_home, R.drawable.ic_sidebar_home, R.id.thunderHomeFragment),
+        SidebarItem(R.string.sidebar_notes, R.drawable.ic_sidebar_notes, R.id.notesLibraryFragment),
+        SidebarItem(R.string.sidebar_folders, R.drawable.ic_sidebar_folders, R.id.foldersLibraryFragment),
+        SidebarItem(R.string.sidebar_bookmarks, R.drawable.ic_sidebar_bookmarks, R.id.bookmarksFragment),
+        SidebarItem(R.string.sidebar_trash, R.drawable.ic_sidebar_trash, R.id.trashFragment),
+        SidebarItem(R.string.sidebar_templates, R.drawable.ic_sidebar_templates, R.id.templatesFragment),
+        SidebarItem(R.string.sidebar_plugins, R.drawable.ic_sidebar_plugins, R.id.pluginsFragment),
+    )
 }
