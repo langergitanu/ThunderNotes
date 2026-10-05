@@ -16,7 +16,7 @@
         android:layout_height="120dp"
         android:contentDescription="@string/cd_app_icon"
         android:src="@drawable/ic_thunder"
-        android:tint="@color/thunder_primary"
+        app:tint="@color/thunder_primary"
         app:layout_constraintBottom_toTopOf="@+id/text_app_name"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

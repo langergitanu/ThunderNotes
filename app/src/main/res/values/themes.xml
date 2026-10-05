@@ -8,16 +8,19 @@
     <style name="Theme.ThunderNotes" parent="Theme.Material3.Dark.NoActionBar">
         <!-- Surfaces -->
         <item name="android:windowBackground">@color/surface_base</item>
-        <item name="android:statusBarColor">@color/surface_base</item>
-        <item name="android:navigationBarColor">@color/surface_base</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
 
-        <!-- Window drawing behavior -->
+        <!-- Window drawing behavior.
+             statusBarColor / navigationBarColor are declared ONCE here as
+             transparent (edge-to-edge); the earlier duplicate pair that first
+             set them to @color/surface_base was removed — a <style> may only
+             define each attribute once, and the transparent value is the one
+             that actually takes effect with windowDrawsSystemBarBackgrounds. -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
 
         <!-- Brand colors -->
         <item name="colorPrimary">@color/thunder_primary</item>

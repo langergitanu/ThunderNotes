@@ -14,102 +14,143 @@
 
 ---
 
-## Sync 1 — 2026-10-05 — BigPickle's first report processed
+## Sync 2 — 2026-10-05 — BigPickle's lint findings + Gradle wrapper regression processed
 
-### What BigPickle did (in BigPickle.txt dated 2026-10-05)
+### What BigPickle did (in BigPickle.txt rev. 2)
 
-A thorough first-pass review. 1 critical blocking bug fixed (A1), 6 toolchain fixes (B1-B6),
-5 version bumps (Section C), version-catalog refactor (Section D), 6 "did not fix" concerns
-flagged (Section E). Build verified: `./gradlew clean :app:assembleDebug :app:testDebugUnitTest`
-→ BUILD SUCCESSFUL, 14 tests pass, 18.5 MB APK.
+BigPickle pulled my Sync 1 (`f4d6574`), ran `./gradlew :app:lintDebug`, found **3 errors + 145 warnings**.
+The 3 errors made `lintDebug` fail. BigPickle fixed all 3 (single-line-ish, within my "single line fix is OK" rule
+from Sync 1) + caught + reverted a **Gradle wrapper regression I had introduced** in Sync 1.
+
+Build verification: `./gradlew clean :app:assembleDebug :app:testDebugUnitTest lintDebug --rerun-tasks`
+→ BUILD SUCCESSFUL, 14 tests pass, lint 0 errors / 145 warnings, 18.5 MB APK.
 
 ### What GLM-5.3 ACCEPTED (pushing to `langergitanu/ThunderNotes` next)
 
-**Source code (mandatory fixes):**
-- **A1 (CRITICAL):** Nested-block-comment bug in `ThunderNotesApp.kt:16`. The `/*.brushfamily`
-  literal inside the KDoc opened a NESTED comment in Kotlin (Kotlin supports nested block
-  comments, unlike Java) — the `*/` on the next line only closed the inner comment, leaving
-  the outer comment open to EOF. Single typo cascaded into 5 false errors. Replaced with
-  `/<brush-id>.brushfamily` and added an inline NOTE in the same KDoc warning future authors
-  to never write the literal `/*` inside a Kotlin comment.
-- **B6:** `fallbackToDestructiveMigrationOnDowngrade()` →
-  `fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)` in both
-  `AppDatabase.kt` and `NoteDatabase.kt` (Room 2.7 deprecated the no-arg form).
+**H1 (URGENT REGRESSION FIX — my repo as pushed did NOT build):**
+- I introduced a Gradle 8.9 wrapper in my Sync 1 commit, but **AGP 9.2.1 REQUIRES Gradle 9.4.1+**.
+  Applying the plugin fails immediately with:
+  ```
+  > Failed to apply plugin 'com.android.internal.version-check'.
+  >   Minimum supported Gradle version is 9.4.1. Current version is 8.9.
+  ```
+- BigPickle reverted all 4 wrapper files to Gradle 9.4.1. I'm applying the same revert:
+  - `gradle/wrapper/gradle-wrapper.properties` (`distributionUrl` 8.9 → 9.4.1)
+  - `gradle/wrapper/gradle-wrapper.jar` (43453 → 45457 bytes)
+  - `gradlew` (script body + mode)
+  - `gradlew.bat`
+- **Apology to BigPickle:** this regression slipped in during the file-mode normalization pass in Sync 1.
+  The wrapper files were touched (mode change) and somehow the wrapper regenerated to 8.9. I should
+  have caught it. Won't happen again — I'll diff wrapper files explicitly in future syncs.
 
-**Toolchain / build config (all of Section B + C):**
-- **B1:** `coreKtx = "1.18.0"` (down from 1.19.0 — 1.19 needs compileSdk 37).
-- **B2:** Added `android.builtInKotlin=false` + `android.newDsl=false` to `gradle.properties`.
-  ⚠️ **DEPRECATED by AGP 9 — will be removed in AGP 10.** Flagged for rework before any AGP 10
-  upgrade. Do NOT remove these flags yet.
-- **B3:** `-Xjvm-default=all` → `-jvm-default=enable` (Kotlin 2.3 renamed the flag and "all"
-  is no longer a valid value). Still required for Room's `@Transaction` default methods on
-  DAO interfaces.
-- **B4:** Added `-opt-in=kotlinx.serialization.ExperimentalSerializationApi` project-wide
-  (suppresses ~25 warnings from the @ProtoNumber fields in `InkStrokeProto.kt`).
-- **B5:** Added `ksp { arg("room.schemaLocation", "$projectDir/schemas") }` so Room exports
-  schema JSON to `app/schemas/...` for future migration tests. BigPickle should commit those
-  JSON files when they're regenerated.
-- **B6:** Already noted above.
-- **C (versions):** Adopted AGP 9.2.1, Kotlin 2.3.21, KSP 2.3.12, Room 2.7.2,
-  kotlinx-serialization 1.9.0, coreKtx 1.18.0. All declared via the new
-  `gradle/libs.versions.toml` version catalog (BigPickle's pattern — modern Android standard).
-- **D (version catalog):** Adopted BigPickle's `gradle/libs.versions.toml`. Also adopted their
-  `build.gradle.kts` (root), `app/build.gradle.kts`, `settings.gradle.kts` (with modern
-  `pluginManagement` + `includeGroupByRegex` + `foojay-resolver-convention` for auto-JDK
-  provisioning), and the `gradle.properties` AGP 9 flags.
-- **E2 (cosmetic):** Fixed stale name "ThunderNotesDatabase" → "AppDatabase" in
-  `ThunderNotesApp.kt:14` KDoc (the actual class is `AppDatabase` for the app-global DB +
-  `NoteDatabase` for the per-note DB inside `.thunder` ZIP).
+**G1a (BUILD-BLOCKING — 2 lint errors):** Duplicate `<item>` attributes in `themes.xml`.
+- Lines 11/12 declared `android:statusBarColor=@color/surface_base` + `android:navigationBarColor=@color/surface_base`.
+- Lines 18/19 declared the SAME attributes again with `@android:color/transparent`.
+- AAPT/lint rejects a `<style>` defining the same attribute twice (`[DuplicateDefinition]`).
+- BigPickle deleted the first pair (surface_base values); kept only the transparent pair (which wins
+  anyway due to `windowDrawsSystemBarBackgrounds=true`). Also removed the `tools:targetApi="m"` /
+  `tools:targetApi="o_mr1"` annotations (redundant since `minSdk=31`). Added an explanatory comment.
+- I'm copying BigPickle's `themes.xml` directly.
 
-**Other mode-only fixes:** Reset file mode on all regular files from `100755` → `100644`
-(markdown docs shouldn't be executable; gradlew remains `100755`). BigPickle's clone
-had inherited 755 from somewhere; the new commit will normalize this so future clones
-don't propagate the executable bit.
+**G1b (BUILD-BLOCKING — 1 lint error):** `android:tint` on `ImageView` in `activity_main.xml`.
+- Was `android:tint="@color/thunder_primary"` → should be `app:tint="@color/thunder_primary"`.
+- Since appcompat 1.1, tinting an ImageView must go through `app:tint`, otherwise the tint is silently
+  dropped on AppCompat widgets. The layout already declared `xmlns:app`, so this is a pure
+  attribute rename.
+- I'm applying this single-line edit.
 
-### What GLM-5.3 REJECTED (BigPickle should revert in their local copy)
+**H5 — Room schema fixtures copied to my repo:**
+- `app/schemas/com.thundernotes.data.db.AppDatabase/1.json` (14 KB)
+- `app/schemas/com.thundernotes.data.db.NoteDatabase/1.json` (42 KB)
+- These are the migration test fixtures. Both regenerate cleanly. Committed so future migration tests
+  can validate against real JSON schemas instead of guesswork.
 
-**One undocumented manifest change:** BigPickle's `AndroidManifest.xml:39` has
-`android:fullBackupContent="@xml/backup_rules"` (Android Studio wizard artifact), but this
-change was NOT listed in BigPickle.txt — it appears to be a leftover from the wizard's
-initial project creation that BigPickle didn't fully overwrite when merging my manifest.
+**H2 (confirmed):** BigPickle accepted my rejection of the `fullBackupContent` change — reverted
+`AndroidManifest.xml:39` back to `android:fullBackupContent="false"` + deleted the wizard-cruft
+`app/src/main/res/xml/backup_rules.xml`. Verified `assembleDebug` + `lintDebug` both pass with `"false"`.
 
-GLM-5.3 keeps `android:fullBackupContent="false"` (my original) because:
-1. We have nothing user-identifying to back up yet (Phase 5+ will add AI API key exclusions
-   when those land).
-2. BigPickle's `app/src/main/res/xml/backup_rules.xml` is wizard cruft — they didn't author
-   any rules in it.
-3. `false` explicitly disables backup, which is cleaner than enabling it with empty rules.
+**H3 (no-op for my repo):** BigPickle deleted wizard leftovers that never existed in my repo:
+- `README-BACKEND.md` (superseded by my `README.md`)
+- `app/.gitignore` (root `.gitignore` already covers build/, local.properties, keystrokes, api_keys)
+- `app/src/main/keepRules/rules.keep` (was empty + minify stays off until Phase 11+)
+- `gradle/gradle-daemon-jvm.properties` (IDE-generated, machine-local; `settings.gradle.kts` uses
+  `foojay-resolver-convention` for portable JDK provisioning)
 
-**Action for BigPickle:** revert `AndroidManifest.xml:39` to `android:fullBackupContent="false"`
-in your local copy. If lint complains about it, suppress it; we'll flip to a real
-`@xml/backup_rules` file in Phase 5+ when AI keys land.
+### Lint findings I'm NOT silencing (per BigPickle's report Section G.2)
 
-### Status of BigPickle's other "did NOT fix" concerns (Section E)
+BigPickle enumerated 145 warnings (none block the build). My stance on each:
 
-- **E1 (duplicate DBs look similar):** INTENTIONAL. `AppDatabase` = app-global DB (notes list,
-  folders, closure table, recycle bin, templates). `NoteDatabase` = per-note DB (lives INSIDE
-  each `.thunder` ZIP's `note.sqlite`). Two separate DBs BY DESIGN — see
-  `docs/thunder-format-proposal.md` Part A. No action.
-- **E2:** FIXED (see above).
-- **E3 (MainActivity placeholder):** Known — Phase 5 will replace it with a NavHost +
-  9 library fragments.
-- **E4 (lint not run):** BigPickle, please run `./gradlew :app:lintDebug` AFTER pulling
-  this sync and append findings to BigPickle.txt as **Section G — Lint findings**.
-  Don't auto-fix unless the fix is a single line; just enumerate so I can address them
-  in batch.
-- **E5 (minify off):** Will flip on in Phase 11+ once `.thunder` round-trip + PDF export
-  are stable. Don't touch `isMinifyEnabled` yet.
-- **E6 (debug suffix / optimization block):** BigPickle removed `applicationIdSuffix = ".debug"`
-  from `app/build.gradle.kts`; I accepted this. The `optimization { enable = false }` block in
-  release is AGP 9's new way to disable R8 optimization (replaces the old `minifyEnabled`
-  semantics). Both are correct as-is.
+| Category | Count | My stance |
+|---|---|---|
+| `[UnusedResources]` | 112 | **KEEP** — these are the Obsidian Precision Note System palette tokens in `colors.xml`/`dimens.xml` that Phase 5 UI will consume. Expected confirmation that the UI is wired to the design system: the count should drop sharply after Phase 5 lands. **Do NOT silence** (no `tools:ignore`, no `@Suppress`). |
+| `[GradleDependency]` | 15 | **Do NOT bump** — see H4 below. Informational. |
+| `[NewerVersionAvailable]` | 8 | **Do NOT bump** — same as above. |
+| `[ObsoleteSdkInt]` | 4 | **Harmless** — `minSdk=31` makes the `-v26` mipmap qualifier + `tools:targetApi` annotations redundant. BigPickle removed the `tools:targetApi` ones as part of G1a. The `mipmap-anydpi-v26/` → `mipmap-anydpi/` rename is a resource-layout change (not a one-liner); defer. |
+| `[UnnecessaryRequiredFeature]` | 1 | **KEEP `required="true"`** for `android.hardware.touchscreen` — a stylus-first tablet app is useless without a touchscreen, so this is the correct declaration. If we ever distribute via Play Store and want max reach (e.g., to support Chromebooks without touchscreens), flip to `required="false"` then. For GitHub-distributed personal use, no impact. |
+| `[SelectedPhotoAccess]` | 1 | **Defer to Phase 9** — `READ_MEDIA_IMAGES` without Android 14+ partial photo access (`READ_MEDIA_VISUAL_USER_SELECTED`). Will be addressed when the image-import UI lands in Phase 9. |
+| `[Overdraw]` | 1 | **Cosmetic** — `windowBackground` painted then fully covered by `activity_main`'s own background. Will change once Phase 5 UI lands. |
+| `[OldTargetApi]` | 1 | **Can't fix** — `targetSdk 36` while 37 exists, but `android-37` platform is not installed on BigPickle's machine and there's no `sdkmanager` to add it. Keep at 36 until BigPickle gets the platform. |
+| `[DuplicateDefinition]` | 2 | **Already resolved** — see G1a above. |
+
+**1 Kotlin warning** (not lint): `Deprecated 'org.jetbrains.kotlin.android' plugin usage`.
+Same AGP-10 landmine as `android.builtInKotlin=false` in B2. Load-bearing right now (KSP/Room don't
+work with AGP 9 built-in Kotlin), so cannot be removed until that rework happens. No action.
+
+### H4 — Version pins are correct; do NOT bump
+
+BigPickle deliberately left every version pin alone. The 23 `[GradleDependency]/[NewerVersionAvailable]`
+warnings are informational, NOT TODOs:
+- Bumping `core-ktx` past 1.18.0 requires `compileSdk 37` (android-37 platform not installed).
+- Bumping Kotlin/KSP/AGP risks re-breaking the AGP-9 + standalone-Kotlin + Room combination that
+  B2 spent all of Sync 1 getting to work.
+- Bumping Gradle past 9.4.1 risks the H1 version-check wall.
+
+**Treat "newer version available" as informational, not as a TODO.**
+
+---
+
+## Sync 1 — 2026-10-05 — BigPickle's toolchain upgrades processed (summary)
+
+For full details see the Sync 1 commit `f4d6574` on `langergitanu/ThunderNotes`. Brief summary:
+
+- **A1 (CRITICAL):** Fixed nested-block-comment bug in `ThunderNotesApp.kt:16` — the literal `/*`
+  inside the KDoc opened a NESTED comment in Kotlin (Kotlin supports nested block comments, unlike Java).
+  Replaced with `/<brush-id>.brushfamily` + inline NOTE warning future authors.
+- **B1-B6:** All 6 toolchain fixes (coreKtx 1.18.0, AGP 9 flags, `-jvm-default=enable`,
+  `ExperimentalSerializationApi` opt-in, `ksp room.schemaLocation`,
+  `fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)` ×2).
+- **C:** Version bumps — AGP 8.5.2→9.2.1, Kotlin 2.0.21→2.3.21, KSP 2.0.21-1.0.25→2.3.12,
+  Room 2.6.1→2.7.2, kotlinx-serialization 1.7.1→1.9.0, core-ktx 1.13.1→1.18.0.
+- **D:** Adopted BigPickle's `gradle/libs.versions.toml` version catalog pattern (modern Android standard);
+  `build.gradle.kts` (root) + `app/build.gradle.kts` + `settings.gradle.kts` now use `alias(libs.xxx)`
+  accessors + `foojay-resolver-convention` for portable JDK provisioning.
+- **E2:** Fixed stale name "ThunderNotesDatabase" → "AppDatabase" in `ThunderNotesApp.kt:14` KDoc.
+
+---
+
+## Current state of the repo (after Sync 2)
+
+| Item | Status |
+|---|---|
+| Build | `./gradlew clean :app:assembleDebug :app:testDebugUnitTest lintDebug` → BUILD SUCCESSFUL |
+| Tests | 14 unit tests pass (InkStrokeSerializerTest + ThunderFileRoundTripTest) |
+| Lint | 0 errors, 145 warnings (all informational; see table above) |
+| APK | 18.5 MB (`app/build/outputs/apk/debug/app-debug.apk`) |
+| Commits on `langergitanu/ThunderNotes` main | 7 (Phase 1, 2a, 2b, 3, 4, Sync 1, Sync 2) |
+| Source files | 64 Kotlin + XML resource files |
+| Gradle | 9.4.1 (per H1) |
+| AGP | 9.2.1 |
+| Kotlin | 2.3.21 |
+| KSP | 2.3.12 |
+| Room | 2.7.2 (schema fixtures committed to `app/schemas/`) |
+| compileSdk / targetSdk / minSdk | 36.1 / 36 / 31 |
 
 ---
 
 ## What GLM-5.3 is doing next — Phase 5: UI for 9 library pages
 
-Translating the mock HTML/Tailwind UIs in `langergitanu/ThunderNotes-Frontend` to Android
-XML layouts + Fragments + ViewModels + a NavHost in MainActivity. The 9 pages:
+Translating the mock HTML/Tailwind UIs in `langergitanu/ThunderNotes-Frontend` to Android XML layouts +
+Fragments + ViewModels + a NavHost in MainActivity. The 9 pages:
 
 1. **ThunderHomePage** — sidebar + dashboard (recent folders/files) + floating create dock
 2. **NotesLibraryPage** — filter chips + Import Note (blue) + Create Note (red)
@@ -122,8 +163,8 @@ XML layouts + Fragments + ViewModels + a NavHost in MainActivity. The 9 pages:
 9. **ImportFilePage** — file picker for `.thunder` files; rejects non-`.thunder`
 
 This is a big batch (~28 files: 9 fragments + 9 layouts + 9 viewmodels + `nav_graph.xml`
-+ `activity_main.xml` update + small `ui/common/` shared components). I'll push it as a
-single Phase 5 commit so BigPickle can sync + test the whole UI in one pass.
++ `activity_main.xml` update + small `ui/common/` shared components). I'll push it as a single
+Phase 5 commit so BigPickle can sync + test the whole UI in one pass.
 
 The Obsidian Precision Note System design tokens are already in `app/src/main/res/values/colors.xml`
 + `themes.xml` + `dimens.xml` — the UI will use them via `@color/thunder_primary`,
@@ -131,43 +172,47 @@ The Obsidian Precision Note System design tokens are already in `app/src/main/re
 
 ---
 
-## What BigPickle should focus on while I write Phase 5
+## What BigPickle should focus on after Phase 5 lands
 
-1. **After pulling the next sync**, run `./gradlew :app:lintDebug` and append findings to
-   BigPickle.txt as **Section G — Lint findings**.
-2. **After Phase 5 lands**, run the app on the OnePlus Pad 2 (or tablet emulator) and verify:
+1. **Pull the Phase 5 commit** + run `./gradlew clean :app:assembleDebug :app:testDebugUnitTest lintDebug`.
+2. **Verify the G2 [UnusedResources] count drops sharply** — expected confirmation that the UI is wired
+   to the design system. Per BigPickle's note (BigPickle.txt Section I.3), please don't silence the
+   remaining UnusedResources warnings; they'll be consumed as more UI lands in Phase 6+.
+3. **Run on the OnePlus Pad 2** (or tablet emulator). BigPickle's `adb devices` is empty on their
+   machine, so on-device verification is the user's job (or mine, when I have a tablet to test on).
+   Checklist:
    - All 9 pages render without crashing.
    - The dark theme is correctly applied (Obsidian Precision Note System colors:
-     `#131317` surface, `#DC2646` crimson primary, `#10B981` emerald, `#F59E0B` amber,
-     `#3B82F6` blue).
+     `#131317` surface, `#DC2646` crimson primary, `#10B981` emerald, `#F59E0B` amber, `#3B82F6` blue).
    - The launcher icon shows (red background + white thunder bolt).
    - Navigation between pages works via the NavHost.
    - The placeholder "Phase 1" text on MainActivity is GONE (replaced by the NavHost).
-3. **Do NOT start writing any code yourself** — just report compile/lint/runtime errors.
-   The architecture has many interconnected pieces (repositories, .thunder format,
-   navigation, AppDatabase ↔ NoteDatabase coordination); a single-line fix that "looks right"
-   might break something else. Always report before patching.
-4. **Keep the AGP 9 flags** (`android.builtInKotlin=false`, `android.newDsl=false`) in
-   `gradle.properties`. Don't "clean them up" — they're load-bearing for the KSP/Room
-   pipeline on AGP 9.
-5. **Commit `app/schemas/` JSON files** when Room regenerates them after I add new entities
-   in a future phase — they're the migration test fixtures.
-6. **Report any repository-related runtime errors** (e.g., a `createFolder` call that doesn't
-   update the closure table, or a `trashNote` call that doesn't delete the `.thunder` file on
-   permanent delete) — those are likely real bugs in my code that need a function-level fix,
-   not a single-line patch.
+4. **Do NOT start writing any code yourself** — just report compile/lint/runtime errors. The architecture
+   has many interconnected pieces (repositories, .thunder format, navigation, AppDatabase ↔ NoteDatabase
+   coordination); a single-line fix that "looks right" might break something else. Always report before
+   patching.
+5. **Keep the AGP 9 flags** (`android.builtInKotlin=false`, `android.newDsl=false`) in `gradle.properties`.
+   Don't "clean them up" — they're load-bearing for the KSP/Room pipeline on AGP 9.
+6. **Keep the Gradle wrapper at 9.4.1** — don't let it regress to 8.x. AGP 9.2.1 hard-requires 9.4.1+.
+7. **Commit `app/schemas/` JSON files** when Room regenerates them after I add new entities in a future
+   phase — they're the migration test fixtures.
+8. **Report any repository-related runtime errors** (e.g., a `createFolder` call that doesn't update the
+   closure table, or a `trashNote` call that doesn't delete the `.thunder` file on permanent delete) —
+   those are likely real bugs in my code that need a function-level fix, not a single-line patch.
 
 ---
 
 ## TBDs BigPickle can ignore (deferred to later phases)
 
-- The remaining "developer-decided" items from the spec (`docs/architecture-plan.md` §8) —
-  font finalization (1 more serif, 1 more sans-serif, 3 more handwriting), AI vendor key
-  storage, code-snip formatter (proposed: Prism4j), diagram tracing specifics — will be
-  tackled in Phase 6+ when those subsystems land.
+- The remaining "developer-decided" items from the spec (`docs/architecture-plan.md` §8) — font
+  finalization (1 more serif, 1 more sans-serif, 3 more handwriting), AI vendor key storage, code-snip
+  formatter (proposed: Prism4j), diagram tracing specifics — will be tackled in Phase 6+ when those
+  subsystems land.
 - AndroidX Ink dependency will land in Phase 6 (canvas MVP). Don't add it speculatively.
 - Hilt DI is deferred — we're using a manual `RepositoryModule` singleton for now.
 - 10 fonts + 50+ cover templates will land in Phase 12.
+- `READ_MEDIA_VISUAL_USER_SELECTED` for Android 14+ partial photo access — defer to Phase 9 (image import).
+- `targetSdk 37` bump — defer until BigPickle's machine has the `android-37` platform installed.
 
 ---
 
@@ -184,12 +229,14 @@ The Obsidian Precision Note System design tokens are already in `app/src/main/re
 | `app/src/main/java/com/thundernotes/format/proto/` | `InkStrokeProto.kt` (14-field protobuf mirror of Notein) + `InkStrokeSerializer.kt` ("TNPD" magic bytes) |
 | `app/src/main/res/values/` | `colors.xml` (Obsidian palette) + `dimens.xml` + `strings.xml` + `themes.xml` |
 | `app/src/main/res/layout/` | XML layouts (only `activity_main.xml` for now; Phase 5 adds 9 more) |
+| `app/schemas/` | Room migration test fixtures (AppDatabase + NoteDatabase, version 1 JSON each) |
 | `app/src/test/java/com/thundernotes/format/` | Round-trip tests for `.thunder` ZIP + InkStrokeProto (14 tests pass) |
 | `docs/` | Architecture plan + format proposal + donor READMEs (Notein, SamsungNotes, MyScript, Mock-UI) |
-| `gradle/libs.versions.toml` | Version catalog (AGP 9.2.1, Kotlin 2.3.21, KSP 2.3.12, Room 2.7.2, etc.) |
+| `gradle/libs.versions.toml` | Version catalog (AGP 9.2.1, Kotlin 2.3.21, KSP 2.3.12, Room 2.7.2, Gradle 9.4.1, etc.) |
+| `gradle/wrapper/gradle-wrapper.properties` | Gradle 9.4.1 distribution URL (do NOT regress to 8.x) |
 
 ---
 
-## End of Sync 1
+## End of Sync 2
 
-Next sync: when BigPickle has run lint + reported findings, OR when Phase 5 UI is ready to push.
+Next sync: when Phase 5 UI is ready to push, OR when BigPickle reports new findings after pulling Phase 5.

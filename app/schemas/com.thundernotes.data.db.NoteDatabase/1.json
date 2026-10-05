@@ -1,0 +1,1321 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "cf47f795147fe25f68bc13d1aef7c4a4",
+    "entities": [
+      {
+        "tableName": "note_content",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`note_id` TEXT NOT NULL, `default_page_id` TEXT, `saved_page_index` INTEGER NOT NULL, `activated_page_layer_id` TEXT, `zoom` REAL NOT NULL, `page_offset_x` REAL NOT NULL, `page_offset_y` REAL NOT NULL, `unbounded_note` INTEGER NOT NULL, `pdf_info_id` TEXT, `extras_json` TEXT NOT NULL, PRIMARY KEY(`note_id`))",
+        "fields": [
+          {
+            "fieldPath": "noteId",
+            "columnName": "note_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultPageId",
+            "columnName": "default_page_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "savedPageIndex",
+            "columnName": "saved_page_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activatedPageLayerId",
+            "columnName": "activated_page_layer_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "zoom",
+            "columnName": "zoom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageOffsetX",
+            "columnName": "page_offset_x",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageOffsetY",
+            "columnName": "page_offset_y",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unboundedNote",
+            "columnName": "unbounded_note",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pdfInfoId",
+            "columnName": "pdf_info_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extrasJson",
+            "columnName": "extras_json",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "note_id"
+          ]
+        }
+      },
+      {
+        "tableName": "pages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`page_id` TEXT NOT NULL, `page_index` INTEGER NOT NULL, `page_type` INTEGER NOT NULL, `orientation` INTEGER NOT NULL, `page_ratio` REAL NOT NULL, `page_height_px` INTEGER NOT NULL, `page_background_color` INTEGER NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, PRIMARY KEY(`page_id`))",
+        "fields": [
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageIndex",
+            "columnName": "page_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageType",
+            "columnName": "page_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orientation",
+            "columnName": "orientation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageRatio",
+            "columnName": "page_ratio",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageHeightPx",
+            "columnName": "page_height_px",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageBackgroundColor",
+            "columnName": "page_background_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "page_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pages_page_index",
+            "unique": false,
+            "columnNames": [
+              "page_index"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pages_page_index` ON `${TABLE_NAME}` (`page_index`)"
+          }
+        ]
+      },
+      {
+        "tableName": "page_layers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`layer_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `layer_name` TEXT NOT NULL, `is_visible` INTEGER NOT NULL, `is_locked` INTEGER NOT NULL, `opacity` REAL NOT NULL, `sort_order` INTEGER NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, PRIMARY KEY(`layer_id`))",
+        "fields": [
+          {
+            "fieldPath": "layerId",
+            "columnName": "layer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layerName",
+            "columnName": "layer_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isVisible",
+            "columnName": "is_visible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isLocked",
+            "columnName": "is_locked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "opacity",
+            "columnName": "opacity",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "layer_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_page_layers_page_id",
+            "unique": false,
+            "columnNames": [
+              "page_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_page_layers_page_id` ON `${TABLE_NAME}` (`page_id`)"
+          },
+          {
+            "name": "index_page_layers_sort_order",
+            "unique": false,
+            "columnNames": [
+              "sort_order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_page_layers_sort_order` ON `${TABLE_NAME}` (`sort_order`)"
+          }
+        ]
+      },
+      {
+        "tableName": "strokes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stroke_id` TEXT NOT NULL, `layer_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `creation_time` INTEGER NOT NULL, `brush_size` REAL NOT NULL, `brush_color` INTEGER NOT NULL, `brush_epsilon` REAL NOT NULL, `brush_family_id` TEXT NOT NULL, `tool_type` INTEGER NOT NULL, `stroke_unit_length_cm` REAL NOT NULL, `ink_stroke_blob` BLOB NOT NULL, `left` REAL NOT NULL, `top` REAL NOT NULL, `right` REAL NOT NULL, `bottom` REAL NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`stroke_id`))",
+        "fields": [
+          {
+            "fieldPath": "strokeId",
+            "columnName": "stroke_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layerId",
+            "columnName": "layer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creationTime",
+            "columnName": "creation_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brushSize",
+            "columnName": "brush_size",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brushColor",
+            "columnName": "brush_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brushEpsilon",
+            "columnName": "brush_epsilon",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brushFamilyId",
+            "columnName": "brush_family_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toolType",
+            "columnName": "tool_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strokeUnitLengthCm",
+            "columnName": "stroke_unit_length_cm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inkStrokeBlob",
+            "columnName": "ink_stroke_blob",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stroke_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_strokes_page_id_layer_id",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_page_id_layer_id` ON `${TABLE_NAME}` (`page_id`, `layer_id`)"
+          },
+          {
+            "name": "index_strokes_layer_id",
+            "unique": false,
+            "columnNames": [
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_layer_id` ON `${TABLE_NAME}` (`layer_id`)"
+          },
+          {
+            "name": "index_strokes_brush_family_id",
+            "unique": false,
+            "columnNames": [
+              "brush_family_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_brush_family_id` ON `${TABLE_NAME}` (`brush_family_id`)"
+          },
+          {
+            "name": "index_strokes_brush_color",
+            "unique": false,
+            "columnNames": [
+              "brush_color"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_brush_color` ON `${TABLE_NAME}` (`brush_color`)"
+          },
+          {
+            "name": "index_strokes_tool_type",
+            "unique": false,
+            "columnNames": [
+              "tool_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_tool_type` ON `${TABLE_NAME}` (`tool_type`)"
+          },
+          {
+            "name": "index_strokes_page_id_left_right_top_bottom",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "left",
+              "right",
+              "top",
+              "bottom"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_page_id_left_right_top_bottom` ON `${TABLE_NAME}` (`page_id`, `left`, `right`, `top`, `bottom`)"
+          },
+          {
+            "name": "index_strokes_creation_time",
+            "unique": false,
+            "columnNames": [
+              "creation_time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_creation_time` ON `${TABLE_NAME}` (`creation_time`)"
+          },
+          {
+            "name": "index_strokes_sync_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sync_timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_strokes_sync_timestamp` ON `${TABLE_NAME}` (`sync_timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "shapes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shape_id` TEXT NOT NULL, `layer_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `shape_type` INTEGER NOT NULL, `border_width` REAL NOT NULL, `line_type` INTEGER NOT NULL, `corner_radius` REAL NOT NULL, `border_color` INTEGER NOT NULL, `fill_color` INTEGER, `fill_opacity` REAL NOT NULL, `geometry_data` TEXT NOT NULL, `left` REAL NOT NULL, `top` REAL NOT NULL, `right` REAL NOT NULL, `bottom` REAL NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`shape_id`))",
+        "fields": [
+          {
+            "fieldPath": "shapeId",
+            "columnName": "shape_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layerId",
+            "columnName": "layer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shapeType",
+            "columnName": "shape_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "borderWidth",
+            "columnName": "border_width",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lineType",
+            "columnName": "line_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cornerRadius",
+            "columnName": "corner_radius",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "borderColor",
+            "columnName": "border_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fillColor",
+            "columnName": "fill_color",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "fillOpacity",
+            "columnName": "fill_opacity",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "geometryData",
+            "columnName": "geometry_data",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "shape_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_shapes_page_id_layer_id",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shapes_page_id_layer_id` ON `${TABLE_NAME}` (`page_id`, `layer_id`)"
+          },
+          {
+            "name": "index_shapes_layer_id",
+            "unique": false,
+            "columnNames": [
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shapes_layer_id` ON `${TABLE_NAME}` (`layer_id`)"
+          },
+          {
+            "name": "index_shapes_shape_type",
+            "unique": false,
+            "columnNames": [
+              "shape_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shapes_shape_type` ON `${TABLE_NAME}` (`shape_type`)"
+          },
+          {
+            "name": "index_shapes_page_id_left_right_top_bottom",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "left",
+              "right",
+              "top",
+              "bottom"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_shapes_page_id_left_right_top_bottom` ON `${TABLE_NAME}` (`page_id`, `left`, `right`, `top`, `bottom`)"
+          }
+        ]
+      },
+      {
+        "tableName": "textboxes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`textbox_id` TEXT NOT NULL, `layer_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `text` TEXT NOT NULL, `font_family_id` INTEGER NOT NULL, `font_size` REAL NOT NULL, `is_bold` INTEGER NOT NULL, `is_italic` INTEGER NOT NULL, `underline_type` INTEGER NOT NULL, `fill_color` INTEGER, `text_color` INTEGER NOT NULL, `left` REAL NOT NULL, `top` REAL NOT NULL, `right` REAL NOT NULL, `bottom` REAL NOT NULL, `rotation` REAL NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`textbox_id`))",
+        "fields": [
+          {
+            "fieldPath": "textboxId",
+            "columnName": "textbox_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layerId",
+            "columnName": "layer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fontFamilyId",
+            "columnName": "font_family_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fontSize",
+            "columnName": "font_size",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isBold",
+            "columnName": "is_bold",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isItalic",
+            "columnName": "is_italic",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "underlineType",
+            "columnName": "underline_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fillColor",
+            "columnName": "fill_color",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "textColor",
+            "columnName": "text_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotation",
+            "columnName": "rotation",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "textbox_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_textboxes_page_id_layer_id",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_textboxes_page_id_layer_id` ON `${TABLE_NAME}` (`page_id`, `layer_id`)"
+          },
+          {
+            "name": "index_textboxes_layer_id",
+            "unique": false,
+            "columnNames": [
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_textboxes_layer_id` ON `${TABLE_NAME}` (`layer_id`)"
+          },
+          {
+            "name": "index_textboxes_font_family_id",
+            "unique": false,
+            "columnNames": [
+              "font_family_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_textboxes_font_family_id` ON `${TABLE_NAME}` (`font_family_id`)"
+          },
+          {
+            "name": "index_textboxes_page_id_left_right_top_bottom",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "left",
+              "right",
+              "top",
+              "bottom"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_textboxes_page_id_left_right_top_bottom` ON `${TABLE_NAME}` (`page_id`, `left`, `right`, `top`, `bottom`)"
+          }
+        ]
+      },
+      {
+        "tableName": "images",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`image_id` TEXT NOT NULL, `layer_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `asset_path` TEXT NOT NULL, `original_width` INTEGER NOT NULL, `original_height` INTEGER NOT NULL, `display_width` REAL NOT NULL, `display_height` REAL NOT NULL, `left` REAL NOT NULL, `top` REAL NOT NULL, `right` REAL NOT NULL, `bottom` REAL NOT NULL, `opacity` REAL NOT NULL, `rotation` REAL NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`image_id`))",
+        "fields": [
+          {
+            "fieldPath": "imageId",
+            "columnName": "image_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "layerId",
+            "columnName": "layer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assetPath",
+            "columnName": "asset_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalWidth",
+            "columnName": "original_width",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalHeight",
+            "columnName": "original_height",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayWidth",
+            "columnName": "display_width",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayHeight",
+            "columnName": "display_height",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "opacity",
+            "columnName": "opacity",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotation",
+            "columnName": "rotation",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "image_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_images_page_id_layer_id",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_images_page_id_layer_id` ON `${TABLE_NAME}` (`page_id`, `layer_id`)"
+          },
+          {
+            "name": "index_images_layer_id",
+            "unique": false,
+            "columnNames": [
+              "layer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_images_layer_id` ON `${TABLE_NAME}` (`layer_id`)"
+          },
+          {
+            "name": "index_images_asset_path",
+            "unique": false,
+            "columnNames": [
+              "asset_path"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_images_asset_path` ON `${TABLE_NAME}` (`asset_path`)"
+          },
+          {
+            "name": "index_images_page_id_left_right_top_bottom",
+            "unique": false,
+            "columnNames": [
+              "page_id",
+              "left",
+              "right",
+              "top",
+              "bottom"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_images_page_id_left_right_top_bottom` ON `${TABLE_NAME}` (`page_id`, `left`, `right`, `top`, `bottom`)"
+          }
+        ]
+      },
+      {
+        "tableName": "outlines",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`outline_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `title` TEXT NOT NULL, `level` INTEGER NOT NULL, `target_page_index` INTEGER NOT NULL, `target_y_offset` REAL NOT NULL, `created_time` INTEGER NOT NULL, PRIMARY KEY(`outline_id`))",
+        "fields": [
+          {
+            "fieldPath": "outlineId",
+            "columnName": "outline_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetPageIndex",
+            "columnName": "target_page_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetYOffset",
+            "columnName": "target_y_offset",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "outline_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_outlines_page_id",
+            "unique": false,
+            "columnNames": [
+              "page_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outlines_page_id` ON `${TABLE_NAME}` (`page_id`)"
+          },
+          {
+            "name": "index_outlines_level",
+            "unique": false,
+            "columnNames": [
+              "level"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outlines_level` ON `${TABLE_NAME}` (`level`)"
+          },
+          {
+            "name": "index_outlines_target_page_index",
+            "unique": false,
+            "columnNames": [
+              "target_page_index"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outlines_target_page_index` ON `${TABLE_NAME}` (`target_page_index`)"
+          }
+        ]
+      },
+      {
+        "tableName": "comments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`comment_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `author` TEXT NOT NULL, `text` TEXT NOT NULL, `anchor_x` REAL NOT NULL, `anchor_y` REAL NOT NULL, `anchor_w` REAL NOT NULL, `anchor_h` REAL NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, PRIMARY KEY(`comment_id`))",
+        "fields": [
+          {
+            "fieldPath": "commentId",
+            "columnName": "comment_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "author",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorX",
+            "columnName": "anchor_x",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorY",
+            "columnName": "anchor_y",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorW",
+            "columnName": "anchor_w",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorH",
+            "columnName": "anchor_h",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "comment_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_comments_page_id",
+            "unique": false,
+            "columnNames": [
+              "page_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_comments_page_id` ON `${TABLE_NAME}` (`page_id`)"
+          },
+          {
+            "name": "index_comments_anchor_x_anchor_y",
+            "unique": false,
+            "columnNames": [
+              "anchor_x",
+              "anchor_y"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_comments_anchor_x_anchor_y` ON `${TABLE_NAME}` (`anchor_x`, `anchor_y`)"
+          }
+        ]
+      },
+      {
+        "tableName": "hyperlinks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`link_id` TEXT NOT NULL, `page_id` TEXT NOT NULL, `label` TEXT NOT NULL, `url` TEXT NOT NULL, `left` REAL NOT NULL, `top` REAL NOT NULL, `right` REAL NOT NULL, `bottom` REAL NOT NULL, `created_time` INTEGER NOT NULL, PRIMARY KEY(`link_id`))",
+        "fields": [
+          {
+            "fieldPath": "linkId",
+            "columnName": "link_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageId",
+            "columnName": "page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "left",
+            "columnName": "left",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "top",
+            "columnName": "top",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "right",
+            "columnName": "right",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bottom",
+            "columnName": "bottom",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "link_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_hyperlinks_page_id",
+            "unique": false,
+            "columnNames": [
+              "page_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_hyperlinks_page_id` ON `${TABLE_NAME}` (`page_id`)"
+          },
+          {
+            "name": "index_hyperlinks_left_top",
+            "unique": false,
+            "columnNames": [
+              "left",
+              "top"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_hyperlinks_left_top` ON `${TABLE_NAME}` (`left`, `top`)"
+          }
+        ]
+      },
+      {
+        "tableName": "spacers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`spacer_id` TEXT NOT NULL, `anchor_page_id` TEXT NOT NULL, `offset_in_page` REAL NOT NULL, `height` REAL NOT NULL, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, PRIMARY KEY(`spacer_id`))",
+        "fields": [
+          {
+            "fieldPath": "spacerId",
+            "columnName": "spacer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchorPageId",
+            "columnName": "anchor_page_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offsetInPage",
+            "columnName": "offset_in_page",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "spacer_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_spacers_anchor_page_id",
+            "unique": false,
+            "columnNames": [
+              "anchor_page_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_spacers_anchor_page_id` ON `${TABLE_NAME}` (`anchor_page_id`)"
+          },
+          {
+            "name": "index_spacers_offset_in_page",
+            "unique": false,
+            "columnNames": [
+              "offset_in_page"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_spacers_offset_in_page` ON `${TABLE_NAME}` (`offset_in_page`)"
+          }
+        ]
+      },
+      {
+        "tableName": "pdf_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pdf_info_id` TEXT NOT NULL, `file_path` TEXT NOT NULL, `page_count` INTEGER NOT NULL, `current_page` INTEGER NOT NULL, `scale` REAL NOT NULL, `rotation` INTEGER NOT NULL, `offset_x` REAL NOT NULL, `offset_y` REAL NOT NULL, PRIMARY KEY(`pdf_info_id`))",
+        "fields": [
+          {
+            "fieldPath": "pdfInfoId",
+            "columnName": "pdf_info_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "file_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageCount",
+            "columnName": "page_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentPage",
+            "columnName": "current_page",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scale",
+            "columnName": "scale",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotation",
+            "columnName": "rotation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offsetX",
+            "columnName": "offset_x",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offsetY",
+            "columnName": "offset_y",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "pdf_info_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pdf_info_file_path",
+            "unique": false,
+            "columnNames": [
+              "file_path"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pdf_info_file_path` ON `${TABLE_NAME}` (`file_path`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cf47f795147fe25f68bc13d1aef7c4a4')"
+    ]
+  }
+}

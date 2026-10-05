@@ -1,0 +1,440 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "873c689116728905e37e6d99653f1818",
+    "entities": [
+      {
+        "tableName": "notes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`note_id` TEXT NOT NULL, `parent_folder_id` TEXT, `display_name` TEXT NOT NULL, `file_path` TEXT NOT NULL, `cover_path` TEXT, `color` INTEGER NOT NULL, `page_count` INTEGER NOT NULL, `file_size_bytes` INTEGER NOT NULL, `default_page_type` INTEGER NOT NULL, `default_orientation` INTEGER NOT NULL, `recycle_bin_time_moved` INTEGER, `recycle_bin_expires_at` INTEGER, `is_bookmarked` INTEGER NOT NULL, `bookmark_time` INTEGER, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`note_id`))",
+        "fields": [
+          {
+            "fieldPath": "noteId",
+            "columnName": "note_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentFolderId",
+            "columnName": "parent_folder_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "file_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverPath",
+            "columnName": "cover_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageCount",
+            "columnName": "page_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileSizeBytes",
+            "columnName": "file_size_bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultPageType",
+            "columnName": "default_page_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultOrientation",
+            "columnName": "default_orientation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recycleBinTimeMoved",
+            "columnName": "recycle_bin_time_moved",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recycleBinExpiresAt",
+            "columnName": "recycle_bin_expires_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isBookmarked",
+            "columnName": "is_bookmarked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookmarkTime",
+            "columnName": "bookmark_time",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "note_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notes_parent_folder_id",
+            "unique": false,
+            "columnNames": [
+              "parent_folder_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_parent_folder_id` ON `${TABLE_NAME}` (`parent_folder_id`)"
+          },
+          {
+            "name": "index_notes_display_name",
+            "unique": false,
+            "columnNames": [
+              "display_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_display_name` ON `${TABLE_NAME}` (`display_name`)"
+          },
+          {
+            "name": "index_notes_recycle_bin_time_moved",
+            "unique": false,
+            "columnNames": [
+              "recycle_bin_time_moved"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_recycle_bin_time_moved` ON `${TABLE_NAME}` (`recycle_bin_time_moved`)"
+          },
+          {
+            "name": "index_notes_is_bookmarked",
+            "unique": false,
+            "columnNames": [
+              "is_bookmarked"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_is_bookmarked` ON `${TABLE_NAME}` (`is_bookmarked`)"
+          },
+          {
+            "name": "index_notes_sync_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sync_timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_sync_timestamp` ON `${TABLE_NAME}` (`sync_timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "folders",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`folder_id` TEXT NOT NULL, `parent_folder_id` TEXT, `display_name` TEXT NOT NULL, `color` INTEGER NOT NULL, `sort_order` INTEGER NOT NULL, `recycle_bin_time_moved` INTEGER, `recycle_bin_expires_at` INTEGER, `is_bookmarked` INTEGER NOT NULL, `bookmark_time` INTEGER, `created_time` INTEGER NOT NULL, `modified_time` INTEGER NOT NULL, `sync_timestamp` INTEGER NOT NULL, PRIMARY KEY(`folder_id`))",
+        "fields": [
+          {
+            "fieldPath": "folderId",
+            "columnName": "folder_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentFolderId",
+            "columnName": "parent_folder_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recycleBinTimeMoved",
+            "columnName": "recycle_bin_time_moved",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recycleBinExpiresAt",
+            "columnName": "recycle_bin_expires_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isBookmarked",
+            "columnName": "is_bookmarked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookmarkTime",
+            "columnName": "bookmark_time",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedTime",
+            "columnName": "modified_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncTimestamp",
+            "columnName": "sync_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "folder_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_folders_parent_folder_id",
+            "unique": false,
+            "columnNames": [
+              "parent_folder_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_parent_folder_id` ON `${TABLE_NAME}` (`parent_folder_id`)"
+          },
+          {
+            "name": "index_folders_display_name",
+            "unique": false,
+            "columnNames": [
+              "display_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_display_name` ON `${TABLE_NAME}` (`display_name`)"
+          },
+          {
+            "name": "index_folders_recycle_bin_time_moved",
+            "unique": false,
+            "columnNames": [
+              "recycle_bin_time_moved"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_recycle_bin_time_moved` ON `${TABLE_NAME}` (`recycle_bin_time_moved`)"
+          },
+          {
+            "name": "index_folders_is_bookmarked",
+            "unique": false,
+            "columnNames": [
+              "is_bookmarked"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_is_bookmarked` ON `${TABLE_NAME}` (`is_bookmarked`)"
+          },
+          {
+            "name": "index_folders_sync_timestamp",
+            "unique": false,
+            "columnNames": [
+              "sync_timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_sync_timestamp` ON `${TABLE_NAME}` (`sync_timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "folder_closure",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ancestor_id` TEXT NOT NULL, `descendant_id` TEXT NOT NULL, `depth` INTEGER NOT NULL, PRIMARY KEY(`ancestor_id`, `descendant_id`))",
+        "fields": [
+          {
+            "fieldPath": "ancestorId",
+            "columnName": "ancestor_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descendantId",
+            "columnName": "descendant_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "depth",
+            "columnName": "depth",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ancestor_id",
+            "descendant_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_folder_closure_descendant_id",
+            "unique": false,
+            "columnNames": [
+              "descendant_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folder_closure_descendant_id` ON `${TABLE_NAME}` (`descendant_id`)"
+          },
+          {
+            "name": "index_folder_closure_depth",
+            "unique": false,
+            "columnNames": [
+              "depth"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folder_closure_depth` ON `${TABLE_NAME}` (`depth`)"
+          }
+        ]
+      },
+      {
+        "tableName": "templates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`template_id` TEXT NOT NULL, `display_name` TEXT NOT NULL, `category` TEXT NOT NULL, `source` INTEGER NOT NULL, `file_path` TEXT NOT NULL, `thumbnail_path` TEXT, `license` TEXT NOT NULL, `attribution` TEXT, `created_time` INTEGER NOT NULL, PRIMARY KEY(`template_id`))",
+        "fields": [
+          {
+            "fieldPath": "templateId",
+            "columnName": "template_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "file_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailPath",
+            "columnName": "thumbnail_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "license",
+            "columnName": "license",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attribution",
+            "columnName": "attribution",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdTime",
+            "columnName": "created_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "template_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_templates_category",
+            "unique": false,
+            "columnNames": [
+              "category"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_templates_category` ON `${TABLE_NAME}` (`category`)"
+          },
+          {
+            "name": "index_templates_source",
+            "unique": false,
+            "columnNames": [
+              "source"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_templates_source` ON `${TABLE_NAME}` (`source`)"
+          },
+          {
+            "name": "index_templates_display_name",
+            "unique": false,
+            "columnNames": [
+              "display_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_templates_display_name` ON `${TABLE_NAME}` (`display_name`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '873c689116728905e37e6d99653f1818')"
+    ]
+  }
+}
