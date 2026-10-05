@@ -3,7 +3,8 @@ package com.thundernotes
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
-import androidx.navigation.findNavController
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.thundernotes.databinding.ActivityMainBinding
 import com.thundernotes.ui.common.SidebarAdapter
@@ -36,16 +37,23 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Set up NavController for the NavHostFragment.
-        navController = findNavController(R.id.nav_host)
+        // Set up NavController for the NavHostFragment. Look it up through the
+        // fragment manager rather than findNavController(R.id.nav_host): the
+        // FragmentContainerView's own tag is not where Navigation stores the
+        // controller, so the activity-level helper throws
+        // "Activity ... does not have a NavController set on ...".
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host) as NavHostFragment
+        navController = navHostFragment.navController
 
         // Set up sidebar RecyclerView + adapter.
         sidebarAdapter = SidebarAdapter { item ->
             item.destinationId?.let { destId ->
-                navController.navigate(destId) {
-                    // Avoid stacking the same destination on top of itself.
-                    launchSingleTop = true
-                }
+                navController.navigate(
+                    destId,
+                    null,
+                    NavOptions.Builder().setLaunchSingleTop(true).build()
+                )
             }
         }
         binding.sidebarRecycler.apply {

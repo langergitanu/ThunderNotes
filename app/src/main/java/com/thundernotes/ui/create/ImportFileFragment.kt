@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import com.thundernotes.R
 import com.thundernotes.databinding.FragmentImportFileBinding
 
 /**

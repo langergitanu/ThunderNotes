@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.thundernotes.data.entity.PageOrientation
 import com.thundernotes.data.entity.PageType
+import com.thundernotes.R
 import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentCreateNoteBinding
 import kotlinx.coroutines.launch

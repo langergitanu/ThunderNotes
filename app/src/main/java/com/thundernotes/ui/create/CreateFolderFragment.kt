@@ -11,6 +11,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.thundernotes.R
 import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentCreateFolderBinding
+import com.thundernotes.ui.common.FolderColors
 import kotlinx.coroutines.launch
 
 /**
@@ -76,7 +77,7 @@ class CreateFolderFragment : BottomSheetDialogFragment() {
         )
         swatches.forEachIndexed { index, swatch ->
             swatch.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), FOLDER_COLORS[index])
+                ContextCompat.getColor(requireContext(), FolderColors.COLORS[index])
             )
             swatch.setOnClickListener {
                 selectedColorIndex = index
@@ -95,7 +96,7 @@ class CreateFolderFragment : BottomSheetDialogFragment() {
                 else R.drawable.bg_swatch_unselected
             )
             swatch.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), FOLDER_COLORS[i])
+                ContextCompat.getColor(requireContext(), FolderColors.COLORS[i])
             )
         }
     }
@@ -105,15 +106,7 @@ class CreateFolderFragment : BottomSheetDialogFragment() {
         _binding = null
     }
 
-    companion object {
-        /** Brand palette colors for folder swatches. */
-        private val FOLDER_COLORS = intArrayOf(
-            R.color.thunder_primary,        // crimson
-            R.color.thunder_secondary,     // emerald
-            R.color.thunder_tertiary,      // amber
-            R.color.thunder_accent_blue,   // blue
-            R.color.thunder_primary_dark,  // dark crimson
-            R.color.thunder_secondary_dark  // dark emerald
-        )
-    }
+    // FolderColors palette is now shared via ui/common/FolderColors.kt (S2-1/S2-2 fix).
+    // CreateFolderFragment + FolderAdapter both read from FolderColors.COLORS
+    // so they don't drift.
 }

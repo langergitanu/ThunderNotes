@@ -24,10 +24,11 @@
         android:padding="@dimen/space_lg">
 
         <ImageView
+            android:id="@+id/folder_icon"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_sidebar_folders"
-            app:tint="@color/thunder_accent_blue"
+            app:tint="@color/text_muted"
             android:contentDescription="@string/cd_create_folder" />
 
         <LinearLayout

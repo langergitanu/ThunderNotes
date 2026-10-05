@@ -26,6 +26,11 @@
 
     <color name="thunder_accent_blue">#3B82F6</color>
 
+    <!-- Folder-specific colors (S2-2 fix: replaced thunder_primary_dark + thunder_secondary_dark
+         with these for 6 visually distinct folder-color palette entries). -->
+    <color name="folder_color_purple">#9333EA</color>
+    <color name="folder_color_teal">#14B8A6</color>
+
     <!-- ─── Surface tiers ──────────────────────────────────────────────────────
          Values aligned with the FORMAL DESIGN TOKENS at the top of the spec
          (canvasLayoutPage.md `colors:` block), NOT the body "Surface Hierarchy"

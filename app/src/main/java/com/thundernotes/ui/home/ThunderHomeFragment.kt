@@ -85,10 +85,9 @@ class ThunderHomeFragment : Fragment() {
     }
 
     private fun setupFolderScroll() {
+        // S2-3 fix: compact=true sets a fixed 180dp width for the horizontal strip.
         folderAdapter = FolderAdapter(
             onItemClick = { folder ->
-                // Navigate to the folder's contents (NotesLibraryPage filtered by parent).
-                // For now, just show a toast.
                 android.widget.Toast.makeText(
                     requireContext(),
                     "Opening folder \"${folder.displayName}\" — filtered view coming in Phase 5b",
@@ -101,7 +100,8 @@ class ThunderHomeFragment : Fragment() {
                     "Folder overflow coming in Phase 5b",
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
-            }
+            },
+            compact = true  // S2-3: fixed-width cards for horizontal strip
         )
         binding.recentFoldersRecycler.apply {
             layoutManager = LinearLayoutManager(
