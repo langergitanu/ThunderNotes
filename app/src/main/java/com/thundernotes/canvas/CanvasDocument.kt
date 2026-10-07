@@ -47,6 +47,11 @@ class CanvasDocument {
     var zoomPercent: Int = 100
         private set
 
+    /** The most-recently undone action (null if the last undo was a no-op). The
+     *  editor reads this to remove the undone stroke from the Ink view. */
+    var lastUndoneAction: DocAction? = null
+        private set
+
     val totalPages: Int get() = _pages.size
     val currentPage: PageRecord? get() = _pages.getOrNull(currentPageIndex)
     val currentStrokes: List<StrokeRecord> get() = currentPage?.strokes?.toList() ?: emptyList()
@@ -110,7 +115,10 @@ class CanvasDocument {
     // ─── undo / redo ────────────────────────────────────────────────────────
 
     fun undo(): Boolean {
-        val action = _undoStack.removeLastOrNull() ?: return false
+        val action = _undoStack.removeLastOrNull() ?: run {
+            lastUndoneAction = null
+            return false
+        }
         when (action) {
             is DocAction.AddStroke -> {
                 val page = _pages.firstOrNull { it.id == action.pageId }
@@ -131,6 +139,7 @@ class CanvasDocument {
             }
         }
         _redoStack.addLast(action)
+        lastUndoneAction = action
         return true
     }
 

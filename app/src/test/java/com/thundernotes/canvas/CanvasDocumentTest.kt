@@ -140,4 +140,22 @@ class CanvasDocumentTest {
         assertFalse(doc.canUndo)
         assertFalse(doc.canRedo)
     }
+
+    @Test fun `undo records the undone action in lastUndoneAction`() {
+        assertNull(doc.lastUndoneAction)  // null before any undo
+        doc.addStroke(stroke("s1"))
+        doc.undo()
+        val action = doc.lastUndoneAction
+        assertNotNull(action)
+        assertTrue(action is com.thundernotes.canvas.DocAction.AddStroke)
+        assertEquals("s1", (action as com.thundernotes.canvas.DocAction.AddStroke).stroke.id)
+    }
+
+    @Test fun `undo with empty stack clears lastUndoneAction`() {
+        doc.addStroke(stroke("s1"))
+        doc.undo()             // lastUndoneAction = the AddStroke
+        assertNotNull(doc.lastUndoneAction)
+        doc.undo()             // empty stack → should clear
+        assertNull(doc.lastUndoneAction)
+    }
 }

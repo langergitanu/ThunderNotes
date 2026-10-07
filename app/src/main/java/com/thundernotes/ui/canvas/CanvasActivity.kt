@@ -198,24 +198,18 @@ class CanvasActivity : AppCompatActivity() {
     }
 
     private fun handleUndo() {
-        val removedByUndo = document.undo()
-        // removedByUndo is Boolean; if the undone action was an AddStroke, the
-        // Ink view still shows that stroke — remove it from the active host.
-        // (For Phase 8 we remove from the most-recent host that has it.)
-        val state = viewModel.uiState.value
-        if (removedByUndo) {
-            // The document's last-undone AddStroke's stroke id — we approximate
-            // by removing the last finished stroke on the current page's host.
-            val host = pageHosts.getOrNull(state.currentPageIndex) ?: return
-            // No exact id here without inspecting the undo stack's payload; the
-            // host.removeStrokeFromView needs the record id. For Phase 8 we
-            // surface undo at the model layer (strokes are gone from the document
-            // + will be gone from the view after the next save/load). Full
-            // view-side undo re-render is Phase 8b.
-            runCatching {
-                // Best-effort: clear all finished strokes on the current host
-                // so the view matches the document after a sequence of undos.
-                // (Refined per-stroke undo lands with a stroke-id lookup table.)
+        val undone = document.undo()
+        if (undone) {
+            // Phase 8b: actually remove the undone stroke from the Ink view.
+            // The document's lastUndoneAction carries the stroke id (for an
+            // AddStroke undo); the host maps record id → Ink finished-stroke id
+            // → removeFinishedStrokes. (For RemoveStroke/AddPage undos there's
+            // no view-side stroke to remove — those are model-only.)
+            val action = document.lastUndoneAction
+            if (action is com.thundernotes.canvas.DocAction.AddStroke) {
+                val state = viewModel.uiState.value
+                pageHosts.getOrNull(state.currentPageIndex)
+                    ?.removeStrokeFromView(action.stroke.id)
             }
         }
         syncUndoRedoFlags()
@@ -225,8 +219,8 @@ class CanvasActivity : AppCompatActivity() {
         document.redo()
         // Redo-on-view (re-adding a removed stroke to the Ink view) is not
         // directly supported by InProgressStrokesView; the document tracks it
-        // and the stroke reappears after a save/load cycle. Phase 8b will add
-        // a completed-strokes renderer for live redo.
+        // and the stroke reappears after a save/load cycle. A completed-strokes
+        // renderer for live redo is the remaining Phase 8b item.
         syncUndoRedoFlags()
     }
 
