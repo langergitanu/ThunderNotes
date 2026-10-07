@@ -41,6 +41,10 @@ data class ClipboardPayload(
     val underline: Int = 0,
     val x: Float = 0f,
     val y: Float = 0f,
+    /** Non-null for CODE snips → the textbox renderer applies syntax colours.
+     *  One of the [com.thundernotes.snip.CodeLanguage] display names ("TypeScript",
+     *  "JavaScript", "JSX", "Python", "Java", "C++"). */
+    val codeLanguage: String? = null,
 )
 
 @Serializable
@@ -73,6 +77,7 @@ object ClipboardPayloadCodec {
                     x = payload.x,
                     y = payload.y,
                     bbox = payload.bbox.toFloatArray(),
+                    codeLanguage = payload.codeLanguage,
                 )
             }
             else -> null
@@ -101,6 +106,7 @@ object ClipboardPayloadCodec {
                 underline = item.underline,
                 x = item.x,
                 y = item.y,
+                codeLanguage = item.codeLanguage,
             )
         }
         return json.encodeToString(payload)

@@ -58,6 +58,39 @@ class ClipboardPayloadCodecTest {
         assertEquals(20f, dt.y, 0f)
     }
 
+    @Test fun `code textbox round-trips codeLanguage + Patrick Hand default`() {
+        // Mirrors Phase 9f: CODE snips default to Patrick Hand (index 4) +
+        // carry codeLanguage so the textbox renderer can apply syntax colours.
+        val original = ClipboardItem.TextBox(
+            text = "const x = 42",
+            fontFamily = 4,  // Patrick Hand (default for snipped content)
+            bold = false, italic = false, underline = 0,
+            x = 50f, y = 50f, bbox = floatArrayOf(0f, 0f, 500f, 300f),
+            codeLanguage = "TypeScript",
+        )
+        val json = ClipboardPayloadCodec.encode(original)
+        val decoded = ClipboardPayloadCodec.decode(json)
+        assertNotNull(decoded)
+        assertTrue(decoded is ClipboardItem.TextBox)
+        val dt = decoded as ClipboardItem.TextBox
+        assertEquals("const x = 42", dt.text)
+        assertEquals(4, dt.fontFamily)  // Patrick Hand
+        assertEquals("TypeScript", dt.codeLanguage)
+    }
+
+    @Test fun `decode accepts legacy textbox JSON without codeLanguage field`() {
+        // Backward compat: an external sender that doesn't include codeLanguage
+        // should still decode (the field defaults to null).
+        val json = """{"type":"textbox","bbox":[0,0,1,1],"text":"hi","font":4}"""
+        val decoded = ClipboardPayloadCodec.decode(json)
+        assertNotNull(decoded)
+        assertTrue(decoded is ClipboardItem.TextBox)
+        val dt = decoded as ClipboardItem.TextBox
+        assertEquals("hi", dt.text)
+        assertEquals(4, dt.fontFamily)
+        assertNull(dt.codeLanguage)
+    }
+
     @Test fun `decode rejects malformed JSON`() {
         assertNull(ClipboardPayloadCodec.decode("not json {"))
     }

@@ -2,6 +2,7 @@ package com.thundernotes.snip
 
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.thundernotes.R
 import com.thundernotes.canvas.inject.ClipboardItem
 import com.thundernotes.canvas.inject.ThunderClipboard
+import com.thundernotes.data.entity.FontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,13 +31,23 @@ import kotlinx.coroutines.withContext
  * 2. Run the [FallbackSnipEngine] (Gemini → GLM → PaddleOCR, skipping disabled/
  *    keyless engines entirely).
  * 3. Map the [SnipResult] to a [ClipboardItem]:
- *    - Text → ClipboardItem.TextBox (the recognized text).
- *    - LaTeX → (Phase 9c: KaTeX render → OpenCV trace → ClipboardItem.StrokeGroup).
- *      For now, puts the LaTeX as a TextBox (so the user sees the recognized equation).
- *    - Code → ClipboardItem.TextBox (formatted code).
- *    - Strokes → (Phase 9d: diagram tracer). For now, not reached (no Diagram OCR engine).
+ *    - Text → ClipboardItem.TextBox (recognized text, **Patrick Hand** font).
+ *    - LaTeX → (Phase 9c: KaTeX render → centerline trace → StrokeGroup).
+ *      Falls back to a Patrick Hand italic textbox (showing the LaTeX) if
+ *      the trace fails.
+ *    - Code → ClipboardItem.TextBox (formatted code, **Patrick Hand** base font
+ *      + codeLanguage carried so the textbox renderer can apply [CodeFormatter]
+ *      syntax colours). The colours are font-agnostic spans, so the user can
+ *      switch the textbox font to JetBrains Mono afterward without losing
+ *      the colours.
+ *    - Strokes → (Phase 9d: diagram tracer) traced directly from the image.
  * 4. [ThunderClipboard].put(item) → the paste button glows → the user pastes
  *    via the existing Phase 8b injection path.
+ *
+ * **Default font (spec §6.10 + user request):** snipped text, equation
+ * (textbox fallback), + code all default to **Patrick Hand** (index 4).
+ * After pasting, the user can change the textbox font to any of the 10 spec
+ * fonts (+ JetBrains Mono for code) via the textbox editor.
  *
  * The captured bitmap is passed via [Companion.bitmap] (a static holder — the
  * bitmap is too large for Bundle/Intent).
@@ -43,34 +55,80 @@ import kotlinx.coroutines.withContext
 class SnipBottomSheet : BottomSheetDialogFragment() {
 
     private var engine: FallbackSnipEngine? = null
+    private lateinit var rootLayout: LinearLayout
+    private lateinit var codeLangRow: LinearLayout
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         val ctx = inflater.context
-        return LinearLayout(ctx).apply {
+        rootLayout = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(48, 32, 48, 48)
-            // Title
-            addView(TextView(ctx).apply {
-                text = getString(R.string.canvas_ai_snip)
-                textSize = 16f
-                setPadding(0, 0, 0, 16)
-            })
-            // 4 snip-type buttons
-            val labels = listOf(
-                SnipType.TEXT to "📝 Text Snip",
-                SnipType.EQUATION to "∑ Equation Snip",
-                SnipType.CODE to "</> Code Snip",
-                SnipType.DIAGRAM to "📊 Diagram Snip",
-            )
-            for ((type, label) in labels) {
-                addView(Button(ctx).apply {
-                    text = label
-                    setOnClickListener { runSnip(type) }
-                })
-            }
         }
+        // Title
+        rootLayout.addView(TextView(ctx).apply {
+            text = getString(R.string.canvas_ai_snip)
+            textSize = 16f
+            setPadding(0, 0, 0, 16)
+        })
+        // 4 snip-type buttons
+        val labels = listOf(
+            SnipType.TEXT to "📝 Text Snip",
+            SnipType.EQUATION to "∑ Equation Snip",
+            SnipType.CODE to "</> Code Snip",
+            SnipType.DIAGRAM to "📊 Diagram Snip",
+        )
+        for ((type, label) in labels) {
+            rootLayout.addView(Button(ctx).apply {
+                text = label
+                setOnClickListener {
+                    if (type == SnipType.CODE) {
+                        // Show the language sub-selector (don't run yet).
+                        codeLangRow.visibility = if (codeLangRow.visibility == View.VISIBLE)
+                            View.GONE else View.VISIBLE
+                    } else {
+                        runSnip(type, null)
+                    }
+                }
+            })
+        }
+        // Code language sub-selector (hidden until Code Snip is tapped).
+        // 6 language buttons + the theme is derived via CodeTheme.forLanguage.
+        codeLangRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            setPadding(24, 16, 24, 0)
+            addView(TextView(ctx).apply {
+                text = "Select language:"
+                textSize = 13f
+                setPadding(0, 0, 0, 8)
+            })
+        }
+        val langGrid = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        // 6 language buttons in a row (wraps if narrow — tablet width is fine).
+        val langButtons = listOf(
+            CodeLanguage.TYPESCRIPT to "TS",
+            CodeLanguage.JAVASCRIPT to "JS",
+            CodeLanguage.JSX to "JSX",
+            CodeLanguage.PYTHON to "Py",
+            CodeLanguage.JAVA to "Java",
+            CodeLanguage.CPP to "C++",
+        )
+        for ((lang, lbl) in langButtons) {
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            lp.setMargins(4, 0, 4, 0)
+            langGrid.addView(Button(ctx).apply {
+                text = lbl
+                setOnClickListener { runSnip(SnipType.CODE, lang) }
+                layoutParams = lp
+            })
+        }
+        codeLangRow.addView(langGrid)
+        rootLayout.addView(codeLangRow)
+        return rootLayout
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -82,16 +140,18 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
         )
     }
 
-    private fun runSnip(type: SnipType) {
+    private fun runSnip(type: SnipType, codeLanguage: CodeLanguage?) {
         val bmp = bitmap
         if (bmp == null) {
             Toast.makeText(requireContext(), "Capture failed", Toast.LENGTH_SHORT).show()
             dismiss(); return
         }
+        // Collapse the language row once a language is chosen.
+        if (::codeLangRow.isInitialized) codeLangRow.visibility = View.GONE
         viewLifecycleOwner.lifecycleScope.launch {
             Toast.makeText(requireContext(), "Recognizing…", Toast.LENGTH_SHORT).show()
             val result = withContext(Dispatchers.IO) {
-                runSnipPipeline(bmp, type)
+                runSnipPipeline(bmp, type, codeLanguage)
             }
             result.fold(
                 onSuccess = { item ->
@@ -109,7 +169,9 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
     }
 
     /** The full snip pipeline: preprocess → engine → ClipboardItem. */
-    private suspend fun runSnipPipeline(bmp: Bitmap, type: SnipType): Result<ClipboardItem> {
+    private suspend fun runSnipPipeline(
+        bmp: Bitmap, type: SnipType, codeLanguage: CodeLanguage?,
+    ): Result<ClipboardItem> {
         return runCatching {
             // 1. Convert Bitmap → SnipImage (pure pixel array).
             val w = bmp.width; val h = bmp.height
@@ -162,8 +224,8 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
 
             // 4. Map SnipResult → ClipboardItem.
             // For EQUATION snips: LaTeX → KaTeX render → centerline trace →
-            // StrokeGroup (native erasable strokes). Falls back to TextBox
-            // (showing the LaTeX) if the trace fails.
+            // StrokeGroup (native erasable strokes). Falls back to a Patrick
+            // Hand italic textbox (showing the LaTeX) if the trace fails.
             if (type == SnipType.EQUATION) {
                 val latex = LatexCleaner.joinMultiLine(
                     perLineResults.map { r -> (r as? SnipResult.LaTeX)?.latex
@@ -177,25 +239,41 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                             bbox = floatArrayOf(0f, 0f, 600f, 400f),
                         )
                     }
-                    // Fallback: show the LaTeX as a textbox (never silently drop content).
+                    // Fallback: Patrick Hand italic textbox (never drop content).
                     return@runCatching ClipboardItem.TextBox(
                         text = latex,
-                        fontFamily = 2, bold = false, italic = true, underline = 0,
+                        fontFamily = FontFamily.PATRICK_HAND,
+                        bold = false, italic = true, underline = 0,
                         x = 50f, y = 50f,
                         bbox = floatArrayOf(0f, 0f, 400f, 200f),
                     )
                 }
             }
 
-            mapResultToClipboard(perLineResults, type)
+            mapResultToClipboard(perLineResults, type, codeLanguage)
         }
     }
 
-    /** Map the recognition result(s) to a ClipboardItem for ThunderClipboard. */
-    private fun mapResultToClipboard(results: List<SnipResult>, type: SnipType): ClipboardItem {
+    /**
+     * Map the recognition result(s) to a ClipboardItem for ThunderClipboard.
+     *
+     * **Default font = Patrick Hand** (index 4) for TEXT, CODE, + the
+     * EQUATION textbox fallback. The user can change the textbox font
+     * afterward via the textbox editor.
+     *
+     * For CODE snips, [codeLanguage] (user-selected) is carried in the
+     * [ClipboardItem.TextBox.codeLanguage] field → the textbox renderer
+     * applies [CodeFormatter] syntax colours on top of the base Patrick Hand
+     * font. The colours are font-agnostic spans, so a font change to
+     * JetBrains Mono (monospace) survives.
+     */
+    private fun mapResultToClipboard(
+        results: List<SnipResult>,
+        type: SnipType,
+        codeLanguage: CodeLanguage?,
+    ): ClipboardItem {
         return when (type) {
-            SnipType.TEXT, SnipType.CODE -> {
-                // Join per-line text/code → a single TextBox.
+            SnipType.TEXT -> {
                 val text = results.joinToString("\n") { r ->
                     when (r) {
                         is SnipResult.Text -> r.text
@@ -206,30 +284,61 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                 }
                 ClipboardItem.TextBox(
                     text = text,
-                    fontFamily = 0, bold = false, italic = false, underline = 0,
+                    fontFamily = FontFamily.PATRICK_HAND,
+                    bold = false, italic = false, underline = 0,
                     x = 50f, y = 50f,
                     bbox = floatArrayOf(0f, 0f, 400f, 200f),
                 )
             }
+            SnipType.CODE -> {
+                // Join per-line code → a single TextBox. Carry the language so
+                // the textbox renderer can apply [CodeFormatter] colours.
+                val code = results.joinToString("\n") { r ->
+                    when (r) {
+                        is SnipResult.Code -> r.rawCode
+                        is SnipResult.Text -> r.text
+                        is SnipResult.LaTeX -> r.latex
+                        is SnipResult.Strokes -> "(strokes)"
+                    }
+                }
+                // Prefer the user-selected language (displayName), then the
+                // engine's string hint. Normalise both to String? so the
+                // textbox renderer can look up the CodeLanguage by name.
+                val langName: String? = codeLanguage?.displayName
+                    ?: (results.firstOrNull { it is SnipResult.Code }
+                        as? SnipResult.Code)?.language
+                ClipboardItem.TextBox(
+                    text = code,
+                    fontFamily = FontFamily.PATRICK_HAND,
+                    bold = false, italic = false, underline = 0,
+                    x = 50f, y = 50f,
+                    bbox = floatArrayOf(0f, 0f, 500f, 300f),
+                    codeLanguage = langName,
+                )
+            }
             SnipType.EQUATION -> {
-                // Phase 9c: LaTeX → KaTeX → OpenCV trace → StrokeGroup.
-                // For now: put the LaTeX as a TextBox so the user sees the result.
+                // Phase 9c: LaTeX → KaTeX → centerline trace → StrokeGroup.
+                // The textbox fallback (Patrick Hand italic) is handled in
+                // runSnipPipeline above; this branch is only reached if the
+                // LaTeX was blank — keep a Patrick Hand placeholder.
                 val latex = results.joinToString("\n") { r ->
                     (r as? SnipResult.LaTeX)?.latex ?: (r as? SnipResult.Text)?.text ?: ""
                 }
                 ClipboardItem.TextBox(
                     text = latex,
-                    fontFamily = 2, bold = false, italic = true, underline = 0,
+                    fontFamily = FontFamily.PATRICK_HAND,
+                    bold = false, italic = true, underline = 0,
                     x = 50f, y = 50f,
                     bbox = floatArrayOf(0f, 0f, 400f, 200f),
                 )
             }
             SnipType.DIAGRAM -> {
-                // Phase 9d: OpenCV diagram trace → StrokeGroup.
-                // For now, not reached (no Diagram engine).
+                // Phase 9d: diagram trace → StrokeGroup (handled in
+                // runSnipPipeline). Not reached here.
                 ClipboardItem.TextBox(
                     text = "(diagram tracing — Phase 9d)",
-                    fontFamily = 0, bold = false, italic = false, underline = 0,
+                    fontFamily = FontFamily.PATRICK_HAND,
+                    bold = false, italic = false, underline = 0,
                     x = 50f, y = 50f,
                     bbox = floatArrayOf(0f, 0f, 100f, 50f),
                 )

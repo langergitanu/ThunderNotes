@@ -30,7 +30,21 @@ sealed class ClipboardItem {
         override val bbox: FloatArray,
     ) : ClipboardItem()
 
-    /** A textbox (snipped text/code → appears as a textbox on paste). */
+    /**
+     * A textbox (snipped text/code → appears as a textbox on paste).
+     *
+     * **Default font policy (spec §6.10 + user request):** snipped text,
+     * equation (textbox fallback), + code all default to **Patrick Hand**
+     * (fontFamily = 4). The user can change the font afterward via the
+     * textbox editor (the fontFamily field is mutable on the textbox model).
+     *
+     * **Code highlighting:** [codeLanguage] is non-null only for CODE snips
+     * (null for TEXT/EQUATION). When non-null, the textbox renderer re-applies
+     * syntax colours via [com.thundernotes.snip.CodeFormatter] + the theme
+     * derived by [com.thundernotes.snip.CodeTheme.forLanguage]. The colours
+     * are font-agnostic (ForegroundColorSpans sit on top of whatever Typeface
+     * the textbox uses), so the user's font choice survives highlighting.
+     */
     data class TextBox(
         val text: String,
         val fontFamily: Int,
@@ -40,5 +54,7 @@ sealed class ClipboardItem {
         val x: Float,
         val y: Float,
         override val bbox: FloatArray,
+        /** Non-null for CODE snips → the textbox renderer applies syntax colours. */
+        val codeLanguage: String? = null,
     ) : ClipboardItem()
 }
