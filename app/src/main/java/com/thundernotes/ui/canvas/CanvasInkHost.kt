@@ -122,6 +122,14 @@ class CanvasInkHost @JvmOverloads constructor(
         currentConfig = config
     }
 
+    /** The active editor tool (drives the TEXT-tool tap path — drawing tools route
+     *  to start/add/finish; TEXT routes to [onTextTap]). Set alongside [setBrush]. */
+    var currentTool: com.thundernotes.ui.canvas.EditorTool? = null
+
+    /** Called when the TEXT tool taps the canvas at (x, y) — the activity opens
+     *  a text-input dialog + drops a TextBoxRecord at the tap. */
+    var onTextTap: ((Float, Float) -> Unit)? = null
+
     private fun currentBrush(): Brush? {
         val cfg = currentConfig ?: return null
         val family = when (cfg.familyId) {
@@ -140,6 +148,14 @@ class CanvasInkHost @JvmOverloads constructor(
         if (!inkAvailable) return false
         val view = inkView ?: return false
         val cfg = currentConfig ?: return false
+
+        // TEXT tool: don't draw — route the tap to the activity's text-input dialog.
+        if (currentTool == com.thundernotes.ui.canvas.EditorTool.TEXT) {
+            if (ev.actionMasked == MotionEvent.ACTION_UP) {
+                onTextTap?.invoke(ev.getX(0), ev.getY(0))
+            }
+            return true  // consume the touch so it doesn't reach the Ink view
+        }
 
         // Eraser: a tap (DOWN+UP with no significant MOVE) on a finished stroke removes it.
         if (cfg.isEraser) {

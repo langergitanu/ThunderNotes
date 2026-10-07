@@ -158,4 +158,52 @@ class CanvasDocumentTest {
         doc.undo()             // empty stack → should clear
         assertNull(doc.lastUndoneAction)
     }
+
+    @Test fun `redo records the redone action in lastRedoneAction`() {
+        assertNull(doc.lastRedoneAction)
+        doc.addStroke(stroke("s1"))
+        doc.undo()
+        doc.redo()
+        val action = doc.lastRedoneAction
+        assertNotNull(action)
+        assertTrue(action is com.thundernotes.canvas.DocAction.AddStroke)
+        assertEquals("s1", (action as com.thundernotes.canvas.DocAction.AddStroke).stroke.id)
+    }
+
+    @Test fun `redo with empty stack clears lastRedoneAction`() {
+        doc.addStroke(stroke("s1"))
+        doc.undo()
+        doc.redo()             // lastRedoneAction = the AddStroke
+        assertNotNull(doc.lastRedoneAction)
+        doc.redo()             // empty stack → should clear
+        assertNull(doc.lastRedoneAction)
+    }
+
+    // ─── textboxes (Phase 8b, spec §7.1) ───────────────────────────────────
+
+    private fun tb(id: String) = TextBoxRecord(
+        id = id, pageId = doc.currentPage?.id.orEmpty(), text = "hello",
+        x = 10f, y = 20f,
+    )
+
+    @Test fun `addTextbox appends to the current page's textboxes`() {
+        doc.addTextbox(tb("t1"))
+        doc.addTextbox(tb("t2"))
+        assertEquals(2, doc.currentTextboxes.size)
+        assertEquals("t1", doc.currentTextboxes[0].id)
+    }
+
+    @Test fun `removeTextbox deletes by id + returns it`() {
+        doc.addTextbox(tb("t1"))
+        val removed = doc.removeTextbox("t1")
+        assertNotNull(removed)
+        assertEquals("t1", removed?.id)
+        assertEquals(0, doc.currentTextboxes.size)
+    }
+
+    @Test fun `removeTextbox with unknown id returns null`() {
+        doc.addTextbox(tb("t1"))
+        assertNull(doc.removeTextbox("nope"))
+        assertEquals(1, doc.currentTextboxes.size)
+    }
 }

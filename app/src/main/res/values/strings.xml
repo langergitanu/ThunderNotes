@@ -175,6 +175,8 @@
     <string name="canvas_paste_done">Pasted onto canvas</string>
     <string name="canvas_theme_toggle">Toggle canvas theme</string>
     <string name="canvas_injected">Received — paste to drop on canvas</string>
+    <string name="canvas_textbox_title">Add text</string>
+    <string name="canvas_textbox_hint">Type text…</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

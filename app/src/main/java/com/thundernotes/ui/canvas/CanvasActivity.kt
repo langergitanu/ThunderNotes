@@ -10,6 +10,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -17,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -26,6 +28,7 @@ import com.thundernotes.R
 import com.thundernotes.canvas.BrushRegistry
 import com.thundernotes.canvas.CanvasDocument
 import com.thundernotes.canvas.StrokeRecord
+import com.thundernotes.canvas.TextBoxRecord
 import com.thundernotes.canvas.inject.InkInjector
 import com.thundernotes.canvas.inject.ThunderClipboard
 import com.thundernotes.databinding.ActivityCanvasBinding
@@ -81,6 +84,7 @@ class CanvasActivity : AppCompatActivity() {
     private val pageHosts = mutableListOf<CanvasInkHost>()
     private val pageRoots = mutableListOf<View>()  // page-item roots (for theme toggle)
     private val pageCompletedViews = mutableListOf<CompletedStrokesView>()  // finished-stroke layer per page
+    private val pageTextboxLayers = mutableListOf<ViewGroup>()  // typed-content overlay per page
     private val injector = InkInjector(document)
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
 
@@ -203,6 +207,7 @@ class CanvasActivity : AppCompatActivity() {
         pageHosts.add(host)
         pageRoots.add(pageBinding.root)
         pageCompletedViews.add(pageBinding.completedStrokesView)
+        pageTextboxLayers.add(pageBinding.textboxLayer)
         binding.pagesContainer.addView(pageBinding.root)
 
         // Apply the current brush config + theme + stroke-inversion to the new page.
@@ -231,6 +236,70 @@ class CanvasActivity : AppCompatActivity() {
         }
         syncUndoRedoFlags()
         Toast.makeText(this, R.string.canvas_paste_done, Toast.LENGTH_SHORT).show()
+    }
+
+    /** TEXT-tool tap (spec §7.1 Textbox): open a text-input dialog + drop a
+     *  [TextBoxRecord] at the tap coords on the current page's textbox layer. */
+    private fun handleTextTap(x: Float, y: Float) {
+        val state = viewModel.uiState.value
+        val input = EditText(this).apply {
+            hint = getString(R.string.canvas_textbox_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(false)
+            setLines(3)
+            setPadding(48, 24, 48, 24)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.canvas_textbox_title)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val text = input.text?.toString().orEmpty().trim()
+                if (text.isEmpty()) return@setPositiveButton
+                val tb = TextBoxRecord(
+                    pageId = document.currentPage?.id.orEmpty(),
+                    text = text,
+                    x = x, y = y,
+                    colorArgb = (state.selectedColorArgb
+                        ?: EditorPalette.COLORS.getOrNull(state.selectedColorIndex)
+                        ?: 0xFF1A1A1A.toInt()),
+                )
+                document.addTextbox(tb)
+                renderTextbox(state.currentPageIndex, tb)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Render a [TextBoxRecord] as a positioned TextView on the page's textbox layer. */
+    private fun renderTextbox(pageIndex: Int, tb: TextBoxRecord) {
+        val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
+        val tv = TextView(this).apply {
+            text = tb.text
+            setTextColor(tb.colorArgb)
+            textSize = tb.fontSizeSp
+            typeface = android.graphics.Typeface.create(
+                android.graphics.Typeface.DEFAULT,
+                when {
+                    tb.bold && tb.italic -> android.graphics.Typeface.BOLD_ITALIC
+                    tb.bold -> android.graphics.Typeface.BOLD
+                    tb.italic -> android.graphics.Typeface.ITALIC
+                    else -> android.graphics.Typeface.NORMAL
+                },
+            )
+            // Thin underline (spec §7.1 lists 4 underline styles; thin is the baseline).
+            if (tb.underline != 0) {
+                paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            }
+        }
+        val lp = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+        ).apply {
+            leftMargin = tb.x.toInt(); topMargin = tb.y.toInt()
+        }
+        layer.addView(tv, lp)
     }
 
     /** Observe the clipboard → toggle the paste button's glow (emerald ring
@@ -290,14 +359,26 @@ class CanvasActivity : AppCompatActivity() {
     }
 
     private fun handleRedo() {
-        document.redo()
-        // Phase 8b: live redo for injected/pasted strokes — the CompletedStrokesView
-        // keeps a redo buffer (the strokes its .remove buffered) + re-adds the last.
+        val redone = document.redo()
         val idx = viewModel.uiState.value.currentPageIndex
-        pageCompletedViews.getOrNull(idx)?.redo()
-        // (Drawn-stroke redo on the InProgressStrokesView stays model-only — it
-        // needs re-playing via start/add/finish; the document tracks it. A future
-        // sub-phase re-plays drawn strokes on redo.)
+        val cv = pageCompletedViews.getOrNull(idx)
+        if (redone && cv != null) {
+            // Phase 8b: live redo for BOTH injected + drawn strokes.
+            // - Injected/pasted strokes: the CompletedStrokesView keeps a redo
+            //   buffer (its .remove buffered them) → .redo() re-adds the live Stroke.
+            // - Drawn strokes: undo removed them via CompletedStrokesView.remove
+            //   (which also buffered them) → .redo() re-adds. As a fallback, if the
+            //   CompletedStrokesView's redo buffer is empty (e.g. the stroke was
+            //   undone via the InProgressStrokesView path), re-render from the
+            //   document's redone record via addFromRecord.
+            val fromBuffer = cv.redo()
+            if (!fromBuffer) {
+                val action = document.lastRedoneAction
+                if (action is com.thundernotes.canvas.DocAction.AddStroke) {
+                    cv.addFromRecord(action.stroke)
+                }
+            }
+        }
         syncUndoRedoFlags()
     }
 
@@ -318,7 +399,11 @@ class CanvasActivity : AppCompatActivity() {
             ?: EditorStrokeWidths.WIDTHS_DP.getOrNull(state.strokeWidthIndex)
             ?: EditorStrokeWidths.WIDTHS_DP[EditorStrokeWidths.DEFAULT_WIDTH_INDEX]
         val config = BrushRegistry.configFor(state.selectedTool, color, width)
-        pageHosts.forEach { it.setBrush(config) }
+        pageHosts.forEach {
+            it.setBrush(config)
+            it.currentTool = state.selectedTool
+            it.onTextTap = ::handleTextTap
+        }
     }
 
     /** Scale the pages container by the VM's zoom percentage. */

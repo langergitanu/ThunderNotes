@@ -34,10 +34,9 @@
             xmlns:tools="http://schemas.android.com/tools" />
     </FrameLayout>
 
-    <!-- Ink surface: CompletedStrokesView (finished strokes, bottom layer) +
-         the InProgressStrokesView host (top layer, the live pen trail). The
-         completed layer renders injected/pasted/loaded strokes; the in-progress
-         layer renders drawn strokes + the current pen trail. -->
+    <!-- Ink surface (layered, bottom→top):
+         CompletedStrokesView (finished strokes) → textboxLayer (typed content,
+         spec §7.1) → inkHostContainer (InProgressStrokesView, the live pen trail). -->
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -48,6 +47,12 @@
             android:id="@+id/completedStrokesView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <FrameLayout
+            android:id="@+id/textboxLayer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent" />
 
         <FrameLayout
             android:id="@+id/inkHostContainer"

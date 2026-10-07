@@ -12,8 +12,10 @@ import kotlin.math.min
 data class PageRecord(
     val id: String = UUID.randomUUID().toString(),
     val strokes: MutableList<StrokeRecord> = mutableListOf(),
+    val textboxes: MutableList<TextBoxRecord> = mutableListOf(),
 ) {
     val strokeCount: Int get() = strokes.size
+    val textboxCount: Int get() = textboxes.size
 }
 
 /**
@@ -52,9 +54,15 @@ class CanvasDocument {
     var lastUndoneAction: DocAction? = null
         private set
 
+    /** The most-recently redone action (null if the last redo was a no-op). The
+     *  editor reads this to re-render the redone stroke on the CompletedStrokesView. */
+    var lastRedoneAction: DocAction? = null
+        private set
+
     val totalPages: Int get() = _pages.size
     val currentPage: PageRecord? get() = _pages.getOrNull(currentPageIndex)
     val currentStrokes: List<StrokeRecord> get() = currentPage?.strokes?.toList() ?: emptyList()
+    val currentTextboxes: List<TextBoxRecord> get() = currentPage?.textboxes?.toList() ?: emptyList()
     val canUndo: Boolean get() = _undoStack.isNotEmpty()
     val canRedo: Boolean get() = _redoStack.isNotEmpty()
 
@@ -71,6 +79,23 @@ class CanvasDocument {
         page.strokes.add(stroke)
         _undoStack.addLast(DocAction.AddStroke(page.id, stroke))
         _redoStack.clear()
+    }
+
+    /**
+     * Add a textbox to the current page (spec §7.1). Immediate (not on the
+     * undo/redo stack yet — textbox undo/redo is a refinement; the textbox is
+     * a full document citizen via [PageRecord.textboxes]).
+     */
+    fun addTextbox(tb: TextBoxRecord) {
+        _pages.getOrNull(currentPageIndex)?.textboxes?.add(tb)
+    }
+
+    /** Remove a textbox by id; returns it if found. */
+    fun removeTextbox(textboxId: String): TextBoxRecord? {
+        val page = _pages.getOrNull(currentPageIndex) ?: return null
+        val idx = page.textboxes.indexOfFirst { it.id == textboxId }
+        if (idx < 0) return null
+        return page.textboxes.removeAt(idx)
     }
 
     /** Remove a finished stroke by id (eraser / undo of a single stroke). */
@@ -144,7 +169,10 @@ class CanvasDocument {
     }
 
     fun redo(): Boolean {
-        val action = _redoStack.removeLastOrNull() ?: return false
+        val action = _redoStack.removeLastOrNull() ?: run {
+            lastRedoneAction = null
+            return false
+        }
         when (action) {
             is DocAction.AddStroke -> {
                 val page = _pages.firstOrNull { it.id == action.pageId }
@@ -162,6 +190,7 @@ class CanvasDocument {
             }
         }
         _undoStack.addLast(action)
+        lastRedoneAction = action
         return true
     }
 
