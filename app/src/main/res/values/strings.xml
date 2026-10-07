@@ -208,6 +208,10 @@
     <string name="snip_latex_confirm">Confirm</string>
     <!-- Snip Settings (§7.3.6 — API keys + engine toggles + offline model). -->
     <string name="snip_settings_title">Snip Settings</string>
+    <string name="settings_export_pdf">Export as PDF</string>
+    <string name="settings_export_pdf_hint">Share the current note as a PDF</string>
+    <string name="settings_export_pdf_done">PDF exported</string>
+    <string name="settings_export_pdf_failed">PDF export failed</string>
     <string name="snip_settings_gemini_section">Gemini accounts</string>
     <string name="snip_settings_glm_section">GLM accounts</string>
     <string name="snip_settings_add_key">Add API key</string>

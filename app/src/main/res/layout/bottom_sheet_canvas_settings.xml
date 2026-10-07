@@ -141,4 +141,41 @@
             android:textColor="@color/text_muted"
             android:textSize="20sp" />
     </LinearLayout>
+
+    <!-- Export as PDF (§6.2.5 — rasterize the live canvas pages to a PDF). -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingVertical="@dimen/space_sm"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:id="@+id/rowExportPdf">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_export_pdf"
+                android:textColor="@color/text_high_contrast"
+                android:textSize="14sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_export_pdf_hint"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textColor="@color/text_muted"
+            android:textSize="20sp" />
+    </LinearLayout>
 </LinearLayout>

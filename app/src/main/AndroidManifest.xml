@@ -119,20 +119,27 @@
         </intent-filter>
         -->
 
-        <!-- ─── AI-snip overlay service (phase 5+) ───────────────────────────
-             Foreground service hosting the SYSTEM_ALERT_WINDOW floating snip button.
-             Started on app launch; survives app backgrounding as long as the user
-             has granted overlay permission.
-        ───────────────────────────────────────────────────────────────────────────
-        (Uncomment when SnipOverlayService lands.)
-
+        <!-- ─── AI-snip overlay service (§7.3.1 — phase 9j) ─────────────────
+             Foreground service hosting the SYSTEM_ALERT_WINDOW floating snip
+             button. Survives app backgrounding as long as the user has granted
+             overlay permission. The button is draggable; on tap it launches the
+             SnipCaptureActivity which requests MediaProjection + captures the
+             screen → SnipBottomSheet pipeline.
+        -->
         <service
             android:name=".snip.SnipOverlayService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection"
             android:stopWithTask="false" />
-        -->
+
+        <!-- SnipCaptureActivity — the MediaProjection capture host (launched
+             from the floating overlay button; transparent activity, no UI). -->
+        <activity
+            android:name=".snip.SnipCaptureActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- FileProvider for the Export share Intent (spec §6.2.5 Export).
              Exposes .thunder files under getExternalFilesDir/notes/ so they

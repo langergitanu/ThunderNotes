@@ -69,7 +69,8 @@ import kotlinx.coroutines.withContext
  *
  * Opened with an optional `EXTRA_NOTE_ID`; empty/absent → create a fresh note.
  */
-class CanvasActivity : AppCompatActivity() {
+class CanvasActivity : AppCompatActivity(),
+    CanvasSettingsBottomSheet.OnExportPdfListener {
 
     private lateinit var binding: ActivityCanvasBinding
     private val viewModel: NoteEditorViewModel by viewModels()
@@ -812,6 +813,19 @@ class CanvasActivity : AppCompatActivity() {
         }
         syncUndoRedoFlags()
         Toast.makeText(this, R.string.canvas_paste_done, Toast.LENGTH_SHORT).show()
+    }
+
+    /** §6.2.5 Export PDF — rasterize the live canvas pages to a PdfDocument +
+     *  share via FileProvider. Called from the Canvas Settings sheet's Export-PDF row. */
+    override fun onExportPdf() {
+        val name = viewModel.uiState.value.noteTitle.ifBlank { "note" }
+        val file = com.thundernotes.export.PdfExporter.exportAndShare(
+            this, name, pageRoots,
+        )
+        Toast.makeText(this,
+            if (file != null) R.string.settings_export_pdf_done
+            else R.string.settings_export_pdf_failed,
+            Toast.LENGTH_SHORT).show()
     }
 
     /** TEXT-tool tap (spec §7.1 Textbox): open a text-input dialog + drop a

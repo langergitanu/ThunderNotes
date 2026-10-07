@@ -27,6 +27,9 @@ import kotlinx.coroutines.launch
  */
 class CanvasSettingsBottomSheet : BottomSheetDialogFragment() {
 
+    /** Implemented by the host activity to handle the Export-PDF row click. */
+    interface OnExportPdfListener { fun onExportPdf() }
+
     private var _binding: BottomSheetCanvasSettingsBinding? = null
     private val binding get() = _binding!!
     private val viewModel: NoteEditorViewModel by activityViewModels()
@@ -47,6 +50,13 @@ class CanvasSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.rowSnipSettings.setOnClickListener {
             com.thundernotes.snip.SnipSettingsBottomSheet()
                 .show(parentFragmentManager, "snip_settings")
+        }
+
+        // Export PDF (§6.2.5) → the activity rasterizes the live canvas pages
+        // to a PdfDocument + shares it via FileProvider.
+        binding.rowExportPdf.setOnClickListener {
+            (activity as? OnExportPdfListener)?.onExportPdf()
+            dismiss()
         }
 
         // Push the current state into the switches + observe for external changes.

@@ -51,6 +51,10 @@ object KatexRenderer {
     private fun createAndRender(latex: String, context: Context, onDone: (Bitmap?) -> Unit) {
         val webView = WebView(context)
         webView.settings.javaScriptEnabled = true
+        // §7.8 offline assets: allow file:// access for the bundled KaTeX
+        // CSS/JS/fonts in assets/katex/.
+        webView.settings.allowFileAccess = true
+        webView.settings.allowContentAccess = true
         webView.layoutParams = android.widget.FrameLayout.LayoutParams(
             FIXED_WIDTH, android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
         )
@@ -75,15 +79,19 @@ object KatexRenderer {
             }
         }
 
-        // Build the HTML with KaTeX from CDN + the LaTeX string.
+        // Build the HTML with the bundled offline KaTeX (§7.8: "KaTeX in an
+        // offscreen WebView, assets bundled"). The CSS + JS + fonts ship in
+        // assets/katex/ — loaded via file:///android_asset/katex/ so no network
+        // is needed. The font @font-face URLs in katex.min.css are relative
+        // (fonts/KaTeX_*.woff2) → resolve under the same asset base.
         val escapedLatex = latex
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
         val html = """<!DOCTYPE html>
 <html><head>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<link rel="stylesheet" href="file:///android_asset/katex/katex.min.css">
+<script src="file:///android_asset/katex/katex.min.js"></script>
 <style>
 body { margin:0; padding:32px; background:#FFFFFF; color:#000000;
        font-size:32px; -webkit-font-smoothing:none; }

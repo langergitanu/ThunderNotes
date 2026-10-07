@@ -37,6 +37,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // §7.3.1: start the floating AI-snip overlay (if the user has granted
+        // the SYSTEM_ALERT_WINDOW permission). The button stays active app-wide
+        // + survives backgrounding (foreground service). If the permission isn't
+        // granted, the in-canvas btnAiSnip remains the capture path (in-app only).
+        com.thundernotes.snip.SnipOverlayService.start(this)
+
         // Set up NavController for the NavHostFragment. Look it up through the
         // fragment manager rather than findNavController(R.id.nav_host): the
         // FragmentContainerView's own tag is not where Navigation stores the
