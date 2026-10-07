@@ -239,6 +239,39 @@ class NoteEditorViewModelTest {
         assertTrue(vm.uiState.value.constantScaling)
     }
 
+    // ─── gridline (§6.10 Row 2c) + shape picker (§6.10 Row 3g) ────────────
+
+    @Test
+    fun `gridline is off by default`() {
+        assertFalse(vm.uiState.value.gridVisible)
+    }
+
+    @Test
+    fun `toggleGrid flips the grid visibility`() {
+        vm.toggleGrid()
+        assertTrue(vm.uiState.value.gridVisible)
+        vm.toggleGrid()
+        assertFalse(vm.uiState.value.gridVisible)
+    }
+
+    @Test
+    fun `setGridSize clamps rows and cols into 1 to 40`() {
+        vm.setGridSize(0, 100)
+        assertEquals(1, vm.uiState.value.gridRows)
+        assertEquals(40, vm.uiState.value.gridCols)
+    }
+
+    @Test
+    fun `default shape type is RECTANGLE`() {
+        assertEquals(ShapeType.RECTANGLE, vm.uiState.value.shapeType)
+    }
+
+    @Test
+    fun `setShapeType switches the active shape`() {
+        vm.setShapeType(ShapeType.CIRCLE)
+        assertEquals(ShapeType.CIRCLE, vm.uiState.value.shapeType)
+    }
+
     // ─── zoom bounds ──────────────────────────────────────────────────────────
 
     @Test

@@ -143,6 +143,14 @@ class CanvasInkHost @JvmOverloads constructor(
      *  9-function context menu. */
     var onLassoEnd: ((Float, Float, Float, Float) -> Unit)? = null
 
+    /** SHAPE-tool drag (UP): the activity builds the shape (rect/circle/line)
+     *  via [com.thundernotes.canvas.lasso.ShapeGeometry] inscribed in the box. */
+    var onShapeEnd: ((Float, Float, Float, Float) -> Unit)? = null
+
+    /** SHAPE-tool drag (MOVE): the activity previews the shape's bounding box
+     *  on the lasso overlay. Shares [onLassoDrag] semantics. */
+    var onShapeDrag: ((Float, Float, Float, Float) -> Unit)? = null
+
     private var lassoStart: Pair<Float, Float>? = null
 
     private fun currentBrush(): Brush? {
@@ -191,6 +199,24 @@ class CanvasInkHost @JvmOverloads constructor(
                 MotionEvent.ACTION_UP -> {
                     val s = lassoStart; lassoStart = null
                     if (s != null) onLassoEnd?.invoke(s.first, s.second, x, y)
+                }
+            }
+            return true
+        }
+
+        // SHAPE tool (spec §6.10 Row 3g): drag a box → on UP build the shape
+        // (rect/circle/line) inscribed in it. MOVE previews the box on the lasso overlay.
+        if (currentTool == com.thundernotes.ui.canvas.EditorTool.SHAPE) {
+            val x = ev.getX(0); val y = ev.getY(0)
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> lassoStart = x to y
+                MotionEvent.ACTION_MOVE -> {
+                    val s = lassoStart
+                    if (s != null) onShapeDrag?.invoke(s.first, s.second, x, y)
+                }
+                MotionEvent.ACTION_UP -> {
+                    val s = lassoStart; lassoStart = null
+                    if (s != null) onShapeEnd?.invoke(s.first, s.second, x, y)
                 }
             }
             return true

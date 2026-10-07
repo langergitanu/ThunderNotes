@@ -159,6 +159,17 @@
             android:contentDescription="@string/canvas_zoom_in"
             android:tint="@color/canvas_on_surface_variant" />
 
+        <!-- Gridline toggle (spec §6.10 Row 2c). Long-press → m×n presets popup. -->
+        <ImageButton
+            android:id="@+id/btnGridline"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_grid"
+            android:contentDescription="@string/canvas_gridline"
+            android:tint="@color/canvas_on_surface_variant" />
+
         <Space
             android:layout_width="0dp"
             android:layout_height="1dp"
@@ -307,6 +318,22 @@
                 android:paddingHorizontal="@dimen/space_sm"
                 android:paddingVertical="6dp"
                 android:text="Straight"
+                android:textColor="@color/canvas_on_surface"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/bg_canvas_tool"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Shape-type switcher (§6.10 Row 3g). Shown only for the SHAPE tool. -->
+            <TextView
+                android:id="@+id/shapeTypeSwitcher"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_sm"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingVertical="6dp"
+                android:text="Rectangle"
                 android:textColor="@color/canvas_on_surface"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-medium"

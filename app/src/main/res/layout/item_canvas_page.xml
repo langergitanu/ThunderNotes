@@ -48,6 +48,13 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
+        <!-- m×n gridline overlay (§6.10 Row 2c). Visibility + rows/cols set in code. -->
+        <com.thundernotes.ui.canvas.GridlineOverlayView
+            android:id="@+id/gridlineOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
         <FrameLayout
             android:id="@+id/textboxLayer"
             android:layout_width="match_parent"

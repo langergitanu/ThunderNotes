@@ -90,6 +90,7 @@ class CanvasActivity : AppCompatActivity() {
     private val pageCompletedViews = mutableListOf<CompletedStrokesView>()  // finished-stroke layer per page
     private val pageTextboxLayers = mutableListOf<ViewGroup>()  // typed-content overlay per page
     private val pageLassoOverlays = mutableListOf<LassoOverlayView>()  // lasso drag overlay per page
+    private val pageGridlineOverlays = mutableListOf<GridlineOverlayView>()  // grid overlay per page
     private val injector = InkInjector(document)
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
 
@@ -161,6 +162,21 @@ class CanvasActivity : AppCompatActivity() {
             }
             menu.show()
         }
+        // Shape-type switcher (§6.10 Row 3g): rect / circle / line.
+        binding.shapeTypeSwitcher.setOnClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            ShapeType.entries.forEachIndexed { idx, st ->
+                menu.menu.add(0, idx, idx, st.name.lowercase().replaceFirstChar { it.uppercase() })
+            }
+            menu.setOnMenuItemClickListener { item ->
+                val st = ShapeType.entries[item.itemId]
+                viewModel.setShapeType(st)
+                binding.shapeTypeSwitcher.text = st.name.lowercase()
+                    .replaceFirstChar { it.uppercase() }
+                true
+            }
+            menu.show()
+        }
         // Rename on IME action "Done" or when focus leaves the title field.
         binding.noteTitle.setOnEditorActionListener { v, _, _ ->
             viewModel.renameNote(v.text.toString())
@@ -197,6 +213,21 @@ class CanvasActivity : AppCompatActivity() {
             document.addPage()
             addPageItem(pageNumber = document.totalPages)
             syncUndoRedoFlags()
+        }
+        // Phase 8b: Gridline toggle (§6.10 Row 2c). Long-press → m×n presets.
+        binding.btnGridline.setOnClickListener { viewModel.toggleGrid() }
+        binding.btnGridline.setOnLongClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            val presets = listOf("4×2" to (4 to 2), "8×4" to (8 to 4), "12×6" to (12 to 6), "16×8" to (16 to 8))
+            presets.forEachIndexed { idx, (label, _) -> menu.menu.add(0, idx, idx, label) }
+            menu.setOnMenuItemClickListener { item ->
+                val (rows, cols) = presets[item.itemId].second
+                viewModel.setGridSize(rows, cols)
+                viewModel.setGridVisible(true)
+                true
+            }
+            menu.show()
+            true
         }
         binding.btnAiSnip.setOnClickListener {
             // SnipEngine fallback chain is Phase 9.
@@ -244,6 +275,8 @@ class CanvasActivity : AppCompatActivity() {
             onTextTap = { x, y -> handleTextTap(x, y) }
             onLassoDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }
             onLassoEnd = { l, t, r, b -> handleLassoEnd(pageIndex, l, t, r, b) }
+            onShapeDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }  // reuse lasso overlay for the shape preview
+            onShapeEnd = { l, t, r, b -> handleShapeEnd(pageIndex, l, t, r, b) }
         }
         pageBinding.inkHostContainer.addView(host)
         pageHosts.add(host)
@@ -251,6 +284,7 @@ class CanvasActivity : AppCompatActivity() {
         pageCompletedViews.add(pageBinding.completedStrokesView)
         pageTextboxLayers.add(pageBinding.textboxLayer)
         pageLassoOverlays.add(pageBinding.lassoOverlay)
+        pageGridlineOverlays.add(pageBinding.gridlineOverlay)
         binding.pagesContainer.addView(pageBinding.root)
 
         // Phase 8b: pages sidebar / minimap chip (canvasUtilityPage) — a small
@@ -399,6 +433,29 @@ class CanvasActivity : AppCompatActivity() {
         val cv = pageCompletedViews.getOrNull(pageIndex)
         val anchor: View = host
         showLassoMenu(anchor, pageIndex, selected, cv, host)
+    }
+
+    /** SHAPE-tool drag finalized (spec §6.10 Row 3g Shape Picker): clear the
+     *  preview overlay + build the shape (rect/circle/line) via [ShapeGeometry]
+     *  inscribed in the drag box + add its strokes to the document + render on
+     *  the page's CompletedStrokesView. Uses the active pen color + stroke width. */
+    private fun handleShapeEnd(pageIndex: Int, l: Float, t: Float, r: Float, b: Float) {
+        pageLassoOverlays.getOrNull(pageIndex)?.clear()
+        document.goToPage(pageIndex)
+        val state = viewModel.uiState.value
+        val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
+        val width = state.selectedStrokeWidthDp ?: EditorStrokeWidths.WIDTHS_DP[EditorStrokeWidths.DEFAULT_WIDTH_INDEX]
+        val strokes = com.thundernotes.canvas.lasso.ShapeGeometry.buildShape(
+            state.shapeType, l, t, r, b, color, width,
+        )
+        val cv = pageCompletedViews.getOrNull(pageIndex)
+        for (s in strokes) {
+            // Re-stamp the page id (ShapeGeometry uses a "shape" placeholder).
+            val record = s.copy(pageId = document.currentPage?.id.orEmpty())
+            document.addStroke(record)
+            cv?.addFromRecord(record)
+        }
+        syncUndoRedoFlags()
     }
 
     private fun showLassoMenu(
@@ -721,6 +778,20 @@ class CanvasActivity : AppCompatActivity() {
             if (state.showsLineType) View.VISIBLE else View.GONE
         binding.lineTypeSwitcher.text =
             state.selectedLineType.name.lowercase().replaceFirstChar { it.uppercase() }
+        // Shape-type switcher — visible only for the SHAPE tool.
+        binding.shapeTypeSwitcher.visibility =
+            if (state.selectedTool == EditorTool.SHAPE) View.VISIBLE else View.GONE
+        binding.shapeTypeSwitcher.text =
+            state.shapeType.name.lowercase().replaceFirstChar { it.uppercase() }
+        // Gridline overlay per page (§6.10 Row 2c) — toggle + size.
+        pageGridlineOverlays.forEach { ov ->
+            if (state.gridVisible) { ov.show(state.gridRows, state.gridCols); ov.visibility = View.VISIBLE }
+            else ov.visibility = View.GONE }
+        // Gridline button glows when the grid is on.
+        binding.btnGridline.imageTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(this,
+                if (state.gridVisible) R.color.canvas_secondary else R.color.canvas_tool_inactive_tint)
+        )
         binding.colorSwatchesContainer.visibility =
             if (state.showsColorPicker) View.VISIBLE else View.GONE
         binding.strokeWidthContainer.visibility =

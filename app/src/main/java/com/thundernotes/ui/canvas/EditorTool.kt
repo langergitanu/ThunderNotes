@@ -120,3 +120,13 @@ object EditorZoom {
     const val STEP_PERCENT = 10
     const val DEFAULT_PERCENT = 100
 }
+
+/**
+ * Shape types for the Shape Picker (spec §6.10 Row 3g). The SHAPE tool draws the
+ * selected shape via [com.thundernotes.canvas.lasso.ShapeGeometry] → StrokeRecords.
+ */
+enum class ShapeType {
+    RECTANGLE,
+    CIRCLE,
+    LINE;
+}

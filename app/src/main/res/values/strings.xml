@@ -183,6 +183,9 @@
     <string name="settings_constant_scaling_hint">ON: lasso Enlarge/Reduce keeps stroke thickness. OFF: thickness scales with the resize.</string>
     <string name="settings_palm_rejection">Palm rejection</string>
     <string name="settings_palm_rejection_hint">Reject touches that aren\'t from the stylus (on by default).</string>
+    <string name="canvas_gridline">Gridline</string>
+    <string name="canvas_grid_presets">Grid size</string>
+    <string name="canvas_shape_type">Shape type</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

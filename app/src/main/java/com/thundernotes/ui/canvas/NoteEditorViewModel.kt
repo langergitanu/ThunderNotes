@@ -118,6 +118,21 @@ class NoteEditorViewModel(
         it.copy(constantScaling = on)
     }
 
+    /** Toggle the m×n gridline overlay (spec §6.10 Row 2c Gridline). */
+    fun toggleGrid() = _uiState.update { it.copy(gridVisible = !it.gridVisible) }
+    fun setGridVisible(on: Boolean) = _uiState.update { it.copy(gridVisible = on) }
+
+    /** Set the gridline m×n (rows × cols). Clamped to a sane 1..40 range. */
+    fun setGridSize(rows: Int, cols: Int) = _uiState.update {
+        it.copy(
+            gridRows = rows.coerceIn(1, 40),
+            gridCols = cols.coerceIn(1, 40),
+        )
+    }
+
+    /** Set the active shape type for the SHAPE tool (spec §6.10 Row 3g). */
+    fun setShapeType(type: ShapeType) = _uiState.update { it.copy(shapeType = type) }
+
     fun nextPage() = _uiState.update {
         val next = (it.currentPageIndex + 1).coerceAtMost((it.totalPages - 1).coerceAtLeast(0))
         it.copy(currentPageIndex = next)

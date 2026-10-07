@@ -22,6 +22,12 @@ data class EditorUiState(
     /** Spec §7.5: if constant scaling is ON, a lasso Enlarge/Reduce does NOT change
      *  stroke thickness; if OFF, thickness scales proportionally with the resize. */
     val constantScaling: Boolean = true,
+    /** Spec §6.10 Row 2c Gridline: an m×n grid overlay on the canvas. */
+    val gridVisible: Boolean = false,
+    val gridRows: Int = 8,
+    val gridCols: Int = 4,
+    /** Spec §6.10 Row 3g Shape Picker: the active shape type (Rectangle/Circle/Line). */
+    val shapeType: ShapeType = ShapeType.RECTANGLE,
     val currentPageIndex: Int = 0,
     val totalPages: Int = 1,
     val zoomPercent: Int = EditorZoom.DEFAULT_PERCENT,
