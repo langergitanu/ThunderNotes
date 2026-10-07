@@ -239,6 +239,21 @@ class NoteEditorViewModelTest {
         assertTrue(vm.uiState.value.constantScaling)
     }
 
+    // ─── palm rejection (§6.1.9, on by default) ──────────────────────────
+
+    @Test
+    fun `palm rejection defaults on`() {
+        assertTrue(vm.uiState.value.palmRejection)
+    }
+
+    @Test
+    fun `setPalmRejection toggles the flag`() {
+        vm.setPalmRejection(false)
+        assertFalse(vm.uiState.value.palmRejection)
+        vm.setPalmRejection(true)
+        assertTrue(vm.uiState.value.palmRejection)
+    }
+
     // ─── gridline (§6.10 Row 2c) + shape picker (§6.10 Row 3g) ────────────
 
     @Test

@@ -57,9 +57,8 @@ class CanvasSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.switchConstantScaling.setOnCheckedChangeListener { _, checked ->
             viewModel.setConstantScaling(checked)
         }
-        binding.switchPalmRejection.setOnCheckedChangeListener { _, _ ->
-            // Palm rejection is on by default; the toggle is informational for now
-            // (the AndroidX Ink stylus path enforces it). A future VM field persists it.
+        binding.switchPalmRejection.setOnCheckedChangeListener { _, checked ->
+            viewModel.setPalmRejection(checked)
         }
     }
 

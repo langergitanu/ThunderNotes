@@ -22,6 +22,9 @@ data class EditorUiState(
     /** Spec §7.5: if constant scaling is ON, a lasso Enlarge/Reduce does NOT change
      *  stroke thickness; if OFF, thickness scales proportionally with the resize. */
     val constantScaling: Boolean = true,
+    /** Spec §6.1.9: palm rejection is on by default — the host rejects FINGER
+     *  touches, accepting only STYLUS/ERASER (Notein's pattern: getToolType(0)==STYLUS). */
+    val palmRejection: Boolean = true,
     /** Spec §6.10 Row 2c Gridline: an m×n grid overlay on the canvas. */
     val gridVisible: Boolean = false,
     val gridRows: Int = 8,

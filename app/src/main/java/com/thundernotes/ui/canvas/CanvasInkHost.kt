@@ -131,6 +131,11 @@ class CanvasInkHost @JvmOverloads constructor(
     var currentLineType: com.thundernotes.ui.canvas.LineType =
         com.thundernotes.ui.canvas.LineType.STRAIGHT
 
+    /** Palm rejection (spec §6.1.9, on by default): when true, reject FINGER
+     *  touches — only STYLUS (TOOL_TYPE_STYLUS) + ERASER (TOOL_TYPE_ERASER)
+     *  reach the Ink view. Mirrors Notein's `getToolType(0) == STYLUS` filter. */
+    var palmRejection: Boolean = true
+
     /** Called when the TEXT tool taps the canvas at (x, y) — the activity opens
      *  a text-input dialog + drops a TextBoxRecord at the tap. */
     var onTextTap: ((Float, Float) -> Unit)? = null
@@ -176,6 +181,11 @@ class CanvasInkHost @JvmOverloads constructor(
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         if (!inkAvailable) return false
+        // Palm rejection (§6.1.9): reject FINGER touches; only STYLUS/ERASER draw.
+        // Mirrors Notein's getToolType(0) == TOOL_TYPE_STYLUS filter (PDFView.java:3861).
+        if (palmRejection && ev.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER) {
+            return false
+        }
         val view = inkView ?: return false
         val cfg = currentConfig ?: return false
 

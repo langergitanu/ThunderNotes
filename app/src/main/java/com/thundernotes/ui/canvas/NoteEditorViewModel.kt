@@ -118,6 +118,12 @@ class NoteEditorViewModel(
         it.copy(constantScaling = on)
     }
 
+    /** Toggle palm rejection (spec §6.1.9 — on by default). When on, the Ink host
+     *  rejects FINGER touches, accepting only STYLUS/ERASER (Notein's pattern). */
+    fun setPalmRejection(on: Boolean) = _uiState.update {
+        it.copy(palmRejection = on)
+    }
+
     /** Toggle the m×n gridline overlay (spec §6.10 Row 2c Gridline). */
     fun toggleGrid() = _uiState.update { it.copy(gridVisible = !it.gridVisible) }
     fun setGridVisible(on: Boolean) = _uiState.update { it.copy(gridVisible = on) }

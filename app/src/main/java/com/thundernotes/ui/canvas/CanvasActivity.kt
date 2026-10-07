@@ -96,6 +96,7 @@ class CanvasActivity : AppCompatActivity() {
     private val pageGridlineOverlays = mutableListOf<GridlineOverlayView>()  // grid overlay per page
     private val pageRulerOverlays = mutableListOf<RulerOverlayView>()  // ruler overlay per page
     private val injector = InkInjector(document)
+    private val spacerManager = com.thundernotes.canvas.CanvasSpacerManager()  // §7.4 Add Writing Space
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
     private var rulerVisible = false  // spec §6.10 Row 2c Scale ruler toggle state
 
@@ -262,6 +263,20 @@ class CanvasActivity : AppCompatActivity() {
         // Image insert (§6.10 Row 2b): launch the system image picker.
         binding.btnImage.setOnClickListener {
             imagePicker.launch(arrayOf("image/*"))
+        }
+        // Add Writing Space (§6.10 Row 3c + §7.4): insert a spacer gap on the
+        // current page. The spacer is recorded in CanvasSpacerManager (the tested
+        // O(log N) page-local Fenwick algorithm); the visual page-card growth +
+        // stroke reflow (content below the spacer shifts by the cumulative offset)
+        // is the remaining rendering piece.
+        binding.btnAddSpace.setOnClickListener {
+            val state = viewModel.uiState.value
+            val pageId = document.currentPage?.id.orEmpty()
+            val gapPx = dp(200)
+            spacerManager.insertSpacer(pageId, offsetInPage = 500f, height = gapPx.toFloat())
+            Toast.makeText(this,
+                getString(R.string.canvas_space_added, gapPx),
+                Toast.LENGTH_SHORT).show()
         }
         binding.btnAiSnip.setOnClickListener {
             // SnipEngine fallback chain is Phase 9.
@@ -730,6 +745,7 @@ class CanvasActivity : AppCompatActivity() {
             it.setBrush(config)
             it.currentTool = state.selectedTool
             it.currentLineType = state.selectedLineType
+            it.palmRejection = state.palmRejection
             // onTextTap / onLassoDrag / onLassoEnd are set per-host in addPageItem
             // (with the page index captured) — don't clobber them here.
         }
