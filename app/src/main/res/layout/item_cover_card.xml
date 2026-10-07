@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One cover-template card in the CoverSelection grid (spec §6.8).
+  A colored band (category → color, set in code) + the template name + the
+  category label. No real cover-image asset is shipped yet; the preview is
+  generated from the metadata so the picker shows 50+ items on first launch.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="220dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_cover_card"
+    android:layout_margin="4dp">
+
+    <!-- Color band (category → color) -->
+    <View
+        android:id="@+id/colorBand"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/thunder_primary" />
+
+    <!-- Name + category -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:background="@color/surface_container">
+
+        <TextView
+            android:id="@+id/templateName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            tools:text="Topology — Torus"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <TextView
+            android:id="@+id/templateCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            tools:text="Mathematics"
+            xmlns:tools="http://schemas.android.com/tools" />
+    </LinearLayout>
+</LinearLayout>

@@ -45,12 +45,9 @@ class FoldersLibraryFragment : Fragment() {
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             },
-            onMoreClick = { _, _ ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Folder overflow coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+            onMoreClick = { folder, _ ->
+                FolderOverflowBottomSheet.newInstance(folder.folderId)
+                    .show(childFragmentManager, "folder_overflow")
             }
         )
         binding.foldersGrid.apply {

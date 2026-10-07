@@ -17,6 +17,7 @@ import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentBookmarksBinding
 import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.folders.FolderAdapter
+import com.thundernotes.ui.folders.FolderOverflowBottomSheet
 import com.thundernotes.ui.notes.NoteAdapter
 import com.thundernotes.ui.notes.NoteOverflowBottomSheet
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,12 +72,9 @@ class BookmarksFragment : Fragment() {
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             },
-            onMoreClick = { _, _ ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Folder overflow coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+            onMoreClick = { folder, _ ->
+                FolderOverflowBottomSheet.newInstance(folder.folderId)
+                    .show(childFragmentManager, "folder_overflow")
             }
         )
         binding.bookmarkedFoldersList.adapter = folderAdapter

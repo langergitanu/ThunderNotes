@@ -71,14 +71,15 @@ class ThunderNotesApp : Application() {
         // never existed on device. Now AppDatabase is forced into existence on
         // first launch, so Phase 5 UI can rely on it being ready.
         //
-        // We also seed preinstalled templates if the DB is empty (Phase 12
-        // will populate `assets/covers/`; for now seedPreinstalledTemplates
-        // is a no-op).
+        // We also seed the 60 preinstalled engineering-subject cover templates
+        // (spec §6.8) into the DB on first launch — idempotent, no-ops if the
+        // DB already has templates. The cover picker (CoverSelectionFragment)
+        // observes them so it shows 50+ items on first launch.
         appScope.launch {
             try {
                 val db = AppDatabase.get(this@ThunderNotesApp)
                 Log.d(TAG, "AppDatabase constructed: ${db.openHelper.databaseName}.")
-                RepositoryModule.templates.seedPreinstalledTemplates(this@ThunderNotesApp)
+                RepositoryModule.templates.seedPreinstalledTemplates()
                 Log.d(TAG, "Background init complete.")
             } catch (e: Throwable) {
                 Log.e(TAG, "Background init failed — DB will be lazily constructed on first UI access.", e)

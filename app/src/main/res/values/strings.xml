@@ -181,6 +181,22 @@
     <string name="overflow_remove_bookmark">Remove bookmark</string>
     <string name="overflow_information">Information</string>
     <string name="overflow_trash">Trash</string>
+    <string name="overflow_change_color">Change Color</string>
+
+    <string name="rename_folder_dialog_title">Rename folder</string>
+    <string name="change_color_dialog_title">Folder color</string>
+
+    <string name="info_note_count">Notes</string>
+    <string name="folder_bookmarked">Bookmarked</string>
+    <string name="folder_unbookmarked">Removed bookmark</string>
+    <string name="folder_trashed">Moved to Trash</string>
+
+    <!-- Plurals: note count shown in folder Information -->
+    <plurals name="notes_count">
+        <item quantity="zero">No notes</item>
+        <item quantity="one">1 note</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
 
     <string name="rename_dialog_title">Rename note</string>
     <string name="rename_hint">Note name</string>

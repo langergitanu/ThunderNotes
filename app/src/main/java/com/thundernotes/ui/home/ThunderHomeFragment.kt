@@ -18,6 +18,7 @@ import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.create.CreateFolderFragment
 import com.thundernotes.ui.create.CreateNoteFragment
 import com.thundernotes.ui.folders.FolderAdapter
+import com.thundernotes.ui.folders.FolderOverflowBottomSheet
 import com.thundernotes.ui.notes.NoteAdapter
 import com.thundernotes.ui.notes.NoteOverflowBottomSheet
 import kotlinx.coroutines.launch
@@ -86,11 +87,8 @@ class ThunderHomeFragment : Fragment() {
                 ).show()
             },
             onMoreClick = { folder, anchor ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Folder overflow coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                FolderOverflowBottomSheet.newInstance(folder.folderId)
+                    .show(childFragmentManager, "folder_overflow")
             },
             compact = true  // S2-3: fixed-width cards for horizontal strip
         )

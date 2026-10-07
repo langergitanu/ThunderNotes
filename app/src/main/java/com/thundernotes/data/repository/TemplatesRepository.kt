@@ -1,9 +1,9 @@
 package com.thundernotes.data.repository
 
-import android.content.Context
 import com.thundernotes.data.dao.TemplateDao
 import com.thundernotes.data.entity.TemplateEntity
 import com.thundernotes.data.entity.TemplateSource
+import com.thundernotes.data.seed.TemplatesSeed
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -13,10 +13,13 @@ import kotlinx.coroutines.flow.Flow
  * engineering subjects (math, electrical, physics, CSE, etc.). The user will
  * download the rest from the Template Library."
  *
- * Preinstalled templates ship under `assets/covers/` in the APK; the
- * [seedPreinstalledTemplates] method loads them into the DB on first launch
- * (called from `ThunderNotesApp.onCreate` once we wire it up — currently
- * deferred until the cover assets land in the repo).
+ * The 60 preinstalled templates are defined in [TemplatesSeed] (names mirror
+ * the CoverSelectionPage mock — Topology-Torus, Complex Plane, Venn, Matrix,
+ * Rhombus, …) + seeded into the DB on first launch by [seedPreinstalledTemplates]
+ * (called from `ThunderNotesApp.onCreate`). The cover preview is rendered in
+ * the UI from the category + colorIndex (no real cover-image asset is shipped
+ * yet — that's a later content pack; the metadata is enough to populate the
+ * picker with 50+ items now).
  */
 class TemplatesRepository(
     private val templateDao: TemplateDao,
@@ -34,36 +37,25 @@ class TemplatesRepository(
     suspend fun count(): Int = templateDao.count()
 
     /**
-     * Seed the DB with preinstalled templates from `assets/covers/`.
+     * Seed the DB with the 60 preinstalled engineering-subject templates from
+     * [TemplatesSeed]. Idempotent — no-ops if the DB already has templates.
      *
-     * The `assets/covers/index.json` file is read on first launch (when
-     * `count() == 0`) and each entry becomes a [TemplateEntity] with
-     * `source = PREINSTALLED`.
-     *
-     * Schema of `index.json`:
-     *   [
-     *     {
-     *       "displayName": "Calculus Cover",
-     *       "category": "math",
-     *       "filePath": "math/calculus.png",
-     *       "license": "OFL-1.1",
-     *       "attribution": "..."
-     *     }, ...
-     *   ]
-     *
-     * **Stub for now:** the covers/ assets don't ship in the repo yet
-     * (Phase 12 will add the 50+ covers). This method is a no-op until then.
+     * Each template becomes a [TemplateEntity] with `source = PREINSTALLED`;
+     * `filePath` is empty (the cover preview is generated in the UI from
+     * category + colorIndex until real cover-image assets ship).
      */
-    suspend fun seedPreinstalledTemplates(context: Context) {
-        if (templateDao.count() > 0) return  // already seeded
-        val coversJson: String = try {
-            context.assets.open("covers/index.json").bufferedReader().use { it.readText() }
-        } catch (e: Exception) {
-            // No covers/index.json asset yet (Phase 12 will add it).
-            return
+    suspend fun seedPreinstalledTemplates() {
+        if (templateDao.count() > 0) return  // already seeded — idempotent
+        val rows = TemplatesSeed.ALL.map { seed ->
+            TemplateEntity(
+                displayName = seed.displayName,
+                category = seed.category,
+                source = TemplateSource.PREINSTALLED.rawValue,
+                filePath = "",
+                thumbnailPath = null,
+            )
         }
-        // TODO (Phase 12): parse the JSON + insert each template.
-        // For now, no-op so we don't crash on first launch.
+        templateDao.insertAll(rows)
     }
 
     /** Permanently delete all DOWNLOADED templates (frees disk space). */
