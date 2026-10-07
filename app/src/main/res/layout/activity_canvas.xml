@@ -280,6 +280,23 @@
             android:gravity="center_vertical"
             android:layout_marginTop="@dimen/space_sm">
 
+            <!-- Palette switcher (spec §6.10 Row 3c: ThunderDark / ThunderLight /
+                 Sunflower). Tap → PopupMenu to switch the active 8-color palette. -->
+            <TextView
+                android:id="@+id/paletteSwitcher"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_sm"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingVertical="6dp"
+                android:text="ThunderDark"
+                android:textColor="@color/canvas_on_surface"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/bg_canvas_tool"
+                android:clickable="true"
+                android:focusable="true" />
+
             <HorizontalScrollView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -304,26 +321,51 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ═══ [4] Page surface ════════════════════════════════════════════ -->
-    <ScrollView
-        android:id="@+id/pageScroll"
+    <!-- ═══ [4] Page surface + pages sidebar (minimap, canvasUtilityPage) ═══ -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/canvas_bg_dim"
-        android:fillViewport="true">
+        android:orientation="horizontal">
 
-        <!-- pagesContainer: stacked page items with dotted separators between
-             (spec §6.10 Canvas Area: "no gap between two pages; only a dotted
-             line separator" — the infinite-vertical-canvas feel). Pages are
-             added in code by CanvasActivity as item_canvas_page views. -->
-        <LinearLayout
-            android:id="@+id/pagesContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:padding="@dimen/space_lg" />
-    </ScrollView>
+        <ScrollView
+            android:id="@+id/pageScroll"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/canvas_bg_dim"
+            android:fillViewport="true">
+
+            <!-- pagesContainer: stacked page items with dotted separators between
+                 (spec §6.10 Canvas Area: "no gap between two pages; only a dotted
+                 line separator" — the infinite-vertical-canvas feel). Pages are
+                 added in code by CanvasActivity as item_canvas_page views. -->
+            <LinearLayout
+                android:id="@+id/pagesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="@dimen/space_lg" />
+        </ScrollView>
+
+        <!-- Pages sidebar / minimap (spec §7.6 + canvasUtilityPage right side):
+             vertical strip of page-number chips; tap to jump (scroll) to a page.
+             Populated in code by CanvasActivity.addPageItem. -->
+        <ScrollView
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:background="@color/canvas_surface_low"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/pagesSidebar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:paddingVertical="@dimen/space_sm" />
+        </ScrollView>
+    </LinearLayout>
 
 </LinearLayout>

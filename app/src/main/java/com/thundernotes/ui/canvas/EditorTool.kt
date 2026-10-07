@@ -29,23 +29,64 @@ enum class EditorTool {
 }
 
 /**
- * Fixed palette offered in the color swatch row (matches the mock's swatch set:
- * black, red, blue, green, amber, magenta + an eraser-white).
+ * The three color palettes offered in the swatch row (spec §6.10 Row 3c):
+ *  - **ThunderDark** — the default pen palette (8 dark, high-chroma colors).
+ *  - **ThunderLight** — the default highlighter palette (8 light colors).
+ *  - **Sunflower** — a warm user-created palette (8 yellows/oranges/reds).
  *
- * Colors are ARGB ints so they can be applied directly to a View background /
- * Paint.color once AndroidX Ink lands in Phase 7.
+ * Each palette has 8 colors. Colors are ARGB ints so they apply directly to a
+ * View background / Paint color. The editor's [NoteEditorViewModel] tracks the
+ * active palette + color index; the activity renders the active palette's
+ * swatches + a palette-switcher (canvasCustomizationPage mock).
  */
 object EditorPalette {
-    val COLORS: List<Int> = listOf(
+
+    val THUNDER_DARK: List<Int> = listOf(
         0xFF1A1A1A.toInt(), // obsidian ink (near-black)
-        0xFFE53935.toInt(), // red
-        0xFF1E88E5.toInt(), // blue
-        0xFF43A047.toInt(), // green
+        0xFFE53935.toInt(), // crimson red
+        0xFF1E88E5.toInt(), // cobalt blue
+        0xFF43A047.toInt(), // forest green
         0xFFFB8C00.toInt(), // amber
         0xFF8E24AA.toInt(), // magenta
+        0xFF00ACC1.toInt(), // teal
+        0xFF6D4C41.toInt(), // walnut brown
     )
-    val DEFAULT_COLOR_INDEX = 0
+
+    val THUNDER_LIGHT: List<Int> = listOf(
+        0xFFFFFFFF.toInt(), // white
+        0xFFFFCDD2.toInt(), // light red
+        0xFFBBDEFB.toInt(), // light blue
+        0xFFC8E6C9.toInt(), // light green
+        0xFFFFE082.toInt(), // light amber
+        0xFFE1BEE7.toInt(), // light magenta
+        0xFFB2EBF2.toInt(), // light teal
+        0xFFD7CCC8.toInt(), // light brown
+    )
+
+    val SUNFLOWER: List<Int> = listOf(
+        0xFFFFF176.toInt(), // sunflower yellow
+        0xFFFFD54F.toInt(), // mango
+        0xFFFFB74D.toInt(), // orange
+        0xFFFF8A65.toInt(), // coral
+        0xFFEF5350.toInt(), // poppy red
+        0xFFAB47BC.toInt(), // plum
+        0xFFEC407A.toInt(), // pink
+        0xFF827717.toInt(), // olive
+    )
+
+    /** The three named palettes, in the order the palette-switcher shows them. */
+    val PALETTES: List<List<Int>> = listOf(THUNDER_DARK, THUNDER_LIGHT, SUNFLOWER)
+    val PALETTE_NAMES: List<String> = listOf("ThunderDark", "ThunderLight", "Sunflower")
+
+    /** Default palette per the spec: ThunderDark for pens, ThunderLight for highlighter. */
+    const val DEFAULT_PALETTE_INDEX = 0
+    const val DEFAULT_COLOR_INDEX = 0
+
+    /** Back-compat: the single-palette API used before the 3-palette refactor
+     *  (canvas colors + the editor VM's default). Aliases ThunderDark. */
+    val COLORS: List<Int> get() = THUNDER_DARK
 }
+
 
 /**
  * The three stroke widths offered in the width selector (thin / medium / thick).

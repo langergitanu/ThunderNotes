@@ -181,6 +181,36 @@ class NoteEditorViewModelTest {
         assertEquals(before, vm.uiState.value.strokeWidthIndex)
     }
 
+    // ─── palette switching (spec §6.10 Row 3c) ──────────────────────────────
+
+    @Test
+    fun `default palette is ThunderDark index 0`() {
+        assertEquals(0, vm.uiState.value.selectedPaletteIndex)
+    }
+
+    @Test
+    fun `selectPalette switches the active palette + selectedColorArgb resolves from it`() {
+        vm.selectPalette(2)  // Sunflower
+        assertEquals(2, vm.uiState.value.selectedPaletteIndex)
+        vm.selectColor(0)
+        assertEquals(EditorPalette.SUNFLOWER[0], vm.uiState.value.selectedColorArgb)
+    }
+
+    @Test
+    fun `selectPalette clamps the color index into the new palette's range`() {
+        vm.selectPalette(1)  // ThunderLight
+        vm.selectColor(7)    // last index (8 colors → 0..7)
+        assertEquals(7, vm.uiState.value.selectedColorIndex)
+        assertEquals(EditorPalette.THUNDER_LIGHT[7], vm.uiState.value.selectedColorArgb)
+    }
+
+    @Test
+    fun `selectPalette with out-of-range index is ignored`() {
+        val before = vm.uiState.value.selectedPaletteIndex
+        vm.selectPalette(99)
+        assertEquals(before, vm.uiState.value.selectedPaletteIndex)
+    }
+
     // ─── zoom bounds ──────────────────────────────────────────────────────────
 
     @Test

@@ -82,8 +82,24 @@ class NoteEditorViewModel(
     }
 
     fun selectColor(index: Int) {
-        if (index !in EditorPalette.COLORS.indices) return
+        // Validate against the active palette's color range (8 colors).
+        val palette = EditorPalette.PALETTES.getOrNull(_uiState.value.selectedPaletteIndex)
+            ?: EditorPalette.PALETTES[EditorPalette.DEFAULT_PALETTE_INDEX]
+        if (index !in palette.indices) return
         _uiState.update { it.copy(selectedColorIndex = index) }
+    }
+
+    /** Switch the active color palette (spec §6.10 Row 3c: ThunderDark /
+     *  ThunderLight / Sunflower). Clamps the color index into the new palette's range. */
+    fun selectPalette(paletteIndex: Int) {
+        if (paletteIndex !in EditorPalette.PALETTES.indices) return
+        val newPalette = EditorPalette.PALETTES[paletteIndex]
+        _uiState.update {
+            it.copy(
+                selectedPaletteIndex = paletteIndex,
+                selectedColorIndex = it.selectedColorIndex.coerceIn(0, newPalette.lastIndex),
+            )
+        }
     }
 
     fun setStrokeWidth(index: Int) {
@@ -98,6 +114,12 @@ class NoteEditorViewModel(
 
     fun previousPage() = _uiState.update {
         it.copy(currentPageIndex = (it.currentPageIndex - 1).coerceAtLeast(0))
+    }
+
+    /** Jump directly to a page (pages sidebar / minimap tap, canvasUtilityPage).
+     *  Clamps into the valid page range. */
+    fun goToPage(index: Int) = _uiState.update {
+        it.copy(currentPageIndex = index.coerceIn(0, (it.totalPages - 1).coerceAtLeast(0)))
     }
 
     fun addPage() = _uiState.update {

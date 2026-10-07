@@ -15,6 +15,7 @@ data class EditorUiState(
     val noteId: String,
     val noteTitle: String,
     val selectedTool: EditorTool = EditorTool.PEN,
+    val selectedPaletteIndex: Int = EditorPalette.DEFAULT_PALETTE_INDEX,
     val selectedColorIndex: Int = EditorPalette.DEFAULT_COLOR_INDEX,
     val strokeWidthIndex: Int = EditorStrokeWidths.DEFAULT_WIDTH_INDEX,
     val currentPageIndex: Int = 0,
@@ -25,10 +26,12 @@ data class EditorUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
 ) {
-    /** Convenience: the ARGB color currently selected (or null if N/A for tool). */
+    /** Convenience: the ARGB color currently selected (or null if N/A for tool).
+     *  Looks up [selectedPaletteIndex] × [selectedColorIndex] in [EditorPalette.PALETTES]. */
     val selectedColorArgb: Int?
         get() = if (selectedTool.showsColorPicker)
-            EditorPalette.COLORS.getOrNull(selectedColorIndex) else null
+            EditorPalette.PALETTES.getOrNull(selectedPaletteIndex)
+                ?.getOrNull(selectedColorIndex) else null
 
     /** Convenience: the stroke width in dp currently selected (or null if N/A). */
     val selectedStrokeWidthDp: Float?

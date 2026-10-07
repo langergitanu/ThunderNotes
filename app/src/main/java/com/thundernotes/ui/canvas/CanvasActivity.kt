@@ -130,6 +130,20 @@ class CanvasActivity : AppCompatActivity() {
             canvasLight = !canvasLight
             applyTheme()
         }
+        // Palette switcher (spec §6.10 Row 3c) — PopupMenu of the 3 palettes.
+        binding.paletteSwitcher.setOnClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            EditorPalette.PALETTE_NAMES.forEachIndexed { idx, name ->
+                menu.menu.add(0, idx, idx, name)
+            }
+            menu.setOnMenuItemClickListener { item ->
+                viewModel.selectPalette(item.itemId)
+                binding.paletteSwitcher.text = EditorPalette.PALETTE_NAMES[item.itemId]
+                buildColorSwatches()
+                true
+            }
+            menu.show()
+        }
         // Rename on IME action "Done" or when focus leaves the title field.
         binding.noteTitle.setOnEditorActionListener { v, _, _ ->
             viewModel.renameNote(v.text.toString())
@@ -222,10 +236,39 @@ class CanvasActivity : AppCompatActivity() {
         pageLassoOverlays.add(pageBinding.lassoOverlay)
         binding.pagesContainer.addView(pageBinding.root)
 
+        // Phase 8b: pages sidebar / minimap chip (canvasUtilityPage) — a small
+        // black strip with the page number; tap to jump (scroll) to that page.
+        val chip = TextView(this).apply {
+            text = pageNumber.toString()
+            setTextColor(ContextCompat.getColor(this@CanvasActivity, R.color.canvas_page_number_strip_fg))
+            textSize = 11f
+            gravity = android.view.Gravity.CENTER
+            val sz = dp(28)
+            layoutParams = LinearLayout.LayoutParams(sz, sz).apply {
+                bottomMargin = dp(4)
+            }
+            background = ContextCompat.getDrawable(this@CanvasActivity, R.drawable.bg_page_number_strip)
+            setOnClickListener { jumpToPage(pageIndex) }
+        }
+        binding.pagesSidebar.addView(chip)
+
         // Apply the current brush config + theme + stroke-inversion to the new page.
         applyBrushToHosts()
         applyTheme()
         pageBinding.completedStrokesView.setColorInverted(!canvasLight)
+    }
+
+    /** Jump-to-page (pages sidebar tap, canvasUtilityPage minimap): scroll the
+     *  page surface to the Nth page item + set it as the document's current page. */
+    private fun jumpToPage(pageIndex: Int) {
+        document.goToPage(pageIndex)
+        viewModel.goToPage(pageIndex)  // sync the VM's currentPageIndex for the indicator
+        // The Nth page item is at child index pageIndex*2 in pagesContainer
+        // (a dotted separator precedes each page except the first).
+        val target = binding.pagesContainer.getChildAt(pageIndex * 2) ?: return
+        binding.pageScroll.post {
+            binding.pageScroll.smoothScrollTo(0, target.top)
+        }
     }
 
     // ─── Phase 8b: live injection + theme toggle ──────────────────────────
@@ -526,10 +569,16 @@ class CanvasActivity : AppCompatActivity() {
         binding.pagesContainer.scaleY = scale
     }
 
+    private var lastBuiltPaletteIndex: Int = -1
+
     private fun buildColorSwatches() {
+        val paletteIndex = viewModel.uiState.value.selectedPaletteIndex
+        if (paletteIndex == lastBuiltPaletteIndex && swatchViews.isNotEmpty()) return
+        lastBuiltPaletteIndex = paletteIndex
         binding.colorSwatchesContainer.removeAllViews()
         swatchViews.clear()
-        EditorPalette.COLORS.forEachIndexed { index, argb ->
+        val palette = EditorPalette.PALETTES.getOrNull(paletteIndex) ?: EditorPalette.PALETTES.first()
+        palette.forEachIndexed { index, argb ->
             val swatch = makeSwatchView(index, argb)
             binding.colorSwatchesContainer.addView(swatch)
             swatchViews.add(swatch)
@@ -642,10 +691,17 @@ class CanvasActivity : AppCompatActivity() {
         // Secondary options row visibility
         binding.optionsRow.visibility =
             if (state.showsColorPicker || state.showsStrokeWidth) View.VISIBLE else View.GONE
+        binding.paletteSwitcher.visibility =
+            if (state.showsColorPicker) View.VISIBLE else View.GONE
+        binding.paletteSwitcher.text =
+            EditorPalette.PALETTE_NAMES.getOrNull(state.selectedPaletteIndex)
+                ?: EditorPalette.PALETTE_NAMES.first()
         binding.colorSwatchesContainer.visibility =
             if (state.showsColorPicker) View.VISIBLE else View.GONE
         binding.strokeWidthContainer.visibility =
             if (state.showsStrokeWidth) View.VISIBLE else View.GONE
+        // Rebuild the swatches if the active palette changed (palette switcher).
+        buildColorSwatches()
 
         // Swatch selection ring (re-apply selected drawable to the active swatch's FrameLayout)
         swatchViews.forEachIndexed { i, v ->
