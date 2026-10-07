@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One page in the canvas surface (spec §6.10 Canvas Area).
+  A horizontal LinearLayout: a black page-number side strip (spec: "small side
+  black strip with the page number written in white at center") + the real Ink
+  canvas host (CanvasInkHost) filling the rest.
+
+  The host is created in code (it needs the BrushFamily/Ink init), so this layout
+  reserves a FrameLayout placeholder (@+id/inkHostContainer) that the activity
+  fills with a CanvasInkHost per page.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="700dp"
+    android:layout_height="990dp"
+    android:layout_gravity="center"
+    android:orientation="horizontal"
+    android:background="@drawable/bg_canvas_page_lined">
+
+    <!-- Page-number side strip -->
+    <FrameLayout
+        android:layout_width="28dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_page_number_strip">
+        <TextView
+            android:id="@+id/pageNumberText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:rotation="-90"
+            android:textColor="@color/canvas_page_number_strip_fg"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="1"
+            xmlns:tools="http://schemas.android.com/tools" />
+    </FrameLayout>
+
+    <!-- Ink host container — filled in code with a CanvasInkHost -->
+    <FrameLayout
+        android:id="@+id/inkHostContainer"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@android:color/transparent" />
+
+</LinearLayout>

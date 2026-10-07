@@ -291,43 +291,17 @@
         android:background="@color/canvas_bg_dim"
         android:fillViewport="true">
 
-        <FrameLayout
+        <!-- pagesContainer: stacked page items with dotted separators between
+             (spec §6.10 Canvas Area: "no gap between two pages; only a dotted
+             line separator" — the infinite-vertical-canvas feel). Pages are
+             added in code by CanvasActivity as item_canvas_page views. -->
+        <LinearLayout
+            android:id="@+id/pagesContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/space_lg">
-
-            <!-- The page card. Phase 7 will replace this placeholder with an
-                 AndroidX Ink InProgressStrokesView sized to the page's writing
-                 area. Today it shows the lined-paper background + a hint. -->
-            <LinearLayout
-                android:id="@+id/pageCard"
-                android:layout_width="700dp"
-                android:layout_height="990dp"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:background="@drawable/bg_canvas_page_lined"
-                android:padding="48dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="120dp"
-                    android:gravity="center"
-                    android:text="@string/canvas_ink_placeholder"
-                    android:textColor="@color/canvas_page_ink_hint"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center"
-                    android:text="@string/canvas_ink_phase7"
-                    android:textColor="@color/canvas_page_ink_hint"
-                    android:textSize="12sp"
-                    android:fontFamily="monospace" />
-            </LinearLayout>
-        </FrameLayout>
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="@dimen/space_lg" />
     </ScrollView>
 
 </LinearLayout>

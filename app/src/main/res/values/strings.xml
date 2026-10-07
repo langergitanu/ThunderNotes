@@ -165,6 +165,7 @@
     <string name="canvas_zoom_pct">%1$d%%</string>
     <string name="canvas_ink_placeholder">✍ Ink canvas</string>
     <string name="canvas_ink_phase7">AndroidX Ink InProgressStrokesView lands in Phase 7</string>
+    <string name="canvas_ink_unavailable">⚠ Ink canvas unavailable on this device\n(strokes tracked in-memory; restart to retry)</string>
     <string name="canvas_undo_pending">Undo — available with Ink in Phase 7</string>
     <string name="canvas_redo_pending">Redo — available with Ink in Phase 7</string>
     <string name="canvas_ai_snip_pending">AI Snip — SnipEngine chain lands in Phase 9</string>

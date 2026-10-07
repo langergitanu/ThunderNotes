@@ -119,6 +119,19 @@ dependencies {
     // ─── Networking (snip API calls: Gemini, GLM, PaddleOCR remote) ──────
     implementation(libs.okhttp)
 
+    // ─── AndroidX Ink — the canvas engine (Notein is built on this; we depend
+    // on the same public library rather than porting Notein's rendering —
+    // Notein README §0/§2). ink-authoring hosts InProgressStrokesView; ink-brush
+    // has StockBrushes + Brush(BrushFamily, size, epsilon); ink-strokes has Stroke;
+    // ink-storage decodes custom .brushfamily assets; ink-geometry for stroke
+    // geometry; ink-rendering for StrokePaintAnimator. ───────────────────────
+    implementation(libs.androidx.ink.authoring)
+    implementation(libs.androidx.ink.brush)
+    implementation(libs.androidx.ink.geometry)
+    implementation(libs.androidx.ink.strokes)
+    implementation(libs.androidx.ink.storage)
+    implementation(libs.androidx.ink.rendering)
+
     // ─── Testing ─────────────────────────────────────────────────────────
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

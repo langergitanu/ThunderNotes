@@ -21,6 +21,9 @@ serialization = "1.9.0"
 okhttp = "4.12.0"
 androidxTestCore = "1.6.1"
 robolectric = "4.13"
+# AndroidX Ink — the public Jetpack ink engine Notein is built on
+# (Notein README §0/§2: androidx.ink:ink-authoring/brush/geometry/strokes/storage/rendering).
+ink = "1.1.0-alpha07"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -65,6 +68,15 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 # Testing
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+
+# AndroidX Ink — the public Jetpack ink engine (Notein is built on this; we depend
+# on the same library instead of porting Notein's rendering — Notein README §0/§2).
+androidx-ink-authoring = { group = "androidx.ink", name = "ink-authoring", version.ref = "ink" }
+androidx-ink-brush = { group = "androidx.ink", name = "ink-brush", version.ref = "ink" }
+androidx-ink-geometry = { group = "androidx.ink", name = "ink-geometry", version.ref = "ink" }
+androidx-ink-strokes = { group = "androidx.ink", name = "ink-strokes", version.ref = "ink" }
+androidx-ink-storage = { group = "androidx.ink", name = "ink-storage", version.ref = "ink" }
+androidx-ink-rendering = { group = "androidx.ink", name = "ink-rendering", version.ref = "ink" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

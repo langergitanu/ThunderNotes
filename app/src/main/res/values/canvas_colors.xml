@@ -34,4 +34,6 @@
     <color name="canvas_page_bg">#FFFAFAF7</color>
     <color name="canvas_page_rule">#FFE0DDD3</color>      <!-- lined paper rule -->
     <color name="canvas_page_ink_hint">#FF8A8A8A</color>
+    <color name="canvas_page_number_strip_bg">#FF000000</color> <!-- spec §6.10: black strip, white text -->
+    <color name="canvas_page_number_strip_fg">#FFFFFFFF</color>
 </resources>
