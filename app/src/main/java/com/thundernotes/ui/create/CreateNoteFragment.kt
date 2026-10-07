@@ -11,6 +11,7 @@ import com.thundernotes.data.entity.PageType
 import com.thundernotes.R
 import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentCreateNoteBinding
+import com.thundernotes.ui.canvas.CanvasActivity
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,11 +79,13 @@ class CreateNoteFragment : BottomSheetDialogFragment() {
                 val displayName = "Untitled " + SimpleDateFormat(
                     "MMM d HH:mm", Locale.getDefault()
                 ).format(Date())
-                RepositoryModule.notes.createNote(
+                val noteId = RepositoryModule.notes.createNote(
                     displayName = displayName,
                     pageType = pageType,
                     orientation = orientation
                 )
+                // Open the freshly-created note in the canvas editor immediately.
+                CanvasActivity.launch(requireContext(), noteId)
             } catch (e: Throwable) {
                 android.widget.Toast.makeText(
                     requireContext(),

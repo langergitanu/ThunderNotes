@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.thundernotes.data.entity.FolderEntity
 import com.thundernotes.data.entity.NoteEntity
 import com.thundernotes.databinding.FragmentThunderHomeBinding
+import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.create.CreateFolderFragment
 import com.thundernotes.ui.create.CreateNoteFragment
 import com.thundernotes.ui.folders.FolderAdapter
@@ -60,13 +61,7 @@ class ThunderHomeFragment : Fragment() {
     private fun setupNoteGrid() {
         noteAdapter = NoteAdapter(
             onItemClick = { note ->
-                // Phase 6 will open the note in the CanvasActivity.
-                // For now, just show a toast.
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Opening \"${note.displayName}\" — canvas coming in Phase 6",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                CanvasActivity.launch(requireContext(), note.noteId)
             },
             onMoreClick = { note, anchor ->
                 // Phase 5b will add the 7-function overflow menu (Rename, Change Cover,

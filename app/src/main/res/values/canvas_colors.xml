@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Canvas Obsidian dark theme — tokens from the Frontend `canvasLayoutPage` design spec.
+  Used only by CanvasActivity + its layouts; the library pages keep the lighter
+  Material 3 tokens in colors.xml.
+-->
+<resources>
+    <!-- Surfaces -->
+    <color name="canvas_bg">#FF131317</color>            <!-- surface -->
+    <color name="canvas_bg_dim">#FF0E0E12</color>         <!-- surface-container-lowest -->
+    <color name="canvas_surface_low">#FF1B1B1F</color>   <!-- surface-container-low -->
+    <color name="canvas_surface">#FF1F1F23</color>       <!-- surface-container -->
+    <color name="canvas_surface_high">#FF2A292E</color>  <!-- surface-container-high -->
+    <color name="canvas_surface_highest">#FF353439</color><!-- surface-container-highest -->
+
+    <!-- Text -->
+    <color name="canvas_on_surface">#FFE4E1E7</color>
+    <color name="canvas_on_surface_variant">#FFB8B0B8</color>
+    <color name="canvas_outline">#FF5B4040</color>
+    <color name="canvas_outline_variant">#FF3A3030</color>
+
+    <!-- Accents -->
+    <color name="canvas_primary">#FFFFB3B5</color>       <!-- coral pink (selection rings) -->
+    <color name="canvas_on_primary">#FF680018</color>
+    <color name="canvas_secondary">#FF4EDEA3</color>      <!-- emerald (stylus / success) -->
+    <color name="canvas_tertiary">#FFFFB95F</color>      <!-- amber (AI snip) -->
+
+    <!-- Tool states -->
+    <color name="canvas_tool_active_bg">#FF353439</color>
+    <color name="canvas_tool_inactive_tint">#FFB8B0B8</color>
+    <color name="canvas_tool_active_tint">#FFE4E1E7</color>
+
+    <!-- Page (light card on dark canvas) -->
+    <color name="canvas_page_bg">#FFFAFAF7</color>
+    <color name="canvas_page_rule">#FFE0DDD3</color>      <!-- lined paper rule -->
+    <color name="canvas_page_ink_hint">#FF8A8A8A</color>
+</resources>

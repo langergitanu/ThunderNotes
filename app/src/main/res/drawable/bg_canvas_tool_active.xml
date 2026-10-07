@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Active tool button: filled rounded rect in canvas_tool_active_bg -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/canvas_tool_active_bg" />
+    <corners android:radius="10dp" />
+    <stroke android:width="1dp" android:color="@color/canvas_outline" />
+</shape>

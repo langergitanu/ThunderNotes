@@ -31,7 +31,7 @@ import java.util.UUID
  * (no separate query needed — file name, file size, date created are all
  * columns on the entity).
  */
-class NotesRepository(
+open class NotesRepository(
     private val appContext: Context,
     private val appDatabase: AppDatabase,
     private val noteDao: NoteDao = appDatabase.noteDao(),
@@ -70,7 +70,7 @@ class NotesRepository(
      *   6. Insert the [NoteEntity] row in the app-global DB.
      *   7. Return the [noteId].
      */
-    suspend fun createNote(
+    open suspend fun createNote(
         displayName: String,
         parentFolderId: String? = null,
         pageType: PageType = PageType.BLANK,
@@ -260,7 +260,7 @@ class NotesRepository(
 
     // ─── three-dot overflow operations (spec §6.2) ──────────────────────────
 
-    suspend fun renameNote(noteId: String, newName: String) =
+    open suspend fun renameNote(noteId: String, newName: String) =
         noteDao.rename(noteId, newName)
 
     suspend fun changeCover(noteId: String, coverPath: String) =
@@ -309,5 +309,5 @@ class NotesRepository(
     fun observeTrashedNotes(): Flow<List<NoteEntity>> = noteDao.observeTrashed()
     fun searchNotesByTitle(query: String): Flow<List<NoteEntity>> = noteDao.searchByTitle(query)
 
-    suspend fun getNote(noteId: String): NoteEntity? = noteDao.getByNoteId(noteId)
+    open suspend fun getNote(noteId: String): NoteEntity? = noteDao.getByNoteId(noteId)
 }

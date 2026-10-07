@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CanvasActivity layout — the full-screen note editor.
+
+  Mirrors the structural regions of the Frontend `canvasLayoutPage` mock:
+   1. Top app bar     — back / title / page indicator / overflow
+   2. Workflow row    — undo · redo · zoom − % + · add page · AI-snip
+   3. Pen tray        — 6 tools (PEN/HIGHLIGHTER/ERASER/LASSO/SHAPE/TEXT)
+                        + secondary row: color swatches + stroke widths
+                        (both shown/hidden per the selected tool's rules)
+   4. Page surface    — scrollable area hosting the (placeholder) page card
+                        The AndroidX Ink InProgressStrokesView attaches here in Phase 7.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/canvas_bg"
+    android:fitsSystemWindows="true">
+
+    <!-- ═══ [1] Top app bar ════════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/canvas_surface_low"
+        android:paddingHorizontal="@dimen/space_md">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_back"
+            android:contentDescription="@string/canvas_back"
+            android:tint="@color/canvas_on_surface" />
+
+        <EditText
+            android:id="@+id/noteTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/space_md"
+            android:background="@android:color/transparent"
+            android:hint="@string/canvas_title_hint"
+            android:textColorHint="@color/canvas_on_surface_variant"
+            android:textColor="@color/canvas_on_surface"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:singleLine="true"
+            android:imeOptions="actionDone"
+            android:inputType="text|textCapSentences" />
+
+        <TextView
+            android:id="@+id/pageIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_md"
+            android:textColor="@color/canvas_on_surface_variant"
+            android:textSize="13sp"
+            tools:text="1 / 1"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <ImageButton
+            android:id="@+id/btnOverflow"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_more_vert"
+            android:contentDescription="@string/canvas_more"
+            android:tint="@color/canvas_on_surface_variant" />
+    </LinearLayout>
+
+    <!-- ═══ [2] Workflow row ═══════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/canvas_bg_dim"
+        android:paddingHorizontal="@dimen/space_md">
+
+        <ImageButton
+            android:id="@+id/btnUndo"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_undo"
+            android:contentDescription="@string/canvas_undo"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <ImageButton
+            android:id="@+id/btnRedo"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_redo"
+            android:contentDescription="@string/canvas_redo"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- spacer pushes zoom group to center-right -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/btnZoomOut"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_zoom_out"
+            android:contentDescription="@string/canvas_zoom_out"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <TextView
+            android:id="@+id/zoomIndicator"
+            android:layout_width="48dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:textColor="@color/canvas_on_surface"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            tools:text="100%"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <ImageButton
+            android:id="@+id/btnZoomIn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_zoom_in"
+            android:contentDescription="@string/canvas_zoom_in"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/btnAddPage"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_add_page"
+            android:contentDescription="@string/canvas_add_page"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAiSnip"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:text="@string/canvas_ai_snip"
+            android:textColor="@color/canvas_tertiary"
+            app:icon="@drawable/ic_editor_ai_snip"
+            app:iconTint="@color/canvas_tertiary"
+            app:iconSize="18dp" />
+    </LinearLayout>
+
+    <!-- ═══ [3] Pen tray ═══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/canvas_surface_low"
+        android:paddingHorizontal="@dimen/space_md"
+        android:paddingVertical="@dimen/space_sm">
+
+        <!-- Tool row -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/toolTray"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/toolPen"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_pen"
+                    android:contentDescription="@string/canvas_tool_pen"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
+                <ImageButton
+                    android:id="@+id/toolHighlighter"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_highlighter"
+                    android:contentDescription="@string/canvas_tool_highlighter"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
+                <ImageButton
+                    android:id="@+id/toolEraser"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_eraser"
+                    android:contentDescription="@string/canvas_tool_eraser"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
+                <ImageButton
+                    android:id="@+id/toolLasso"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_lasso"
+                    android:contentDescription="@string/canvas_tool_lasso"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
+                <ImageButton
+                    android:id="@+id/toolShape"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_shape"
+                    android:contentDescription="@string/canvas_tool_shape"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
+                <ImageButton
+                    android:id="@+id/toolText"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_text"
+                    android:contentDescription="@string/canvas_tool_text"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Secondary options row: color swatches + stroke widths.
+             Visibility toggled from code based on the active tool. -->
+        <LinearLayout
+            android:id="@+id/optionsRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/space_sm">
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/colorSwatchesContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical" />
+            </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/strokeWidthContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/space_md" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ═══ [4] Page surface ════════════════════════════════════════════ -->
+    <ScrollView
+        android:id="@+id/pageScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/canvas_bg_dim"
+        android:fillViewport="true">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/space_lg">
+
+            <!-- The page card. Phase 7 will replace this placeholder with an
+                 AndroidX Ink InProgressStrokesView sized to the page's writing
+                 area. Today it shows the lined-paper background + a hint. -->
+            <LinearLayout
+                android:id="@+id/pageCard"
+                android:layout_width="700dp"
+                android:layout_height="990dp"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:background="@drawable/bg_canvas_page_lined"
+                android:padding="48dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="120dp"
+                    android:gravity="center"
+                    android:text="@string/canvas_ink_placeholder"
+                    android:textColor="@color/canvas_page_ink_hint"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/canvas_ink_phase7"
+                    android:textColor="@color/canvas_page_ink_hint"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+        </FrameLayout>
+    </ScrollView>
+
+</LinearLayout>

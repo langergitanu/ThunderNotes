@@ -61,6 +61,18 @@
             </intent-filter>
         </activity>
 
+        <!-- ─── Canvas editor (Phase 6) ──────────────────────────────────────
+             Full-screen note editor hosted in its own Activity (the canvas needs
+             the whole screen for the pen tray + page surface + AI-snip overlay,
+             with the sidebar hidden). Launched with an optional NOTE_ID extra;
+             absent → the editor creates a fresh untitled note. -->
+        <activity
+            android:name=".ui.canvas.CanvasActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode|smallestScreenSize|screenLayout|density|fontScale|locale"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ThunderNotes.Canvas" />
+
         <!-- ─── External stroke/textbox injection ingress (phase 2+) ──────────
              ContentProvider exposing content://com.thundernotes.inject/inject
              Used by:

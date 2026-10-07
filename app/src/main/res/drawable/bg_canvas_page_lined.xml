@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lined page background: white card with horizontal ruled lines.
+     Drawn as a layer-list so the page stays white while the rules repeat. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- White page body with rounded corners + shadow hint -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/canvas_page_bg" />
+            <corners android:radius="6dp" />
+            <stroke android:width="0.5dp" android:color="@color/canvas_page_rule" />
+        </shape>
+    </item>
+    <!-- Horizontal rules, 32dp apart (matches a typical ruled notebook) -->
+    <item android:top="48dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <stroke android:width="0.5dp" android:color="@color/canvas_page_rule" />
+        </shape>
+    </item>
+</layer-list>

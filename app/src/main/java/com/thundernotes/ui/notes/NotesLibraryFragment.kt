@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.thundernotes.databinding.FragmentNotesLibraryBinding
+import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.create.CreateNoteFragment
 import kotlinx.coroutines.launch
 
@@ -43,11 +44,7 @@ class NotesLibraryFragment : Fragment() {
 
         noteAdapter = NoteAdapter(
             onItemClick = { note ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Opening \"${note.displayName}\" — canvas coming in Phase 6",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                CanvasActivity.launch(requireContext(), note.noteId)
             },
             onMoreClick = { _, anchor ->
                 android.widget.Toast.makeText(
