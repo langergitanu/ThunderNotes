@@ -80,6 +80,7 @@ class CanvasActivity : AppCompatActivity() {
     private val document = CanvasDocument()
     private val pageHosts = mutableListOf<CanvasInkHost>()
     private val pageRoots = mutableListOf<View>()  // page-item roots (for theme toggle)
+    private val pageCompletedViews = mutableListOf<CompletedStrokesView>()  // finished-stroke layer per page
     private val injector = InkInjector(document)
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
 
@@ -201,26 +202,33 @@ class CanvasActivity : AppCompatActivity() {
         pageBinding.inkHostContainer.addView(host)
         pageHosts.add(host)
         pageRoots.add(pageBinding.root)
+        pageCompletedViews.add(pageBinding.completedStrokesView)
         binding.pagesContainer.addView(pageBinding.root)
 
-        // Apply the current brush config + theme to the new host immediately.
+        // Apply the current brush config + theme + stroke-inversion to the new page.
         applyBrushToHosts()
         applyTheme()
+        pageBinding.completedStrokesView.setColorInverted(!canvasLight)
     }
 
     // ─── Phase 8b: live injection + theme toggle ──────────────────────────
 
     /** Paste-button action: take the clipboard item (clears the glow) + drop it
-     *  onto the current page via [InkInjector]. Toasts empty/done. */
+     *  onto the current page via [InkInjector]. The translated records are then
+     *  rendered on-screen by the current page's [CompletedStrokesView] (Phase 8b:
+     *  this makes injected/pasted strokes appear live — the live-injection UX). */
     private fun handlePaste() {
         val item = ThunderClipboard.take()
         if (item == null) {
             Toast.makeText(this, R.string.canvas_paste_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        // Drop at the top-left of the current page (the floating-position UX —
-        // spec §6.10 Row 2 / §7.3 — is a refinement; for now the item drops at 0,0).
-        injector.inject(item, dropX = 0f, dropY = 0f)
+        val records = injector.inject(item, dropX = 0f, dropY = 0f)
+        // Render each injected stroke on the current page's completed-strokes layer.
+        val idx = viewModel.uiState.value.currentPageIndex
+        pageCompletedViews.getOrNull(idx)?.let { cv ->
+            records.forEach { cv.addFromRecord(it) }
+        }
         syncUndoRedoFlags()
         Toast.makeText(this, R.string.canvas_paste_done, Toast.LENGTH_SHORT).show()
     }
@@ -249,12 +257,13 @@ class CanvasActivity : AppCompatActivity() {
     }
 
     /** Apply the canvas-area theme (light ↔ dark page cards, spec §6.10 Row 1 right).
-     *  Stroke-color inversion (smart color inversion preserving hue) is the
-     *  completed-strokes renderer's job — the page-bg swap is the visible part. */
+     *  Also pushes smart color inversion (preserve hue, invert lightness) into every
+     *  page's [CompletedStrokesView] so injected/pasted strokes invert with the theme. */
     private fun applyTheme() {
         val bg = if (canvasLight) R.drawable.bg_canvas_page_lined else R.drawable.bg_canvas_page_dark
         ContextCompat.getDrawable(this, bg)?.let { d ->
             pageRoots.forEach { it.background = d } }
+        pageCompletedViews.forEach { it.setColorInverted(!canvasLight) }
     }
 
     /** A finished stroke arrived from a host → record it in the document. */
@@ -266,16 +275,15 @@ class CanvasActivity : AppCompatActivity() {
     private fun handleUndo() {
         val undone = document.undo()
         if (undone) {
-            // Phase 8b: actually remove the undone stroke from the Ink view.
-            // The document's lastUndoneAction carries the stroke id (for an
-            // AddStroke undo); the host maps record id → Ink finished-stroke id
-            // → removeFinishedStrokes. (For RemoveStroke/AddPage undos there's
-            // no view-side stroke to remove — those are model-only.)
+            // Phase 8b: remove the undone stroke from whichever layer renders it.
+            // Drawn strokes live on the InProgressStrokesView (host); injected/pasted
+            // strokes live on the CompletedStrokesView. Try both — only the one that
+            // has the stroke succeeds. (RemoveStroke/AddPage undos are model-only.)
             val action = document.lastUndoneAction
             if (action is com.thundernotes.canvas.DocAction.AddStroke) {
-                val state = viewModel.uiState.value
-                pageHosts.getOrNull(state.currentPageIndex)
-                    ?.removeStrokeFromView(action.stroke.id)
+                val idx = viewModel.uiState.value.currentPageIndex
+                pageHosts.getOrNull(idx)?.removeStrokeFromView(action.stroke.id)
+                pageCompletedViews.getOrNull(idx)?.remove(action.stroke.id)
             }
         }
         syncUndoRedoFlags()
@@ -283,10 +291,13 @@ class CanvasActivity : AppCompatActivity() {
 
     private fun handleRedo() {
         document.redo()
-        // Redo-on-view (re-adding a removed stroke to the Ink view) is not
-        // directly supported by InProgressStrokesView; the document tracks it
-        // and the stroke reappears after a save/load cycle. A completed-strokes
-        // renderer for live redo is the remaining Phase 8b item.
+        // Phase 8b: live redo for injected/pasted strokes — the CompletedStrokesView
+        // keeps a redo buffer (the strokes its .remove buffered) + re-adds the last.
+        val idx = viewModel.uiState.value.currentPageIndex
+        pageCompletedViews.getOrNull(idx)?.redo()
+        // (Drawn-stroke redo on the InProgressStrokesView stays model-only — it
+        // needs re-playing via start/add/finish; the document tracks it. A future
+        // sub-phase re-plays drawn strokes on redo.)
         syncUndoRedoFlags()
     }
 

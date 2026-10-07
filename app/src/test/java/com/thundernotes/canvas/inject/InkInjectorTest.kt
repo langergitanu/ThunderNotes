@@ -34,8 +34,8 @@ class InkInjectorTest {
             ),
             bbox = floatArrayOf(0f, 0f, 15f, 15f),
         )
-        val ids = injector.inject(group, dropX = 100f, dropY = 50f)
-        assertEquals(2, ids.size)
+        val records = injector.inject(group, dropX = 100f, dropY = 50f)
+        assertEquals(2, records.size)
         val strokes = doc.currentStrokes
         assertEquals(2, strokes.size)
         // First stroke's points translated by (100, 50).
@@ -49,11 +49,11 @@ class InkInjectorTest {
             strokes = listOf(stroke("orig", listOf(0f, 0f, 1f, 1f))),
             bbox = floatArrayOf(0f, 0f, 1f, 1f),
         )
-        val ids1 = injector.inject(group, 0f, 0f)
-        val ids2 = injector.inject(group, 10f, 10f)
-        assertEquals(1, ids1.size)
-        assertEquals(1, ids2.size)
-        assertTrue("pasted strokes must have distinct ids", ids1[0] != ids2[0])
+        val r1 = injector.inject(group, 0f, 0f)
+        val r2 = injector.inject(group, 10f, 10f)
+        assertEquals(1, r1.size)
+        assertEquals(1, r2.size)
+        assertTrue("pasted strokes must have distinct ids", r1[0].id != r2[0].id)
         assertEquals(2, doc.currentStrokes.size)
     }
 

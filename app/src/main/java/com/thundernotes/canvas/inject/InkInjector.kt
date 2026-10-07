@@ -22,9 +22,12 @@ class InkInjector(private val document: CanvasDocument) {
 
     /**
      * Drop [item] at ([dropX], [dropY]) on the current page.
-     * Returns the ids of the strokes written (empty for textbox — see [injectTextbox]).
+     * Returns the **translated** [StrokeRecord]s written (each with a fresh id
+     * + the page id) so the caller can also render them on-screen via
+     * [com.thundernotes.ui.canvas.CompletedStrokesView.addFromRecord].
+     * Empty for textbox (see [injectTextbox]).
      */
-    fun inject(item: ClipboardItem, dropX: Float, dropY: Float): List<String> =
+    fun inject(item: ClipboardItem, dropX: Float, dropY: Float): List<StrokeRecord> =
         when (item) {
             is ClipboardItem.StrokeGroup -> injectStrokeGroup(item, dropX, dropY)
             is ClipboardItem.TextBox -> { injectTextbox(item, dropX, dropY); emptyList() }
@@ -34,9 +37,9 @@ class InkInjector(private val document: CanvasDocument) {
         group: ClipboardItem.StrokeGroup,
         dropX: Float,
         dropY: Float,
-    ): List<String> {
+    ): List<StrokeRecord> {
         val page = document.currentPage ?: return emptyList()
-        val ids = mutableListOf<String>()
+        val out = mutableListOf<StrokeRecord>()
         for (s in group.strokes) {
             val translated = s.copy(
                 id = UUID.randomUUID().toString(),
@@ -44,9 +47,9 @@ class InkInjector(private val document: CanvasDocument) {
                 inputXy = translateCoords(s.inputXy, dropX, dropY),
             )
             document.addStroke(translated)
-            ids.add(translated.id)
+            out.add(translated)
         }
-        return ids
+        return out
     }
 
     /**
