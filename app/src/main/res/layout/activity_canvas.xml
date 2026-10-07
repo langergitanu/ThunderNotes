@@ -64,6 +64,16 @@
             xmlns:tools="http://schemas.android.com/tools" />
 
         <ImageButton
+            android:id="@+id/btnThemeToggle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_theme"
+            android:contentDescription="@string/canvas_theme_toggle"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <ImageButton
             android:id="@+id/btnOverflow"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -100,6 +110,18 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_redo"
             android:contentDescription="@string/canvas_redo"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Paste button — glows (emerald ring) while ThunderClipboard holds 1 item.
+             Tapping drops the item onto the canvas via InkInjector (Phase 8b). -->
+        <ImageButton
+            android:id="@+id/btnPaste"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_paste"
+            android:contentDescription="@string/canvas_paste"
             android:tint="@color/canvas_on_surface_variant" />
 
         <!-- spacer pushes zoom group to center-right -->

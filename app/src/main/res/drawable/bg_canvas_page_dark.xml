@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark-theme page card (spec §6.10 Row 1 right: the canvas AREA toggles
+     dark↔light; this is the dark variant of bg_canvas_page_lined). The smart
+     color inversion of strokes is applied by the renderer; the page bg swap
+     is the visible part of the toggle. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/canvas_page_bg_dark" />
+            <corners android:radius="6dp" />
+            <stroke android:width="0.5dp" android:color="@color/canvas_page_rule_dark" />
+        </shape>
+    </item>
+    <item android:top="48dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <stroke android:width="0.5dp" android:color="@color/canvas_page_rule_dark" />
+        </shape>
+    </item>
+</layer-list>

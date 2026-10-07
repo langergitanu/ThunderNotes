@@ -170,6 +170,11 @@
     <string name="canvas_redo_pending">Redo — available with Ink in Phase 7</string>
     <string name="canvas_ai_snip_pending">AI Snip — SnipEngine chain lands in Phase 9</string>
     <string name="canvas_overflow_pending">More options — coming soon</string>
+    <string name="canvas_paste">Paste</string>
+    <string name="canvas_paste_empty">Clipboard is empty</string>
+    <string name="canvas_paste_done">Pasted onto canvas</string>
+    <string name="canvas_theme_toggle">Toggle canvas theme</string>
+    <string name="canvas_injected">Received — paste to drop on canvas</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

@@ -33,6 +33,15 @@
     <uses-feature android:name="android.hardware.faketouch" android:required="false" />
     <uses-feature android:name="android.hardware.type.tablet" android:required="false" />
 
+    <!-- ─── Live injection ingress permission (thunder-format-proposal Part B2) ───
+         Guards the InjectContentReceiver so only authorized callers can push
+         strokes/textboxes into ThunderNotes' clipboard while a note is open. -->
+    <permission
+        android:name="com.thundernotes.permission.INJECT"
+        android:protectionLevel="normal"
+        android:label="Inject content into ThunderNotes" />
+    <uses-permission android:name="com.thundernotes.permission.INJECT" />
+
     <application
         android:name=".ThunderNotesApp"
         android:allowBackup="true"
@@ -72,6 +81,20 @@
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode|smallestScreenSize|screenLayout|density|fontScale|locale"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.ThunderNotes.Canvas" />
+
+        <!-- ─── External live-injection receiver (Phase 8b, thunder-format-proposal
+             Part B2) — pushes a stroke-group/textbox payload into ThunderNotes'
+             clipboard while a note is open; the paste button then glows. Guarded
+             by the INJECT permission (signature/normal) so only authorized callers
+             can inject. Exported so external tools + ADB can reach it. -->
+        <receiver
+            android:name=".inject.InjectContentReceiver"
+            android:exported="true"
+            android:permission="com.thundernotes.permission.INJECT">
+            <intent-filter>
+                <action android:name="com.thundernotes.action.INJECT_CONTENT" />
+            </intent-filter>
+        </receiver>
 
         <!-- ─── External stroke/textbox injection ingress (phase 2+) ──────────
              ContentProvider exposing content://com.thundernotes.inject/inject

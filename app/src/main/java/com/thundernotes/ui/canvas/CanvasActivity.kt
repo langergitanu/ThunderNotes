@@ -26,8 +26,11 @@ import com.thundernotes.R
 import com.thundernotes.canvas.BrushRegistry
 import com.thundernotes.canvas.CanvasDocument
 import com.thundernotes.canvas.StrokeRecord
+import com.thundernotes.canvas.inject.InkInjector
+import com.thundernotes.canvas.inject.ThunderClipboard
 import com.thundernotes.databinding.ActivityCanvasBinding
 import com.thundernotes.databinding.ItemCanvasPageBinding
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -76,6 +79,9 @@ class CanvasActivity : AppCompatActivity() {
     // pageHosts mirrors the document's pages for rendering + touch routing.
     private val document = CanvasDocument()
     private val pageHosts = mutableListOf<CanvasInkHost>()
+    private val pageRoots = mutableListOf<View>()  // page-item roots (for theme toggle)
+    private val injector = InkInjector(document)
+    private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +94,7 @@ class CanvasActivity : AppCompatActivity() {
         buildColorSwatches()
         buildStrokeWidthDots()
         observeState()
+        observeClipboard()  // Phase 8b: paste-button glow
 
         // Build the first page's Ink host (the document starts with 1 page).
         addPageItem(pageNumber = 1)
@@ -107,6 +114,11 @@ class CanvasActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
         binding.btnOverflow.setOnClickListener {
             Toast.makeText(this, R.string.canvas_overflow_pending, Toast.LENGTH_SHORT).show()
+        }
+        // Phase 8b: canvas-area theme toggle (spec §6.10 Row 1 right).
+        binding.btnThemeToggle.setOnClickListener {
+            canvasLight = !canvasLight
+            applyTheme()
         }
         // Rename on IME action "Done" or when focus leaves the title field.
         binding.noteTitle.setOnEditorActionListener { v, _, _ ->
@@ -128,6 +140,9 @@ class CanvasActivity : AppCompatActivity() {
     private fun wireWorkflowRow() {
         binding.btnUndo.setOnClickListener { handleUndo() }
         binding.btnRedo.setOnClickListener { handleRedo() }
+        // Phase 8b: paste button — drops the clipboard item onto the canvas
+        // (the live-injection paste path). Glows while ThunderClipboard has 1 item.
+        binding.btnPaste.setOnClickListener { handlePaste() }
         binding.btnZoomIn.setOnClickListener {
             viewModel.zoomIn()
             applyZoom()
@@ -185,10 +200,61 @@ class CanvasActivity : AppCompatActivity() {
         }
         pageBinding.inkHostContainer.addView(host)
         pageHosts.add(host)
+        pageRoots.add(pageBinding.root)
         binding.pagesContainer.addView(pageBinding.root)
 
-        // Apply the current brush config to the new host immediately.
+        // Apply the current brush config + theme to the new host immediately.
         applyBrushToHosts()
+        applyTheme()
+    }
+
+    // ─── Phase 8b: live injection + theme toggle ──────────────────────────
+
+    /** Paste-button action: take the clipboard item (clears the glow) + drop it
+     *  onto the current page via [InkInjector]. Toasts empty/done. */
+    private fun handlePaste() {
+        val item = ThunderClipboard.take()
+        if (item == null) {
+            Toast.makeText(this, R.string.canvas_paste_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Drop at the top-left of the current page (the floating-position UX —
+        // spec §6.10 Row 2 / §7.3 — is a refinement; for now the item drops at 0,0).
+        injector.inject(item, dropX = 0f, dropY = 0f)
+        syncUndoRedoFlags()
+        Toast.makeText(this, R.string.canvas_paste_done, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Observe the clipboard → toggle the paste button's glow (emerald ring
+     *  while ThunderClipboard holds 1 item, spec §6.10 Row 2). */
+    private fun observeClipboard() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ThunderClipboard.item.collect { item -> applyPasteGlow(item != null) }
+            }
+        }
+    }
+
+    private fun applyPasteGlow(hasItem: Boolean) {
+        binding.btnPaste.background = ContextCompat.getDrawable(
+            this,
+            if (hasItem) R.drawable.bg_canvas_paste_glow else R.drawable.bg_canvas_tool,
+        )
+        binding.btnPaste.imageTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(
+                this,
+                if (hasItem) R.color.canvas_secondary else R.color.canvas_tool_inactive_tint,
+            )
+        )
+    }
+
+    /** Apply the canvas-area theme (light ↔ dark page cards, spec §6.10 Row 1 right).
+     *  Stroke-color inversion (smart color inversion preserving hue) is the
+     *  completed-strokes renderer's job — the page-bg swap is the visible part. */
+    private fun applyTheme() {
+        val bg = if (canvasLight) R.drawable.bg_canvas_page_lined else R.drawable.bg_canvas_page_dark
+        ContextCompat.getDrawable(this, bg)?.let { d ->
+            pageRoots.forEach { it.background = d } }
     }
 
     /** A finished stroke arrived from a host → record it in the document. */
