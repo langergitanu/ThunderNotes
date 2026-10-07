@@ -120,6 +120,21 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             // 2. Preprocess: binarize → line-detect → crop per line → upscale.
             val bw = SnipPreprocessor.binarize(img)
             val bands = SnipPreprocessor.detectLineBands(bw, minHeight = 1)
+
+            // DIAGRAM snips skip the OCR engine entirely — they're traced directly
+            // from the image (no text recognition needed). Spec §7.3.4d:
+            // "traced result converted to native pen strokes."
+            if (type == SnipType.DIAGRAM) {
+                val strokes = DiagramTracer.trace(img)
+                if (strokes.isNotEmpty()) {
+                    return@runCatching ClipboardItem.StrokeGroup(
+                        strokes = strokes,
+                        bbox = floatArrayOf(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
+                    )
+                }
+                throw RuntimeException("Diagram tracing produced no strokes")
+            }
+
             val crops = if (bands.isNotEmpty()) {
                 bands.map { band -> SnipPreprocessor.cropLine(bw, band) }
                     .map { crop -> SnipPreprocessor.upscale(crop, 2) }

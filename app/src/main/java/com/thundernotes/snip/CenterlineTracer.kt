@@ -138,7 +138,9 @@ object CenterlineTracer {
             return c
         }
 
-        // Follow a path from (x, y) until endpoint/junction/dead-end.
+        // Follow a path from (x, y) until endpoint/dead-end (trace THROUGH
+        // junctions — the sharp-point/colour-change splitting happens afterward
+        // in DiagramTracer.splitAtBreaks, not here).
         fun followPath(sx: Int, sy: Int): List<FloatArray> {
             val path = mutableListOf<FloatArray>()
             var x = sx; var y = sy
@@ -157,14 +159,7 @@ object CenterlineTracer {
                     }
                 }
                 if (nx < 0) break  // dead-end or all visited
-                val nCount = neighborCount(nx, ny)
-                if (nCount != 2) {
-                    // Reached an endpoint (1) or junction (3+) → include it + stop.
-                    visited[ny * w + nx] = true
-                    path.add(floatArrayOf(nx.toFloat(), ny.toFloat()))
-                    break
-                }
-                x = nx; y = ny
+                x = nx; y = ny  // continue (through junctions — don't stop)
             }
             return path
         }
