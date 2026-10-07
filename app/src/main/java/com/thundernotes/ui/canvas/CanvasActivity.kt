@@ -37,6 +37,7 @@ import com.thundernotes.canvas.TextBoxRecord
 import com.thundernotes.canvas.lasso.LassoOps
 import com.thundernotes.canvas.lasso.LassoSelector
 import com.thundernotes.canvas.lasso.StrokeTransforms
+import com.thundernotes.canvas.inject.ClipboardItem
 import com.thundernotes.canvas.inject.InkInjector
 import com.thundernotes.canvas.inject.ThunderClipboard
 import com.thundernotes.ui.canvas.tabs.CanvasTabs
@@ -103,6 +104,10 @@ class CanvasActivity : AppCompatActivity() {
     private val spacerManager = com.thundernotes.canvas.CanvasSpacerManager()  // §7.4 Add Writing Space
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
     private var rulerVisible = false  // spec §6.10 Row 2c Scale ruler toggle state
+    private var canvasLocked = false   // spec §6.10 Row 2 right Lock Canvas
+    private var readMode = false       // spec §6.10 Row 2 right Read Mode
+    private var fullscreenMode = false // spec §6.10 Row 2 right Fullscreen (hides tab row)
+    private var minimapVisible = true  // spec §6.10 Row 2 right Page Minimap toggle
 
     /** System image picker (spec §6.10 Row 2b Image insert) — returns the picked
      *  image Uri; the callback loads it + drops an ImageView on the current page. */
@@ -330,6 +335,99 @@ class CanvasActivity : AppCompatActivity() {
                 com.thundernotes.snip.SnipBottomSheet().show(supportFragmentManager, "snip")
             }
         }
+        // ─── Phase 9g: Row 2 top-right cluster (spec §6.10.5) ───────────
+        // Bookmark (toggle the current note's bookmark flag).
+        binding.btnBookmark.setOnClickListener {
+            val noteId = viewModel.uiState.value.noteId
+            if (noteId.isBlank()) {
+                Toast.makeText(this, "No note open", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            lifecycleScope.launch {
+                val note = com.thundernotes.data.repository.RepositoryModule.notes
+                    .getNote(noteId)
+                if (note == null) return@launch
+                com.thundernotes.data.repository.RepositoryModule.notes
+                    .setNoteBookmarked(noteId, !note.isBookmarked)
+                Toast.makeText(this@CanvasActivity,
+                    if (!note.isBookmarked) R.string.canvas_bookmarked
+                    else R.string.canvas_unbookmarked, Toast.LENGTH_SHORT).show()
+            }
+        }
+        // Read Mode — hide editing chrome (pen tray + workflow row's edit buttons)
+        // + make the canvas non-editable while on. Tap again to resume editing.
+        binding.btnReadMode.setOnClickListener {
+            readMode = !readMode
+            binding.toolTray.visibility = if (readMode) View.GONE else View.VISIBLE
+            binding.optionsRow.visibility = if (readMode) View.GONE else View.VISIBLE
+            Toast.makeText(this,
+                if (readMode) R.string.canvas_read_mode_on else R.string.canvas_read_mode_off,
+                Toast.LENGTH_SHORT).show()
+        }
+        // Fullscreen Mode (spec: "hides the topmost file explorer row").
+        binding.btnFullscreen.setOnClickListener {
+            fullscreenMode = !fullscreenMode
+            binding.tabsRow.visibility = if (fullscreenMode) View.GONE else View.VISIBLE
+            Toast.makeText(this,
+                if (fullscreenMode) R.string.canvas_fullscreen_on else R.string.canvas_fullscreen_off,
+                Toast.LENGTH_SHORT).show()
+        }
+        // Lock Canvas (canvas cannot be moved/scrolled by fingers — the ink
+        // host still accepts stylus strokes for writing).
+        binding.btnLockCanvas.setOnClickListener {
+            canvasLocked = !canvasLocked
+            binding.pageScroll.isEnabled = !canvasLocked
+            binding.pageScroll.requestDisallowInterceptTouchEvent(canvasLocked)
+            Toast.makeText(this,
+                if (canvasLocked) R.string.canvas_locked else R.string.canvas_unlocked,
+                Toast.LENGTH_SHORT).show()
+        }
+        // Change Page Margin — popup with 3 presets (Narrow/Normal/Wide).
+        binding.btnChangeMargin.setOnClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            listOf(
+                R.string.canvas_margin_narrow to 16,
+                R.string.canvas_margin_normal to 32,
+                R.string.canvas_margin_wide to 64,
+            ).forEachIndexed { idx, (label, _) ->
+                menu.menu.add(0, idx, idx, getString(label))
+            }
+            menu.setOnMenuItemClickListener { item ->
+                val pairs = listOf(16 to 16, 32 to 32, 64 to 64)
+                val (h, v) = pairs[item.itemId]
+                binding.pageScroll.setPadding(dp(h), dp(v), dp(h), dp(v))
+                Toast.makeText(this, R.string.canvas_margin_changed, Toast.LENGTH_SHORT).show()
+                true
+            }
+            menu.show()
+        }
+        // Change Cover Page — the cover picker is launched from the note's
+        // 3-dot menu (Change Cover). From the canvas, redirect the user there.
+        binding.btnChangeCover.setOnClickListener {
+            Toast.makeText(this,
+                "Use the note's 3-dot menu → Change Cover to pick a cover",
+                Toast.LENGTH_LONG).show()
+        }
+        // LaTeX Direct-Input shortcut (§7.7 — typed LaTeX → strokes → clipboard).
+        binding.btnLatexDirect.setOnClickListener {
+            com.thundernotes.snip.LatexInputBottomSheet()
+                .show(supportFragmentManager, "latex_direct")
+        }
+        // Page Minimap — toggle the pages-sidebar visibility.
+        binding.btnMinimap.setOnClickListener {
+            minimapVisible = !minimapVisible
+            binding.pagesSidebar.visibility =
+                if (minimapVisible) View.VISIBLE else View.GONE
+            Toast.makeText(this,
+                if (minimapVisible) R.string.canvas_minimap_shown
+                else R.string.canvas_minimap_hidden, Toast.LENGTH_SHORT).show()
+        }
+        // 100% Fit — tap the zoom indicator to reset zoom to 100%.
+        binding.zoomIndicator.setOnClickListener {
+            viewModel.resetZoom()
+            applyZoom()
+            Toast.makeText(this, R.string.canvas_fit_done, Toast.LENGTH_SHORT).show()
+        }
     }
 
     // ─── Multi-file tab system (§6.10 Row 1: max 10 files) ────────────────
@@ -473,11 +571,13 @@ class CanvasActivity : AppCompatActivity() {
      *  except for the first page). */
     private fun addPageItem(pageNumber: Int) {
         if (pageNumber > 1) {
-            // Dotted separator between pages (spec §6.10: no gap, just a dotted line).
+            // Dotted separator between pages (spec §6.10: "no gap between two
+            // pages; only a dotted line separator"). Zero margins — the
+            // previous page's bottom + this page's top touch directly.
             val sep = View(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 4
-                ).apply { topMargin = dp(8); bottomMargin = dp(8) }
+                ).apply { topMargin = 0; bottomMargin = 0 }
                 background = ContextCompat.getDrawable(this@CanvasActivity, R.drawable.bg_dotted_separator)
             }
             binding.pagesContainer.addView(sep)
@@ -560,11 +660,22 @@ class CanvasActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.canvas_paste_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        val records = injector.inject(item, dropX = 0f, dropY = 0f)
-        // Render each injected stroke on the current page's completed-strokes layer.
         val idx = viewModel.uiState.value.currentPageIndex
-        pageCompletedViews.getOrNull(idx)?.let { cv ->
-            records.forEach { cv.addFromRecord(it) }
+        when (item) {
+            is ClipboardItem.StrokeGroup -> {
+                val records = injector.inject(item, dropX = 0f, dropY = 0f)
+                // Render each injected stroke on the current page's completed-strokes layer.
+                pageCompletedViews.getOrNull(idx)?.let { cv ->
+                    records.forEach { cv.addFromRecord(it) }
+                }
+            }
+            is ClipboardItem.TextBox -> {
+                // Phase 9g: the textbox injection path is now wired — pasted
+                // TEXT/CODE snip outputs land on the canvas. The injector adds
+                // the TextBoxRecord to the document + returns it for rendering.
+                val tb = injector.injectTextbox(item, dropX = 0f, dropY = 0f)
+                if (tb != null) renderTextbox(idx, tb)
+            }
         }
         syncUndoRedoFlags()
         Toast.makeText(this, R.string.canvas_paste_done, Toast.LENGTH_SHORT).show()
@@ -604,15 +715,50 @@ class CanvasActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Render a [TextBoxRecord] as a positioned TextView on the page's textbox layer. */
+    /**
+     * Render a [TextBoxRecord] as a positioned TextView on the page's textbox layer.
+     *
+     * **Phase 9g:** when [TextBoxRecord.codeLanguage] is non-null (CODE snip
+     * output), apply [com.thundernotes.snip.CodeFormatter.toSpannable] syntax
+     * colours on top of the base Typeface (Patrick Hand by default). The
+     * colours are font-agnostic spans, so a later font change to JetBrains
+     * Mono (monospace) survives. The theme defaults to
+     * [com.thundernotes.snip.CodeTheme.forLanguage].
+     */
     private fun renderTextbox(pageIndex: Int, tb: TextBoxRecord) {
         val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
         val tv = TextView(this).apply {
-            text = tb.text
-            setTextColor(tb.colorArgb)
+            // Code snip → syntax-coloured Spannable; otherwise plain text.
+            val lang = tb.codeLanguage
+            if (lang != null) {
+                val codeLang = com.thundernotes.snip.CodeLanguage.entries.firstOrNull {
+                    it.displayName.equals(lang, ignoreCase = true) ||
+                    it.name.equals(lang, ignoreCase = true)
+                }
+                if (codeLang != null) {
+                    val theme = com.thundernotes.snip.CodeTheme.forLanguage(codeLang)
+                    text = com.thundernotes.snip.CodeFormatter.toSpannable(tb.text, codeLang, theme)
+                    // Code textbox: dark background so the theme colours read right
+                    // (One Dark / Monokai / GitHub Dark all target dark bg).
+                    setBackgroundColor(theme.background)
+                    setPadding(dp(12), dp(8), dp(12), dp(8))
+                    setTextColor(theme.plain)
+                } else {
+                    text = tb.text  // unknown language → plain
+                }
+            } else {
+                text = tb.text
+                setTextColor(tb.colorArgb)
+            }
             textSize = tb.fontSizeSp
             typeface = com.thundernotes.ui.common.FontCache.get(tb.fontFamily)
-            // Thin underline (spec §7.1 lists 4 underline styles; thin is the baseline).
+            // Bold / italic via paint flags (the textbox editor can toggle these).
+            if (tb.bold) paintFlags = paintFlags or android.graphics.Paint.FAKE_BOLD_TEXT_FLAG
+            if (tb.italic) typeface = android.graphics.Typeface.create(
+                com.thundernotes.ui.common.FontCache.get(tb.fontFamily),
+                android.graphics.Typeface.ITALIC,
+            )
+            // Underline (spec §7.1 lists 4 styles; thin is the baseline).
             if (tb.underline != 0) {
                 paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
             }

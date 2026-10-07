@@ -169,6 +169,11 @@ class NoteEditorViewModel(
             .coerceAtLeast(EditorZoom.MIN_PERCENT))
     }
 
+    /** Reset zoom to the default 100% (spec §6.10 Canvas Area: 100% Fit button). */
+    fun resetZoom() = _uiState.update {
+        it.copy(zoomPercent = EditorZoom.DEFAULT_PERCENT)
+    }
+
     fun renameNote(newTitle: String) {
         val trimmed = newTitle.trim().ifEmpty { DEFAULT_NEW_TITLE }
         _uiState.update { it.copy(noteTitle = trimmed) }

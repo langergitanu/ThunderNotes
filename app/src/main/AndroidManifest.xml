@@ -133,5 +133,18 @@
             android:foregroundServiceType="mediaProjection"
             android:stopWithTask="false" />
         -->
+
+        <!-- FileProvider for the Export share Intent (spec §6.2.5 Export).
+             Exposes .thunder files under getExternalFilesDir/notes/ so they
+             can be shared via ACTION_SEND (Save to Downloads, cloud, etc.). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

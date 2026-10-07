@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider paths for the Export share Intent (spec §6.2.5 Export).
+  Exposes .thunder files under getExternalFilesDir/notes/ so they can be
+  shared via ACTION_SEND to other apps (Save to Downloads, cloud drive, etc.).
+-->
+<paths>
+    <external-files-path
+        name="notes"
+        path="notes/" />
+    <external-files-path
+        name="external"
+        path="." />
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

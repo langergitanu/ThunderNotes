@@ -257,6 +257,95 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- ═══ Row 2 top-right cluster (spec §6.10.5: 9 buttons) ═══ -->
+        <!-- Bookmark (toggle note bookmark). -->
+        <ImageButton
+            android:id="@+id/btnBookmark"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_bookmark"
+            android:contentDescription="@string/canvas_btn_bookmark"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Read Mode (hide editing chrome, textboxes read-only). -->
+        <ImageButton
+            android:id="@+id/btnReadMode"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_read_mode"
+            android:contentDescription="@string/canvas_btn_read_mode"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Fullscreen Mode (hides the topmost file-explorer row). -->
+        <ImageButton
+            android:id="@+id/btnFullscreen"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_fullscreen"
+            android:contentDescription="@string/canvas_btn_fullscreen"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Lock Canvas (disables finger/stylus move of the canvas). -->
+        <ImageButton
+            android:id="@+id/btnLockCanvas"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_lock"
+            android:contentDescription="@string/canvas_btn_lock_canvas"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Change Page Margin. -->
+        <ImageButton
+            android:id="@+id/btnChangeMargin"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_margin"
+            android:contentDescription="@string/canvas_btn_change_margin"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Change Cover Page. -->
+        <ImageButton
+            android:id="@+id/btnChangeCover"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_cover"
+            android:contentDescription="@string/canvas_btn_change_cover"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- LaTeX Direct-Input shortcut (§7.7 — typed LaTeX → strokes). -->
+        <ImageButton
+            android:id="@+id/btnLatexDirect"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_latex_direct"
+            android:contentDescription="@string/snip_latex_direct_input"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Page Minimap (toggles the pages sidebar visibility). -->
+        <ImageButton
+            android:id="@+id/btnMinimap"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_minimap"
+            android:contentDescription="@string/canvas_btn_minimap"
+            android:tint="@color/canvas_on_surface_variant" />
+
         <ImageButton
             android:id="@+id/btnAddPage"
             android:layout_width="36dp"

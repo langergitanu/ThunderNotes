@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -13,11 +14,13 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.thundernotes.data.entity.FolderEntity
 import com.thundernotes.data.entity.NoteEntity
+import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentThunderHomeBinding
 import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.create.CreateFolderFragment
 import com.thundernotes.ui.create.CreateNoteFragment
 import com.thundernotes.ui.folders.FolderAdapter
+import java.io.File
 import com.thundernotes.ui.folders.FolderOverflowBottomSheet
 import com.thundernotes.ui.notes.NoteAdapter
 import com.thundernotes.ui.notes.NoteOverflowBottomSheet
@@ -143,13 +146,48 @@ class ThunderHomeFragment : Fragment() {
         binding.createFolderFab.setOnClickListener(openCreateFolder)
         binding.emptyCreateFolder.setOnClickListener(openCreateFolder)
 
-        // Import button (Phase 5b will wire the file picker)
+        // Import button (spec §6.9 ImportFilePage — pick a .thunder file,
+        // copy it into the notes dir, create a NoteEntity, open the canvas).
         binding.importButton.setOnClickListener {
+            importPicker.launch(arrayOf("*/*"))
+        }
+    }
+
+    /** SAF file picker for `.thunder` import (spec §6.9). */
+    private val importPicker = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        // Validate the extension (spec §6.9: "error if the user tries to
+        // import a PDF or other file types").
+        val name = uri.lastPathSegment?.substringAfterLast('/') ?: ""
+        if (!name.endsWith(".thunder", ignoreCase = true)) {
             android.widget.Toast.makeText(
                 requireContext(),
-                "File picker coming in Phase 5b",
-                android.widget.Toast.LENGTH_SHORT
+                "Only .thunder files can be imported",
+                android.widget.Toast.LENGTH_LONG
             ).show()
+            return@registerForActivityResult
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            // Uri → temp file (the repo stays Android-agnostic + testable).
+            val temp = File.createTempFile("import", ".thunder", requireContext().cacheDir)
+            try {
+                requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                    temp.outputStream().use { input.copyTo(it) }
+                } ?: throw java.io.IOException("Cannot open the picked file")
+                val display = name.removeSuffix(".thunder")
+                val noteId = RepositoryModule.notes.importThunderFile(temp, display)
+                CanvasActivity.launch(requireContext(), noteId)
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    "Import failed: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                temp.delete()
+            }
         }
     }
 

@@ -285,6 +285,25 @@ open class NotesRepository(
     suspend fun trashNote(noteId: String) = noteDao.moveToRecycleBin(noteId)
     suspend fun restoreNote(noteId: String) = noteDao.restoreFromRecycleBin(noteId)
 
+    /**
+     * Import an external `.thunder` file (spec §6.9 ImportFilePage). Creates a
+     * fresh note (so the imported file gets a new noteId + its own staging),
+     * then overwrites the new note's `.thunder` file with the source bytes.
+     *
+     * The caller (fragment) handles the Uri → File copy via ContentResolver
+     * (Android-specific); this repo method stays Android-agnostic (takes a
+     * File) so it's unit-testable on the JVM.
+     *
+     * Returns the new noteId (so the caller can navigate to the canvas).
+     */
+    suspend fun importThunderFile(sourceFile: File, displayName: String): String {
+        val noteId = createNote(displayName)
+        val dest = thunderFilePathFor(noteId)
+        if (dest.exists()) dest.delete()
+        sourceFile.copyTo(dest, overwrite = true)
+        return noteId
+    }
+
     /** Permanently delete a note: removes the .thunder file AND the NoteEntity
      *  row. Use after the note has been moved to recycle bin (or directly to
      *  bypass the recycle bin — used by emptyTrash). */

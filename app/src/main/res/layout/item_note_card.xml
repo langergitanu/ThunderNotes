@@ -60,6 +60,22 @@
                     android:text="Oct 5 · 3 pages"
                     android:textColor="@color/text_muted"
                     android:textSize="12sp" />
+
+                <!-- Folder label (spec §6.2.2: note cards must show which
+                     folder each note is in). Hidden when the note has no
+                     parent folder (root-level notes). -->
+                <TextView
+                    android:id="@+id/note_folder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text=""
+                    android:textColor="@color/thunder_tertiary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Bookmark indicator (visible only when bookmarked) -->

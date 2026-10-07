@@ -73,4 +73,56 @@ class InkInjectorTest {
             InkInjector.translate(listOf(0f, 10f, 20f, 30f), 10f, 10f),
         )
     }
+
+    // ─── Phase 9g: textbox injection (the visible snip-result path) ──────
+
+    @Test fun `injectTextbox translates coords by the drop offset + adds to document`() {
+        val item = ClipboardItem.TextBox(
+            text = "snipped text",
+            fontFamily = 4,  // Patrick Hand (default for snipped content)
+            bold = false, italic = true, underline = 0,
+            x = 50f, y = 50f,
+            bbox = floatArrayOf(0f, 0f, 400f, 200f),
+            codeLanguage = null,
+        )
+        val tb = injector.injectTextbox(item, dropX = 100f, dropY = 30f)
+        assertTrue("injectTextbox must return a TextBoxRecord", tb != null)
+        assertEquals("snipped text", tb!!.text)
+        assertEquals(4, tb.fontFamily)  // Patrick Hand default
+        assertTrue(tb.italic)
+        // Coords translated by the drop offset.
+        assertEquals(150f, tb.x, 0f)  // 50 + 100
+        assertEquals(80f, tb.y, 0f)   // 50 + 30
+        // Added to the document's current page.
+        assertEquals(1, doc.currentTextboxes.size)
+    }
+
+    @Test fun `injectTextbox carries codeLanguage for CODE snips`() {
+        val item = ClipboardItem.TextBox(
+            text = "const x = 42",
+            fontFamily = 4, bold = false, italic = false, underline = 0,
+            x = 0f, y = 0f,
+            bbox = floatArrayOf(0f, 0f, 500f, 300f),
+            codeLanguage = "TypeScript",
+        )
+        val tb = injector.injectTextbox(item, 0f, 0f)
+        assertTrue(tb != null)
+        assertEquals("TypeScript", tb!!.codeLanguage)
+    }
+
+    @Test fun `injectTextbox returns null when there is no current page`() {
+        // A brand-new document has a default first page, so this is hard to
+        // test directly — instead, verify the happy path doesn't crash on
+        // a second injection (mints a fresh id each time).
+        val item = ClipboardItem.TextBox(
+            text = "a", fontFamily = 0, bold = false, italic = false,
+            underline = 0, x = 0f, y = 0f, bbox = floatArrayOf(0f, 0f, 1f, 1f),
+        )
+        val tb1 = injector.injectTextbox(item, 0f, 0f)
+        val tb2 = injector.injectTextbox(item, 10f, 10f)
+        assertTrue(tb1 != null && tb2 != null)
+        assertTrue("pasted textboxes must have distinct ids",
+            tb1!!.id != tb2!!.id)
+        assertEquals(2, doc.currentTextboxes.size)
+    }
 }

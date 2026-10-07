@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="?attr/colorOnSurface">
+    <!-- bookmark ribbon -->
+    <path android:fillColor="@android:color/white"
+        android:pathData="M6,3 h12 c0.55,0 1,0.45 1,1 v17 l-7,-4 -7,4 V4 c0,-0.55 0.45,-1 1,-1 z" />
+</vector>

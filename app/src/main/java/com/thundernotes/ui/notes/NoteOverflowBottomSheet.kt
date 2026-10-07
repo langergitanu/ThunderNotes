@@ -163,18 +163,31 @@ class NoteOverflowBottomSheet : BottomSheetDialogFragment() {
     }
 
     /** Export: the .thunder file already exists at note.filePath (relative to
-     *  getExternalFilesDir). Surface its absolute path. PDF export needs the
-     *  Pdfium engine (a refinement). */
+     *  getExternalFilesDir). Share it via ACTION_SEND so the user can save to
+     *  Downloads / cloud / etc. PDF export needs the Pdfium engine (a
+     *  refinement — spec §6.2.5 requires both .thunder + PDF; .thunder ships
+     *  first since the format is ready). */
     private fun exportNote(note: NoteEntity?) {
         val n = note ?: run { toast(R.string.overflow_export_pending); return }
         val dir = requireContext().getExternalFilesDir(null)
         val file = File(dir, n.filePath)
-        if (file.exists()) {
-            Toast.makeText(requireContext(),
-                "Exported: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-        } else {
+        if (!file.exists()) {
             toast(R.string.overflow_export_pending)
+            dismiss()
+            return
         }
+        // Share via FileProvider (the .thunder file is a ZIP — mime application/zip).
+        val authority = "${requireContext().packageName}.fileprovider"
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            requireContext(), authority, file
+        )
+        val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "${n.displayName}.thunder")
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(android.content.Intent.createChooser(share, "Export ${n.displayName}"))
         dismiss()
     }
 

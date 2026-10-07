@@ -12,6 +12,10 @@ import java.util.UUID
  * Part C). Font family index maps to [com.thundernotes.data.entity.FontFamily].
  *
  * @param underline one of [com.thundernotes.data.entity.UnderlineType] (none/thin/thick/dashed/wavy).
+ * @param codeLanguage non-null when this textbox came from a CODE snip → the
+ *   renderer applies [com.thundernotes.snip.CodeFormatter] syntax colours on
+ *   top of the base Typeface. Pure data (the language name string, not the
+ *   Android Spannable). Null for TEXT/EQUATION/typed textboxes.
  */
 data class TextBoxRecord(
     val id: String = UUID.randomUUID().toString(),
@@ -25,4 +29,5 @@ data class TextBoxRecord(
     val italic: Boolean = false,
     val underline: Int = 0,
     val colorArgb: Int = 0xFF1A1A1A.toInt(),
+    val codeLanguage: String? = null,
 )
