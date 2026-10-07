@@ -13,6 +13,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -343,9 +344,20 @@ class CanvasActivity : AppCompatActivity() {
                 hint = getString(R.string.canvas_table_cols)
                 setText("4")
             }
+            // §6.10.9b options: Border visibility, header color, alt-row color.
+            val borderCb = CheckBox(this).apply {
+                text = "Border visible"; isChecked = true
+            }
+            val headerCb = CheckBox(this).apply {
+                text = "Header row (bold top + bottom)"
+            }
+            val altRowCb = CheckBox(this).apply {
+                text = "Alt-row stripe (zebra)"
+            }
             val container = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 addView(rowsInput); addView(colsInput)
+                addView(borderCb); addView(headerCb); addView(altRowCb)
                 setPadding(48, 24, 48, 24)
             }
             AlertDialog.Builder(this)
@@ -354,7 +366,13 @@ class CanvasActivity : AppCompatActivity() {
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     val rows = rowsInput.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 3
                     val cols = colsInput.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 4
-                    handleTableCreated(rows, cols)
+                    handleTableCreated(rows, cols,
+                        borderVisible = borderCb.isChecked,
+                        headerColor = if (headerCb.isChecked)
+                            0xFF1A1A1A.toInt() else null,
+                        altRowColor = if (altRowCb.isChecked)
+                            0xFFE0E0E0.toInt() else null,
+                    )
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
@@ -965,7 +983,12 @@ class CanvasActivity : AppCompatActivity() {
 
     /** Table Maker (§6.10 Row 3g): build a [rows]×[cols] table grid at the page
      *  centre + add each grid-line stroke to the document + CompletedStrokesView. */
-    private fun handleTableCreated(rows: Int, cols: Int) {
+    private fun handleTableCreated(
+        rows: Int, cols: Int,
+        borderVisible: Boolean = true,
+        headerColor: Int? = null,
+        altRowColor: Int? = null,
+    ) {
         val idx = viewModel.uiState.value.currentPageIndex
         document.goToPage(idx)
         val cv = pageCompletedViews.getOrNull(idx)
@@ -975,6 +998,10 @@ class CanvasActivity : AppCompatActivity() {
         val strokes = com.thundernotes.canvas.lasso.TableGeometry.buildTable(
             x = 50f, y = 50f, w = 600f, h = 400f, rows = rows, cols = cols,
             colorArgb = color, brushSize = width,
+            borderVisible = borderVisible,
+            borderThickness = width * 1.3f,
+            headerColor = headerColor,
+            altRowColor = altRowColor,
         )
         for (s in strokes) {
             val record = s.copy(pageId = document.currentPage?.id.orEmpty())

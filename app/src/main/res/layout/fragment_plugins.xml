@@ -1,37 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Plugins page — placeholder "coming soon". Plugin system under development. -->
-<LinearLayout
+<!-- Plugins page (spec §6.1.2 + §2.4 "Flexibility — PLUGINS"). Phase 9i
+     ships the first real plugin: a text translator (any language → English). -->
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
     android:background="@color/surface_base"
-    android:padding="@dimen/space_xxl">
+    android:fillViewport="true">
 
-    <ImageView
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@drawable/ic_sidebar_plugins"
-        app:tint="@color/text_subtle"
-        android:contentDescription="@string/title_plugins" />
-
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_lg"
-        android:text="@string/plugins_coming_soon_title"
-        android:textColor="@color/text_high_contrast"
-        android:textSize="18sp"
-        android:fontFamily="sans-serif-medium" />
+        android:orientation="vertical"
+        android:padding="@dimen/space_xxl">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_sm"
-        android:gravity="center"
-        android:text="@string/plugins_coming_soon_message"
-        android:textColor="@color/text_muted"
-        android:textSize="14sp" />
-</LinearLayout>
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/space_lg">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="@dimen/space_md"
+                android:src="@drawable/ic_sidebar_plugins"
+                app:tint="@color/thunder_primary"
+                android:contentDescription="@string/title_plugins" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/title_plugins"
+                android:textColor="@color/text_high_contrast"
+                android:textSize="22sp"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Text Translator plugin card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/surface_container"
+            app:cardCornerRadius="@dimen/card_radius_md"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_default">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_lg">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/plugin_translator_title"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/plugin_translator_desc"
+                    android:textColor="@color/text_muted"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/translator_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:hint="@string/plugin_translator_input_hint"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:minLines="3"
+                    android:maxLines="8"
+                    android:background="@drawable/bg_canvas_page_lined"
+                    android:padding="@dimen/space_md"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/translator_translate_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/plugin_translator_translate" />
+
+                <TextView
+                    android:id="@+id/translator_output"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:hint="@string/plugin_translator_output_hint"
+                    android:textColor="@color/text_high_contrast"
+                    android:textSize="14sp"
+                    android:background="@color/surface_container_high"
+                    android:padding="@dimen/space_md"
+                    android:minLines="2" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/translator_copy_button"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:text="@string/plugin_translator_copy"
+                    android:enabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Footer note about future plugins -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg"
+            android:gravity="center"
+            android:text="@string/plugins_coming_soon_message"
+            android:textColor="@color/text_subtle"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

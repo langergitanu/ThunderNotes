@@ -115,6 +115,18 @@
     <string name="templates_coming_soon_message">The Template Library will be available in a future release. The app ships with 50+ preinstalled engineering-subject covers.</string>
     <string name="plugins_coming_soon_title">Plugins</string>
     <string name="plugins_coming_soon_message">The Plugin system is under development. The first plugin (a text translator) is being tested.</string>
+    <!-- Translator plugin (§6.1.2). -->
+    <string name="plugin_translator_title">Text Translator</string>
+    <string name="plugin_translator_desc">Translate any language → English (uses your Gemini/GLM API key).</string>
+    <string name="plugin_translator_input_hint">Type or paste text in any language…</string>
+    <string name="plugin_translator_translate">Translate</string>
+    <string name="plugin_translator_output_hint">English translation appears here…</string>
+    <string name="plugin_translator_copy">Copy to canvas</string>
+    <string name="plugin_translator_copy_done">Copied — paste on canvas</string>
+    <string name="plugin_translator_empty">Enter some text first</string>
+    <string name="plugin_translator_no_key">Set a Gemini or GLM API key in Snip Settings first</string>
+    <string name="plugin_translator_failed">Translation failed</string>
+    <string name="plugin_translator_loading">Translating…</string>
 
     <!-- ─── Create-note modal ────────────────────────────────────────────── -->
     <string name="create_note_blank_card">Blank</string>

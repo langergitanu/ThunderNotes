@@ -43,4 +43,35 @@ class TableGeometryTest {
             assertTrue(it.inputAttrs.size == it.pointCount * 5)
         }
     }
+
+    // ─── Phase 9i: §6.10.9b options (border, header, alt-row) ────────────
+
+    @Test fun `borderVisible=false removes the outer border (fewer strokes)`() {
+        val withBorder = TableGeometry.buildTable(0f, 0f, 100f, 100f, 2, 2, color, 2f,
+            borderVisible = true)
+        val noBorder = TableGeometry.buildTable(0f, 0f, 100f, 100f, 2, 2, color, 2f,
+            borderVisible = false)
+        // With border: (2+1)+(2+1)=6 strokes. Without border: the 4 outer lines
+        // (top/bottom/left/right) are skipped → 6 - 4 = 2 inner strokes.
+        assertEquals(6, withBorder.size)
+        assertEquals(2, noBorder.size)
+    }
+
+    @Test fun `headerColor recolours the top + first-row-bottom lines`() {
+        val header = 0xFFFF0000.toInt()
+        val strokes = TableGeometry.buildTable(0f, 0f, 100f, 100f, 3, 2, color, 2f,
+            headerColor = header)
+        // At least 2 strokes should have the header colour (top + first-row-bottom).
+        val headerStrokes = strokes.filter { it.brushColorArgb == header }
+        assertTrue("expected ≥2 header-coloured strokes", headerStrokes.size >= 2)
+    }
+
+    @Test fun `altRowColor adds zebra separator lines with the alt colour`() {
+        val alt = 0xFF0000FF.toInt()
+        val strokes = TableGeometry.buildTable(0f, 0f, 100f, 100f, 4, 2, color, 2f,
+            altRowColor = alt)
+        // At least one horizontal separator should have the alt colour.
+        assertTrue("expected an alt-row-coloured stroke",
+            strokes.any { it.brushColorArgb == alt })
+    }
 }

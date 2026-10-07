@@ -223,16 +223,32 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             if (perLineResults.isEmpty()) throw RuntimeException("All engines failed")
 
             // 4. Map SnipResult → ClipboardItem.
-            // For EQUATION snips: LaTeX → KaTeX render → centerline trace →
-            // StrokeGroup (native erasable strokes). Falls back to a Patrick
-            // Hand italic textbox (showing the LaTeX) if the trace fails.
+            // For EQUATION snips (spec §7.3.4b): the OCR'd LaTeX is shown to
+            // the user for editing/re-rendering → on Confirm, the (possibly
+            // edited) LaTeX is traced to strokes → StrokeGroup. Falls back to
+            // a Patrick Hand italic textbox (showing the LaTeX) if the trace
+            // fails or the user cancels (never silently drop content).
             if (type == SnipType.EQUATION) {
-                val latex = LatexCleaner.joinMultiLine(
+                val ocrLatex = LatexCleaner.joinMultiLine(
                     perLineResults.map { r -> (r as? SnipResult.LaTeX)?.latex
                         ?: (r as? SnipResult.Text)?.text ?: "" }
                 )
-                if (latex.isNotBlank()) {
-                    val strokes = LatexToStrokes.convert(latex, requireContext())
+                if (ocrLatex.isNotBlank()) {
+                    // §7.3.4b edit step: switch to Main for the dialog.
+                    val edited = withContext(Dispatchers.Main) {
+                        LatexEditDialog.edit(ocrLatex, requireContext())
+                    }
+                    // User cancelled → textbox fallback (the LaTeX is preserved).
+                    if (edited == null) {
+                        return@runCatching ClipboardItem.TextBox(
+                            text = ocrLatex,
+                            fontFamily = FontFamily.PATRICK_HAND,
+                            bold = false, italic = true, underline = 0,
+                            x = 50f, y = 50f,
+                            bbox = floatArrayOf(0f, 0f, 400f, 200f),
+                        )
+                    }
+                    val strokes = LatexToStrokes.convert(edited, requireContext())
                     if (strokes != null && strokes.isNotEmpty()) {
                         return@runCatching ClipboardItem.StrokeGroup(
                             strokes = strokes,
@@ -241,7 +257,7 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                     }
                     // Fallback: Patrick Hand italic textbox (never drop content).
                     return@runCatching ClipboardItem.TextBox(
-                        text = latex,
+                        text = edited,
                         fontFamily = FontFamily.PATRICK_HAND,
                         bold = false, italic = true, underline = 0,
                         x = 50f, y = 50f,
