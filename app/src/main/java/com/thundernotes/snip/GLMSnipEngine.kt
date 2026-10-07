@@ -25,6 +25,8 @@ class GLMSnipEngine(
 
     override val name: String = "GLM-4.6V-Flash"
 
+    override fun isEnabled(): Boolean = SnipAccounts.getByProvider("glm").isNotEmpty()
+
     override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> =
         withContext(Dispatchers.IO) {
             val account = SnipAccounts.nextAccount("glm")

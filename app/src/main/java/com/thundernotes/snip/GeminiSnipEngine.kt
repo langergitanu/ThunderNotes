@@ -29,6 +29,8 @@ class GeminiSnipEngine(
 
     override val name: String = "Gemini 3 Flash"
 
+    override fun isEnabled(): Boolean = SnipAccounts.getByProvider("gemini").isNotEmpty()
+
     override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> =
         withContext(Dispatchers.IO) {
             val account = SnipAccounts.nextAccount("gemini")

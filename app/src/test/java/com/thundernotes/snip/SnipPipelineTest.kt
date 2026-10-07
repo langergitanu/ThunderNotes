@@ -197,11 +197,13 @@ class SnipPipelineTest {
     @Test fun `fallback returns the first success`() {
         val failing = object : SnipEngine {
             override val name = "Failing"
+            override fun isEnabled() = true
             override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
                 Result.failure<SnipResult>(RuntimeException("fail"))
         }
         val succeeding = object : SnipEngine {
             override val name = "Succeeding"
+            override fun isEnabled() = true
             override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
                 Result.success(SnipResult.Text("hello"))
         }
@@ -214,11 +216,13 @@ class SnipPipelineTest {
     @Test fun `fallback returns the last failure when all fail`() {
         val e1 = object : SnipEngine {
             override val name = "E1"
+            override fun isEnabled() = true
             override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
                 Result.failure<SnipResult>(RuntimeException("e1"))
         }
         val e2 = object : SnipEngine {
             override val name = "E2"
+            override fun isEnabled() = true
             override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
                 Result.failure<SnipResult>(RuntimeException("e2"))
         }
@@ -232,5 +236,93 @@ class SnipPipelineTest {
         val fb = FallbackSnipEngine(emptyList())
         val result = kotlinx.coroutines.runBlocking { fb.recognize(ByteArray(0), SnipType.TEXT) }
         assertTrue(result.isFailure)
+    }
+
+    // ─── FallbackSnipEngine: skip disabled engines ────────────────────────
+
+    @Test fun `fallback skips disabled engines entirely (no trial)`() {
+        var geminiTried = false
+        var glmTried = false
+        val gemini = object : SnipEngine {
+            override val name = "Gemini"
+            override fun isEnabled() = false  // no key → SKIP
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> {
+                geminiTried = true
+                return Result.failure<SnipResult>(RuntimeException("should not be tried"))
+            }
+        }
+        val glm = object : SnipEngine {
+            override val name = "GLM"
+            override fun isEnabled() = true  // has key → TRY
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> {
+                glmTried = true
+                return Result.success(SnipResult.Text("from GLM"))
+            }
+        }
+        val fb = FallbackSnipEngine(listOf(gemini, glm))
+        val result = kotlinx.coroutines.runBlocking { fb.recognize(ByteArray(0), SnipType.TEXT) }
+        assertFalse("disabled engine must not be tried", geminiTried)
+        assertTrue("enabled engine must be tried", glmTried)
+        assertTrue(result.isSuccess)
+        assertEquals("from GLM", (result.getOrNull() as SnipResult.Text).text)
+    }
+
+    @Test fun `fallback skips user-disabled engines (SnipSettings)`() {
+        var geminiTried = false
+        val gemini = object : SnipEngine {
+            override val name = "Gemini"
+            override fun isEnabled() = true  // key is set
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> {
+                geminiTried = true
+                return Result.failure<SnipResult>(RuntimeException("should not be tried"))
+            }
+        }
+        val glm = object : SnipEngine {
+            override val name = "GLM"
+            override fun isEnabled() = true
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
+                Result.success(SnipResult.Text("from GLM"))
+        }
+        val settings = SnipSettings().apply { disableEngine("Gemini") }  // user disabled Gemini
+        val fb = FallbackSnipEngine(listOf(gemini, glm), settings)
+        val result = kotlinx.coroutines.runBlocking { fb.recognize(ByteArray(0), SnipType.TEXT) }
+        assertFalse("user-disabled engine must not be tried", geminiTried)
+        assertTrue(result.isSuccess)
+    }
+
+    @Test fun `fallback returns failure when all engines disabled`() {
+        val gemini = object : SnipEngine {
+            override val name = "Gemini"
+            override fun isEnabled() = false  // no key
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
+                Result.failure<SnipResult>(RuntimeException("nope"))
+        }
+        val glm = object : SnipEngine {
+            override val name = "GLM"
+            override fun isEnabled() = false  // no key
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType) =
+                Result.failure<SnipResult>(RuntimeException("nope"))
+        }
+        val fb = FallbackSnipEngine(listOf(gemini, glm))
+        val result = kotlinx.coroutines.runBlocking { fb.recognize(ByteArray(0), SnipType.TEXT) }
+        assertTrue(result.isFailure)
+    }
+
+    @Test fun `activeEngines returns only enabled + not-user-disabled`() {
+        val gemini = object : SnipEngine {
+            override val name = "Gemini"
+            override fun isEnabled() = true
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType) = Result.success(SnipResult.Text(""))
+        }
+        val glm = object : SnipEngine {
+            override val name = "GLM"
+            override fun isEnabled() = false  // no key
+            override suspend fun recognize(imageBytes: ByteArray, type: SnipType) = Result.success(SnipResult.Text(""))
+        }
+        val settings = SnipSettings()  // both user-enabled
+        val fb = FallbackSnipEngine(listOf(gemini, glm), settings)
+        val active = fb.activeEngines()
+        assertEquals(1, active.size)
+        assertEquals("Gemini", active[0].name)
     }
 }

@@ -22,6 +22,10 @@ class PaddleOCRSnipEngine : SnipEngine {
 
     override val name: String = "PaddleOCR-VL-1.6 (offline)"
 
+    /** True once the offline model is downloaded (Phase 9b+ — on-device download). */
+    @Volatile var modelDownloaded: Boolean = false
+    override fun isEnabled(): Boolean = modelDownloaded
+
     override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> =
         withContext(Dispatchers.IO) {
             // TODO Phase 9b+: integrate PaddleOCR Android SDK (ONNX Runtime / Paddle-Lite).

@@ -2,7 +2,9 @@ package com.thundernotes.ui.canvas
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -319,8 +321,14 @@ class CanvasActivity : AppCompatActivity() {
         // Split view (§6.10 Row 1: two files side-by-side).
         binding.btnSplit.setOnClickListener { handleSplitToggle() }
         binding.btnAiSnip.setOnClickListener {
-            // SnipEngine fallback chain is Phase 9.
-            Toast.makeText(this, R.string.canvas_ai_snip_pending, Toast.LENGTH_SHORT).show()
+            // Phase 9b: capture the canvas surface → SnipBottomSheet → pipeline.
+            val bmp = captureCanvas()
+            if (bmp == null) {
+                Toast.makeText(this, "Capture failed", Toast.LENGTH_SHORT).show()
+            } else {
+                com.thundernotes.snip.SnipBottomSheet.bitmap = bmp
+                com.thundernotes.snip.SnipBottomSheet().show(supportFragmentManager, "snip")
+            }
         }
     }
 
@@ -953,6 +961,22 @@ class CanvasActivity : AppCompatActivity() {
         val scale = state.zoomPercent / 100f
         binding.pagesContainer.scaleX = scale
         binding.pagesContainer.scaleY = scale
+    }
+
+    /** Capture the canvas page surface as a Bitmap (for the AI-snip pipeline).
+     *  Captures the View hierarchy (CompletedStrokesView + textboxLayer + etc.);
+     *  the GL InProgressStrokesView's live pen trail isn't captured (only finished
+     *  strokes — which is what the snip should recognize). */
+    private fun captureCanvas(): Bitmap? {
+        return try {
+            val view = binding.pageScroll
+            val w = view.width.coerceAtLeast(1)
+            val h = view.height.coerceAtLeast(1)
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            view.draw(canvas)
+            bmp
+        } catch (e: Exception) { null }
     }
 
     private var lastBuiltPaletteIndex: Int = -1

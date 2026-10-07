@@ -20,6 +20,13 @@ interface SnipEngine {
     val name: String
 
     /**
+     * Whether this engine is **ready to try** (has an API key set / model downloaded).
+     * If false, [FallbackSnipEngine] SKIPS it entirely — no network call, no trial.
+     * The user can disable an engine even if it's ready (via [SnipSettings]).
+     */
+    fun isEnabled(): Boolean
+
+    /**
      * Recognise the snip.
      * @param imageBytes the preprocessed image as PNG bytes (binarized, cropped
      *   per-line by [SnipPreprocessor], then the activity converts SnipImage →
@@ -79,18 +86,53 @@ object SnipAccounts {
  * The fallback decorator (spec §7.3.6: "the chain is tried in the order above
  * until one returns a result"). Tries [engines] in order; the first non-failure
  * result wins. If all fail, returns the last failure.
+ *
+ * **Disabled engines are SKIPPED entirely** — no network call, no trial. An
+ * engine is tried only if both:
+ *   1. `engine.isEnabled()` returns true (has an API key / model downloaded),
+ *   2. The user hasn't explicitly disabled it (via [SnipSettings]).
+ * So if the user doesn't set a Gemini key, Gemini is skipped → GLM is tried
+ * first. If GLM has no key either → PaddleOCR is tried (offline).
  */
-class FallbackSnipEngine(private val engines: List<SnipEngine>) : SnipEngine {
+class FallbackSnipEngine(
+    private val engines: List<SnipEngine>,
+    private val settings: SnipSettings = SnipSettings(),
+) : SnipEngine {
 
-    override val name: String = "Fallback (${engines.joinToString { it.name }})"
+    override val name: String = "Fallback"
+
+    override fun isEnabled(): Boolean = engines.any { it.isEnabled() && settings.isEngineEnabled(it.name) }
+
+    /** The engines that will actually be tried (enabled + not user-disabled). */
+    fun activeEngines(): List<SnipEngine> = engines.filter {
+        it.isEnabled() && settings.isEngineEnabled(it.name)
+    }
 
     override suspend fun recognize(imageBytes: ByteArray, type: SnipType): Result<SnipResult> {
+        val active = activeEngines()
+        if (active.isEmpty()) {
+            return Result.failure(RuntimeException("No snip engines enabled — set an API key in Settings → Snip"))
+        }
         var lastError: Throwable? = null
-        for (engine in engines) {
+        for (engine in active) {
             val result = engine.recognize(imageBytes, type)
             if (result.isSuccess) return result
             lastError = result.exceptionOrNull()
         }
-        return Result.failure(lastError ?: RuntimeException("No snip engines available"))
+        return Result.failure(lastError ?: RuntimeException("All snip engines failed"))
     }
+}
+
+/**
+ * Per-engine enable/disable toggles (the user can explicitly disable an engine
+ * even if it's ready — e.g., "don't use Gemini, only GLM"). Pure + tested.
+ */
+class SnipSettings {
+    private val disabledEngines = mutableSetOf<String>()
+
+    /** Disable an engine by name (it will be skipped by FallbackSnipEngine). */
+    fun disableEngine(name: String) { disabledEngines.add(name) }
+    fun enableEngine(name: String) { disabledEngines.remove(name) }
+    fun isEngineEnabled(name: String): Boolean = name !in disabledEngines
+    fun clear() { disabledEngines.clear() }
 }
