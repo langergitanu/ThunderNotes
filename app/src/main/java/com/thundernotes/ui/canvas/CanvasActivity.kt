@@ -611,15 +611,7 @@ class CanvasActivity : AppCompatActivity() {
             text = tb.text
             setTextColor(tb.colorArgb)
             textSize = tb.fontSizeSp
-            typeface = android.graphics.Typeface.create(
-                android.graphics.Typeface.DEFAULT,
-                when {
-                    tb.bold && tb.italic -> android.graphics.Typeface.BOLD_ITALIC
-                    tb.bold -> android.graphics.Typeface.BOLD
-                    tb.italic -> android.graphics.Typeface.ITALIC
-                    else -> android.graphics.Typeface.NORMAL
-                },
-            )
+            typeface = com.thundernotes.ui.common.FontCache.get(tb.fontFamily)
             // Thin underline (spec §7.1 lists 4 underline styles; thin is the baseline).
             if (tb.underline != 0) {
                 paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
