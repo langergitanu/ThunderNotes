@@ -64,6 +64,17 @@ class ThunderNotesApp : Application() {
         }
         Log.d(TAG, "ThunderNotes v$versionName starting.")
 
+        // §7.3.6: hydrate the snip-account + engine-toggle stores from
+        // SharedPreferences so the snip chain + translator plugin have the
+        // user's Gemini/GLM keys after restart (before any canvas opens).
+        com.thundernotes.snip.SnipAccountsStore.init(this)
+        com.thundernotes.snip.SnipToggleStore.init(this)
+        com.thundernotes.snip.SnipSettings.shared.let { s ->
+            for (name in listOf("Gemini 3 Flash", "GLM-4.6V-Flash", "PaddleOCR-VL-1.6 (offline)")) {
+                if (com.thundernotes.snip.SnipToggleStore.isDisabled(name)) s.disableEngine(name)
+            }
+        }
+
         // Eagerly construct the app-global DB on a background thread. This
         // addresses BigPickle's Open Issue 1 (BigPickle.txt Sync 2 round 3):
         // the Room layer was compiled-but-never-constructed — RepositoryModule

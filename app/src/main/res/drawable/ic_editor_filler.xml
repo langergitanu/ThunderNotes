@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="?attr/colorOnSurface">
+    <!-- bucket pouring fill (filler tool) -->
+    <path android:fillColor="@android:color/white"
+        android:pathData="M5,10 l6,-6 7,7 -6,6 z M3,12 c0,-0.55 0.45,-1 1,-1 h1 v3 H4 c-0.55,0 -1,-0.45 -1,-1 z M19,16 a2,2 0 1 0 0.01,0.01 z M10,4 l-2,-2 6,0 -2,2 z" />
+</vector>

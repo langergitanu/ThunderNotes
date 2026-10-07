@@ -59,6 +59,11 @@ object BrushRegistry {
             // Returned config is a no-op placeholder so the registry total-maps the enum.
             EditorBrushConfig(BrushFamily.THUNDER_BALLPOINT_V1, widthDp, 0.10f, colorArgb, false)
 
+        com.thundernotes.ui.canvas.EditorTool.FILLER ->
+            // Filler doesn't draw a stroke — the host routes the tap to onFillTap,
+            // which drops a filled rect stamp. This config is a no-op placeholder.
+            EditorBrushConfig(BrushFamily.THUNDER_BALLPOINT_V1, widthDp, 0.10f, colorArgb, false)
+
         com.thundernotes.ui.canvas.EditorTool.SHAPE ->
             // Shape tool (rectangle/circle/line) — Phase 8b; placeholder config.
             EditorBrushConfig(BrushFamily.THUNDER_BALLPOINT_V1, widthDp, 0.10f, colorArgb, false)

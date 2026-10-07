@@ -133,10 +133,12 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // Build the engine chain (Gemini → GLM → PaddleOCR; disabled engines skipped).
+        // Build the engine chain (Gemini → GLM → PaddleOCR; disabled engines
+        // skipped). Uses [SnipSettings.shared] so the SnipSettingsBottomSheet's
+        // engine-disable toggles affect this live chain.
         engine = FallbackSnipEngine(
             listOf(GeminiSnipEngine(), GLMSnipEngine(), PaddleOCRSnipEngine()),
-            SnipSettings(),
+            SnipSettings.shared,
         )
     }
 

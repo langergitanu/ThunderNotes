@@ -172,6 +172,8 @@
     <string name="canvas_tool_lasso">Lasso</string>
     <string name="canvas_tool_shape">Shape</string>
     <string name="canvas_tool_text">Text</string>
+    <string name="canvas_tool_filler">Filler</string>
+    <string name="canvas_fill_done">Filled area</string>
     <!-- Eraser types + lasso modes (spec §6.10.6d + §6.10.6e). -->
     <string name="eraser_type_area">Area Eraser</string>
     <string name="eraser_type_shape">Shape Eraser</string>
@@ -204,6 +206,25 @@
     <string name="snip_latex_edit_hint">Edit the recognised LaTeX</string>
     <string name="snip_latex_re_render">Re-render</string>
     <string name="snip_latex_confirm">Confirm</string>
+    <!-- Snip Settings (§7.3.6 — API keys + engine toggles + offline model). -->
+    <string name="snip_settings_title">Snip Settings</string>
+    <string name="snip_settings_gemini_section">Gemini accounts</string>
+    <string name="snip_settings_glm_section">GLM accounts</string>
+    <string name="snip_settings_add_key">Add API key</string>
+    <string name="snip_settings_key_hint">Paste your API key</string>
+    <string name="snip_settings_label_hint">Label (e.g. Personal)</string>
+    <string name="snip_settings_no_keys">No keys set — the snip chain + translator will fall through to the next engine.</string>
+    <string name="snip_settings_added">Account added</string>
+    <string name="snip_settings_removed">Account removed</string>
+    <string name="snip_settings_engine_toggles">Engine toggles</string>
+    <string name="snip_settings_disable_gemini">Disable Gemini (skip even if a key is set)</string>
+    <string name="snip_settings_disable_glm">Disable GLM</string>
+    <string name="snip_settings_disable_paddleocr">Disable PaddleOCR (offline)</string>
+    <string name="snip_settings_offline_model">Offline OCR model (PaddleOCR-VL-1.6)</string>
+    <string name="snip_settings_offline_download">Download on-device model</string>
+    <string name="snip_settings_offline_downloading">Downloading… (1.6GB — WiFi recommended)</string>
+    <string name="snip_settings_offline_not_downloaded">Not downloaded — the offline fallback is unavailable until this completes.</string>
+    <string name="snip_settings_offline_ready">Model downloaded — offline snip fallback is active.</string>
     <string name="canvas_color_swatch">Color %1$d</string>
     <string name="canvas_stroke_width">Stroke width %1$d</string>
     <string name="canvas_page_indicator">%1$d / %2$d</string>

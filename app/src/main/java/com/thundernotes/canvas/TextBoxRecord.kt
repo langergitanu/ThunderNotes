@@ -18,6 +18,9 @@ import java.util.UUID
  *   Android Spannable). Null for TEXT/EQUATION/typed textboxes.
  * @param fillColor ARGB int for the textbox background, or null for
  *   transparent (spec §7.1: "Fill Color (background color of the textbox)").
+ * @param widthPx fixed width in px (used by the FILLER stamp, §6.10.6f, where
+ *   the "textbox" is an empty filled rect). Null → WRAP_CONTENT.
+ * @param heightPx fixed height in px (same). Null → WRAP_CONTENT.
  */
 data class TextBoxRecord(
     val id: String = UUID.randomUUID().toString(),
@@ -33,4 +36,6 @@ data class TextBoxRecord(
     val colorArgb: Int = 0xFF1A1A1A.toInt(),
     val codeLanguage: String? = null,
     val fillColor: Int? = null,
+    val widthPx: Float? = null,
+    val heightPx: Float? = null,
 )

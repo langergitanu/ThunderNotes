@@ -21,6 +21,7 @@ enum class EditorTool {
     HIGHLIGHTER,    // §6.10.6c — wide, semi-transparent
     ERASER,         // §6.10.6d — area / shape, with size
     LASSO,          // §6.10.6e — random (free-form) / rectangular
+    FILLER,         // §6.10.6f — fills enclosed areas; fill color + opacity
     SHAPE,          // §6.10.9a
     TEXT;           // §7.1
 

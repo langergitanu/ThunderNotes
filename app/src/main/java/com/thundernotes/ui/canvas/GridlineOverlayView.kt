@@ -53,4 +53,19 @@ class GridlineOverlayView @JvmOverloads constructor(
             canvas.drawLine(0f, y, w, y, linePaint)
         }
     }
+
+    /**
+     * Snap a point to the nearest grid intersection (§6.10.4d magnetic feature:
+     * "shapes are automatically attracted/stuck to its lines"). Returns the
+     * original point if the grid has no size (e.g. not yet laid out).
+     */
+    fun snapToGrid(x: Float, y: Float): Pair<Float, Float> {
+        val w = width.toFloat(); val h = height.toFloat()
+        if (w <= 0 || h <= 0) return x to y
+        val dx = w / cols
+        val dy = h / rows
+        val sx = (x / dx).toInt() * dx
+        val sy = (y / dy).toInt() * dy
+        return sx to sy
+    }
 }

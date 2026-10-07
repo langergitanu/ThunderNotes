@@ -55,15 +55,34 @@ object SnipAccounts {
     private val _accounts = kotlinx.coroutines.flow.MutableStateFlow<List<SnipAccount>>(emptyList())
     val accounts: kotlinx.coroutines.flow.StateFlow<List<SnipAccount>> = _accounts
 
+    /**
+     * Persistence hook (spec §7.3.6 — multi-account keys should survive app
+     * restart). Null on pure-JVM tests → in-memory only (the existing
+     * behaviour). Set by [com.thundernotes.snip.SnipAccountsStore] on app
+     * startup so the user's Gemini/GLM keys persist to SharedPreferences.
+     */
+    fun interface PersistenceHook {
+        fun persist(accounts: List<SnipAccount>)
+    }
+    @Volatile var persistenceHook: PersistenceHook? = null
+    /** Bulk-load persisted accounts on startup (no persistence callback). */
+    fun loadFromStore(loaded: List<SnipAccount>) {
+        _accounts.value = loaded
+    }
+
+    private fun persist() { persistenceHook?.persist(_accounts.value) }
+
     fun add(provider: String, apiKey: String, label: String): String {
         val id = java.util.UUID.randomUUID().toString()
         val acct = SnipAccount(id, provider, apiKey, label)
         _accounts.value = _accounts.value + acct
+        persist()
         return id
     }
 
     fun remove(id: String) {
         _accounts.value = _accounts.value.filter { it.id != id }
+        persist()
     }
 
     fun getByProvider(provider: String): List<SnipAccount> =
@@ -79,7 +98,7 @@ object SnipAccounts {
         return a
     }
 
-    fun clear() { _accounts.value = emptyList(); rrIndex = 0 }
+    fun clear() { _accounts.value = emptyList(); rrIndex = 0; persist() }
 }
 
 /**
@@ -135,4 +154,14 @@ class SnipSettings {
     fun enableEngine(name: String) { disabledEngines.remove(name) }
     fun isEngineEnabled(name: String): Boolean = name !in disabledEngines
     fun clear() { disabledEngines.clear() }
+
+    companion object {
+        /**
+         * Process-wide shared singleton — both [FallbackSnipEngine] (in
+         * [SnipBottomSheet]) + [SnipSettingsBottomSheet] use this instance so
+         * the UI toggles affect the live snip chain. Tests use fresh
+         * `SnipSettings()` instances for isolation.
+         */
+        val shared: SnipSettings = SnipSettings()
+    }
 }

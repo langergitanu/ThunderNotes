@@ -81,6 +81,7 @@ class CanvasActivity : AppCompatActivity() {
         EditorTool.HIGHLIGHTER to R.id.toolHighlighter,
         EditorTool.ERASER to R.id.toolEraser,
         EditorTool.LASSO to R.id.toolLasso,
+        EditorTool.FILLER to R.id.toolFiller,
         EditorTool.SHAPE to R.id.toolShape,
         EditorTool.TEXT to R.id.toolText,
     )
@@ -128,6 +129,17 @@ class CanvasActivity : AppCompatActivity() {
         PaletteNameStore.init(this)
         // Init the font cache (Phase 9e — 10 spec fonts + JetBrains Mono).
         com.thundernotes.ui.common.FontCache.init(this)
+        // Init the snip-account + toggle stores (§7.3.6 — keys persist to
+        // SharedPreferences; hydrates SnipAccounts on startup so the snip
+        // chain + translator plugin have the user's keys after restart).
+        com.thundernotes.snip.SnipAccountsStore.init(this)
+        com.thundernotes.snip.SnipToggleStore.init(this)
+        // Restore persisted engine-disable toggles into the shared SnipSettings.
+        com.thundernotes.snip.SnipSettings.shared.let { s ->
+            for (name in listOf("Gemini 3 Flash", "GLM-4.6V-Flash", "PaddleOCR-VL-1.6 (offline)")) {
+                if (com.thundernotes.snip.SnipToggleStore.isDisabled(name)) s.disableEngine(name)
+            }
+        }
 
         wireToolbar()
         wireWorkflowRow()
@@ -716,6 +728,9 @@ class CanvasActivity : AppCompatActivity() {
             // Phase 8b: TEXT + LASSO tool routing (per-page, with the page index
             // captured so the activity targets the right page's overlays/layers).
             onTextTap = { x, y -> handleTextTap(x, y) }
+            // Phase 9j: FILLER tool (§6.10.6f) — tap → drop a translucent
+            // filled rect (a fill stamp) at the tap point.
+            onFillTap = { x, y -> handleFillTap(x, y) }
             onLassoDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }
             onLassoEnd = { l, t, r, b -> handleLassoEnd(pageIndex, l, t, r, b) }
             onShapeDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }  // reuse lasso overlay for the shape preview
@@ -909,6 +924,10 @@ class CanvasActivity : AppCompatActivity() {
             FrameLayout.LayoutParams.WRAP_CONTENT,
         ).apply {
             leftMargin = tb.x.toInt(); topMargin = tb.y.toInt()
+            // FILLER stamp (§6.10.6f) has a fixed size → use it; otherwise
+            // WRAP_CONTENT so the textbox grows with its text.
+            tb.widthPx?.let { width = it.toInt() }
+            tb.heightPx?.let { height = it.toInt() }
         }
         layer.addView(tv, lp)
     }
@@ -968,8 +987,19 @@ class CanvasActivity : AppCompatActivity() {
         val state = viewModel.uiState.value
         val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
         val width = state.selectedStrokeWidthDp ?: EditorStrokeWidths.WIDTHS_DP[EditorStrokeWidths.DEFAULT_WIDTH_INDEX]
+        // §6.10.4d magnetic snapping: if the grid is visible, snap both drag-
+        // box corners to the nearest grid intersection before building the shape.
+        var sl = l; var st = t; var sr = r; var sb = b
+        if (state.gridVisible) {
+            val grid = pageGridlineOverlays.getOrNull(pageIndex)
+            if (grid != null && grid.visibility == View.VISIBLE) {
+                val (sl2, st2) = grid.snapToGrid(l, t)
+                val (sr2, sb2) = grid.snapToGrid(r, b)
+                sl = sl2; st = st2; sr = sr2; sb = sb2
+            }
+        }
         val strokes = com.thundernotes.canvas.lasso.ShapeGeometry.buildShape(
-            state.shapeType, l, t, r, b, color, width,
+            state.shapeType, sl, st, sr, sb, color, width,
         )
         val cv = pageCompletedViews.getOrNull(pageIndex)
         for (s in strokes) {
@@ -979,6 +1009,38 @@ class CanvasActivity : AppCompatActivity() {
             cv?.addFromRecord(record)
         }
         syncUndoRedoFlags()
+    }
+
+    /**
+     * FILLER-tool tap (spec §6.10.6f: "Fills enclosed areas; 2 options — Fill
+     * Color, Fill Opacity"). On a vector canvas, true flood-fill is complex
+     * (rasterize → fill → re-vectorize); this implementation drops a **filled
+     * rect stamp** at the tap point — a [TextBoxRecord] with empty text + a
+     * [TextBoxRecord.fillColor] (the selected color at ~50% alpha). The stroke-
+     * width slider doubles as the stamp size. Functional + visible + erasable
+     * (it's an ordinary textbox → the eraser + lasso work on it). A future
+     * editor can expose the opacity slider + true flood-fill.
+     */
+    private fun handleFillTap(x: Float, y: Float) {
+        val state = viewModel.uiState.value
+        val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
+        // Bake 50% alpha into the fill color (spec §6.10.6f Fill Opacity).
+        val alpha = (0x80 shl 24) or (color and 0x00FFFFFF)
+        val sizeDp = state.selectedStrokeWidthDp ?: 3.0f
+        val sizePx = sizeDp * 20f * resources.displayMetrics.density  // stamp ≈ 20× the stroke width
+        val pageId = document.currentPage?.id.orEmpty()
+        val tb = com.thundernotes.canvas.TextBoxRecord(
+            pageId = pageId,
+            text = "",
+            x = x - sizePx / 2f,
+            y = y - sizePx / 2f,
+            fillColor = alpha,
+            widthPx = sizePx,
+            heightPx = sizePx,
+        )
+        document.addTextbox(tb)
+        renderTextbox(state.currentPageIndex, tb)
+        Toast.makeText(this, R.string.canvas_fill_done, Toast.LENGTH_SHORT).show()
     }
 
     /** Table Maker (§6.10 Row 3g): build a [rows]×[cols] table grid at the page

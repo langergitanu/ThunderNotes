@@ -42,6 +42,13 @@ class CanvasSettingsBottomSheet : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.btnClose.setOnClickListener { dismiss() }
 
+        // Snip Settings row (§7.3.6) → opens the SnipSettingsBottomSheet
+        // (API keys + engine toggles + offline model download).
+        binding.rowSnipSettings.setOnClickListener {
+            com.thundernotes.snip.SnipSettingsBottomSheet()
+                .show(parentFragmentManager, "snip_settings")
+        }
+
         // Push the current state into the switches + observe for external changes.
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {

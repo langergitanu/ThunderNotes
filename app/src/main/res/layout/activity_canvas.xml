@@ -450,6 +450,17 @@
                     android:contentDescription="@string/canvas_tool_shape"
                     android:tint="@color/canvas_tool_inactive_tint" />
 
+                <!-- Filler (§6.10.6f — fills enclosed areas; fill color + opacity). -->
+                <ImageButton
+                    android:id="@+id/toolFiller"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="@dimen/space_sm"
+                    android:background="@drawable/bg_canvas_tool"
+                    android:src="@drawable/ic_editor_filler"
+                    android:contentDescription="@string/canvas_tool_filler"
+                    android:tint="@color/canvas_tool_inactive_tint" />
+
                 <ImageButton
                     android:id="@+id/toolText"
                     android:layout_width="48dp"

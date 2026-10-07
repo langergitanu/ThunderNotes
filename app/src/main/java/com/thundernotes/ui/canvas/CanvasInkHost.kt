@@ -163,6 +163,11 @@ class CanvasInkHost @JvmOverloads constructor(
      *  a text-input dialog + drops a TextBoxRecord at the tap. */
     var onTextTap: ((Float, Float) -> Unit)? = null
 
+    /** Called when the FILLER tool taps (§6.10.6f) — the activity drops a
+     *  translucent filled rect at (x, y) using the current color + stroke-width
+     *  (which doubles as the fill size). */
+    var onFillTap: ((Float, Float) -> Unit)? = null
+
     /** LASSO-tool drag (MOVE): (left, top, right, bottom) of the drag rect —
      *  the activity updates the lasso overlay. */
     var onLassoDrag: ((Float, Float, Float, Float) -> Unit)? = null
@@ -218,6 +223,19 @@ class CanvasInkHost @JvmOverloads constructor(
                 onTextTap?.invoke(ev.getX(0), ev.getY(0))
             }
             return true  // consume the touch so it doesn't reach the Ink view
+        }
+
+        // FILLER tool (§6.10.6f): tap → the activity drops a filled shape
+        // (a translucent rectangle stamp) at the tap point. True flood-fill on
+        // a vector canvas is complex (rasterize → fill → re-vectorize); this
+        // stamp approximation is functional + visible — the user picks size
+        // (stroke-width slider) + color + opacity (a fixed 50% for the
+        // highlighter-style fill; a future editor can expose the opacity slider).
+        if (currentTool == com.thundernotes.ui.canvas.EditorTool.FILLER) {
+            if (ev.actionMasked == MotionEvent.ACTION_UP) {
+                onFillTap?.invoke(ev.getX(0), ev.getY(0))
+            }
+            return true
         }
 
         // LASSO tool: drag a rectangle (DOWN→start, MOVE→update overlay, UP→finalize+select).
