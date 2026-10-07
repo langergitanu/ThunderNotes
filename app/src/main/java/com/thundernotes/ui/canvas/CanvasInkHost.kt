@@ -63,6 +63,29 @@ class CanvasInkHost @JvmOverloads constructor(
     /** Called when an eraser tap removes a stroke (by the host's stroke id). */
     var onStrokeRemoved: ((String) -> Unit)? = null
 
+    /**
+     * Eraser hit-test callback (Phase 9h — spec §6.10.6d). Given a tap point
+     * (page-local coords), returns the record id of the finished stroke whose
+     * bbox contains the point (within the eraser radius), or null. The host
+     * then removes that stroke from the Ink view via [removeStrokeFromView].
+     * Set by the activity (which has access to the document's stroke list).
+     */
+    var onErasePoint: ((x: Float, y: Float) -> String?)? = null
+
+    /**
+     * Eraser area callback (Phase 9h — spec §6.10.6d AREA type). Given a drag
+     * rectangle (page-local), returns the record ids of all finished strokes
+     * whose bbox intersects the rect. The host removes each from the Ink view.
+     */
+    var onEraseRect: ((l: Float, t: Float, r: Float, b: Float) -> List<String>)? = null
+
+    /** Eraser mode (AREA drag-rect vs SHAPE tap) — set by the activity from the VM. */
+    var eraserType: com.thundernotes.ui.canvas.EraserType =
+        com.thundernotes.ui.canvas.EraserType.entries[com.thundernotes.ui.canvas.EraserType.DEFAULT_ORDINAL]
+
+    /** Eraser hit radius in px (derived from the stroke-width slider × 4). */
+    var eraserRadiusPx: Float = 32f
+
     private var inkView: InProgressStrokesView? = null
     private var inkAvailable: Boolean = false
 
@@ -335,17 +358,66 @@ class CanvasInkHost @JvmOverloads constructor(
     }
 
     private fun handleEraser(ev: MotionEvent): Boolean {
-        if (ev.actionMasked != MotionEvent.ACTION_UP) return true
-        // Simple eraser: tap removes the most-recent finished stroke on this host.
-        // (Real stroke-collision eraser is a refinement — requires hit-testing
-        // against PartitionedMesh bounds; the document's removeStroke(id) is the
-        // model side; here we drive it from a tap.)
-        val view = inkView ?: return false
-        val lastRecordId = recordIdToFinishedInkId.keys.lastOrNull() ?: return true
-        val inkId = recordIdToFinishedInkId.remove(lastRecordId) ?: return true
-        try { view.removeFinishedStrokes(setOf(inkId)) } catch (_: Throwable) {}
-        onStrokeRemoved?.invoke(lastRecordId)
+        val action = ev.actionMasked
+        // SHAPE eraser: tap to remove the stroke under the tap (point-in-bbox
+        // hit-test with the eraser radius). Spec §6.10.6d "shape eraser".
+        if (eraserType == com.thundernotes.ui.canvas.EraserType.SHAPE) {
+            if (action != MotionEvent.ACTION_UP) return true
+            val x = ev.x; val y = ev.y
+            val id = onErasePoint?.invoke(x, y) ?: return true
+            removeStrokeFromView(id)
+            onStrokeRemoved?.invoke(id)
+            return true
+        }
+        // AREA eraser: drag → on UP, remove every stroke whose bbox intersects
+        // the drag rect. Spec §6.10.6d "area eraser".
+        when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                eraserDragStart = ev.x to ev.y
+                eraserDragCur = ev.x to ev.y
+            }
+            MotionEvent.ACTION_MOVE -> {
+                eraserDragCur = ev.x to ev.y
+                invalidate()  // redraw the drag rect overlay
+            }
+            MotionEvent.ACTION_UP -> {
+                val (sx, sy) = eraserDragStart ?: (ev.x to ev.y)
+                val (ex, ey) = ev.x to ev.y
+                val l = minOf(sx, ex); val t = minOf(sy, ey)
+                val r = maxOf(sx, ex); val b = maxOf(sy, ey)
+                val ids = onEraseRect?.invoke(l, t, r, b) ?: emptyList()
+                ids.forEach { id ->
+                    removeStrokeFromView(id)
+                    onStrokeRemoved?.invoke(id)
+                }
+                eraserDragStart = null
+                eraserDragCur = null
+                invalidate()
+            }
+        }
         return true
+    }
+
+    /** Drag-rect state for the AREA eraser. */
+    private var eraserDragStart: Pair<Float, Float>? = null
+    private var eraserDragCur: Pair<Float, Float>? = null
+
+    override fun dispatchDraw(canvas: android.graphics.Canvas) {
+        super.dispatchDraw(canvas)
+        // Draw the AREA-eraser drag rect overlay (spec §6.10.6d).
+        val start = eraserDragStart
+        val cur = eraserDragCur
+        if (cur != null && start != null) {
+            val l = minOf(start.first, cur.first)
+            val t = minOf(start.second, cur.second)
+            val r = maxOf(start.first, cur.first)
+            val b = maxOf(start.second, cur.second)
+            val paint = android.graphics.Paint().apply {
+                color = 0x66FF5252  // semi-transparent red
+                style = android.graphics.Paint.Style.FILL
+            }
+            canvas.drawRect(l, t, r, b, paint)
+        }
     }
 
     /** Remove a finished stroke from the Ink view (called when the document undoes an AddStroke). */

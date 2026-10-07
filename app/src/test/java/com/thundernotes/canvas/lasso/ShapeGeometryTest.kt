@@ -31,7 +31,7 @@ class ShapeGeometryTest {
     }
 
     @Test fun `circle produces a closed polyline with segments+1 points`() {
-        val strokes = ShapeGeometry.buildShape(ShapeType.CIRCLE, 0f, 0f, 10f, 10f, color, 2f, circleSegments = 48)
+        val strokes = ShapeGeometry.buildShape(ShapeType.ELLIPSE, 0f, 0f, 10f, 10f, color, 2f, circleSegments = 48)
         assertEquals(1, strokes.size)
         // 48 segments → 49 points → 98 floats.
         assertEquals(98, strokes[0].inputXy.size)
@@ -42,7 +42,7 @@ class ShapeGeometryTest {
     }
 
     @Test fun `circle center is the box centroid`() {
-        val strokes = ShapeGeometry.buildShape(ShapeType.CIRCLE, 0f, 0f, 10f, 10f, color, 2f, circleSegments = 4)
+        val strokes = ShapeGeometry.buildShape(ShapeType.ELLIPSE, 0f, 0f, 10f, 10f, color, 2f, circleSegments = 4)
         // 4 segments → 5 points; the points are at 0°, 90°, 180°, 270°, 360° around (5,5).
         val xy = strokes[0].inputXy
         // point at 0°: (cx+rx, cy) = (5+5, 5) = (10, 5)
@@ -58,5 +58,37 @@ class ShapeGeometryTest {
             assertEquals("thunder-ballpoint-v1", s.brushFamilyId)
             assertTrue("attrs must be 5 per point", s.inputAttrs.size == s.pointCount * 5)
         }
+    }
+
+    // ─── Phase 9h: new shape types (triangle/arrow/polygon/star) ──────────
+
+    @Test fun `triangle has 4 points (apex, bottom-right, bottom-left, apex)`() {
+        val s = ShapeGeometry.buildShape(ShapeType.TRIANGLE, 0f, 0f, 10f, 10f, color, 2f)[0]
+        assertEquals(4, s.pointCount)
+    }
+
+    @Test fun `arrow has more than 4 points (shaft + 2 barbs)`() {
+        val s = ShapeGeometry.buildShape(ShapeType.ARROW, 0f, 0f, 20f, 0f, color, 2f)[0]
+        assertTrue("arrow should have shaft + barbs", s.pointCount > 4)
+    }
+
+    @Test fun `polygon has 7 points (6 sides + closing)`() {
+        val s = ShapeGeometry.buildShape(ShapeType.POLYGON, 0f, 0f, 10f, 10f, color, 2f)[0]
+        assertEquals(7, s.pointCount)
+    }
+
+    @Test fun `star has 11 points (5 outer + 5 inner + closing)`() {
+        val s = ShapeGeometry.buildShape(ShapeType.STAR, 0f, 0f, 10f, 10f, color, 2f)[0]
+        assertEquals(11, s.pointCount)
+    }
+
+    @Test fun `rounded rectangle reuses rect geometry (4 corners + closing)`() {
+        val s = ShapeGeometry.buildShape(ShapeType.ROUNDED_RECTANGLE, 0f, 0f, 10f, 10f, color, 2f)[0]
+        assertEquals(5, s.pointCount)
+    }
+
+    @Test fun `ellipse produces a closed polyline with more than 10 points`() {
+        val s = ShapeGeometry.buildShape(ShapeType.ELLIPSE, 0f, 0f, 10f, 10f, color, 2f)[0]
+        assertTrue("ellipse should be segmented", s.pointCount > 10)
     }
 }

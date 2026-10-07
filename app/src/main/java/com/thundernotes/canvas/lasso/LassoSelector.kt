@@ -69,4 +69,62 @@ object LassoSelector {
         // No overlap iff one rect is strictly left/right/above/below the other.
         return !(bb[2] < l || bb[0] > r || bb[3] < t || bb[1] > b)
     }
+
+    /**
+     * Select strokes whose bbox intersects the free-form polygon's bbox AND
+     * whose bbox has at least one corner inside the polygon (spec §6.10.6e
+     * "Random Lasso"). A point-in-polygon ray-cast test (even-odd rule) is
+     * used — this is the standard algorithm (W. Randolph Franklin).
+     *
+     * The [polygon] is a flat x,y list (≥6 floats = 3 points). The polygon
+     * doesn't need to be closed (the test wraps around). Returns a
+     * [LassoSelection] whose rect is the polygon's bbox + whose strokeIds are
+     * the selected strokes.
+     */
+    fun selectByPolygon(strokes: List<StrokeRecord>, polygon: List<Float>): LassoSelection {
+        if (polygon.size < 6) return LassoSelection(0f, 0f, 0f, 0f, emptyList())
+        // Compute the polygon's bbox.
+        var l = Float.POSITIVE_INFINITY; var t = Float.POSITIVE_INFINITY
+        var r = Float.NEGATIVE_INFINITY; var b = Float.NEGATIVE_INFINITY
+        var i = 0
+        while (i + 1 < polygon.size) {
+            val x = polygon[i]; val y = polygon[i + 1]
+            if (x < l) l = x; if (y < t) t = y
+            if (x > r) r = x; if (y > b) b = y
+            i += 2
+        }
+        // First filter by bbox-intersection (cheap), then confirm by
+        // point-in-polygon on at least one bbox corner (the stroke is selected
+        // if any of its 4 bbox corners is inside the polygon — permissive).
+        val ids = strokes.filter { s -> bboxIntersects(s, l, t, r, b) }
+            .filter { s -> bboxCornerInPolygon(s, polygon) }
+            .map { it.id }
+        return LassoSelection(l, t, r, b, ids)
+    }
+
+    /** True iff any of the stroke's 4 bbox corners lies inside [polygon]. */
+    private fun bboxCornerInPolygon(s: StrokeRecord, polygon: List<Float>): Boolean {
+        val bb = strokeBounds(s)
+        val corners = arrayOf(
+            bb[0] to bb[1], bb[2] to bb[1], bb[0] to bb[3], bb[2] to bb[3],
+        )
+        return corners.any { (cx, cy) -> pointInPolygon(cx, cy, polygon) }
+    }
+
+    /** Even-odd ray-cast point-in-polygon test (Franklin's algorithm). */
+    fun pointInPolygon(px: Float, py: Float, polygon: List<Float>): Boolean {
+        val n = polygon.size / 2
+        if (n < 3) return false
+        var inside = false
+        var j = n - 1
+        for (i in 0 until n) {
+            val xi = polygon[i * 2]; val yi = polygon[i * 2 + 1]
+            val xj = polygon[j * 2]; val yj = polygon[j * 2 + 1]
+            val intersects = ((yi > py) != (yj > py)) &&
+                (px < (xj - xi) * (py - yi) / ((yj - yi).coerceAtLeast(Float.MIN_VALUE)) + xi)
+            if (intersects) inside = !inside
+            j = i
+        }
+        return inside
+    }
 }

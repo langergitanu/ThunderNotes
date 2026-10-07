@@ -283,8 +283,8 @@ class NoteEditorViewModelTest {
 
     @Test
     fun `setShapeType switches the active shape`() {
-        vm.setShapeType(ShapeType.CIRCLE)
-        assertEquals(ShapeType.CIRCLE, vm.uiState.value.shapeType)
+        vm.setShapeType(ShapeType.ELLIPSE)
+        assertEquals(ShapeType.ELLIPSE, vm.uiState.value.shapeType)
     }
 
     // ─── zoom bounds ──────────────────────────────────────────────────────────

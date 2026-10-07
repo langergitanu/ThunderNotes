@@ -154,11 +154,44 @@
     <string name="canvas_add_page">Add page</string>
     <string name="canvas_ai_snip">AI Snip</string>
     <string name="canvas_tool_pen">Pen</string>
+    <string name="canvas_tool_fountain">Fountain Pen</string>
     <string name="canvas_tool_highlighter">Highlighter</string>
     <string name="canvas_tool_eraser">Eraser</string>
     <string name="canvas_tool_lasso">Lasso</string>
     <string name="canvas_tool_shape">Shape</string>
     <string name="canvas_tool_text">Text</string>
+    <!-- Eraser types + lasso modes (spec §6.10.6d + §6.10.6e). -->
+    <string name="eraser_type_area">Area Eraser</string>
+    <string name="eraser_type_shape">Shape Eraser</string>
+    <string name="eraser_size">Eraser size</string>
+    <string name="lasso_mode_rect">Rectangular Lasso</string>
+    <string name="lasso_mode_freeform">Random (Free-form) Lasso</string>
+    <!-- Textbox editor popup (§7.1). -->
+    <string name="textbox_editor_title">Edit textbox</string>
+    <string name="textbox_bold">Bold</string>
+    <string name="textbox_italic">Italic</string>
+    <string name="textbox_underline">Underline</string>
+    <string name="textbox_underline_none">None</string>
+    <string name="textbox_underline_thin">Thin</string>
+    <string name="textbox_underline_thick">Thick</string>
+    <string name="textbox_underline_dashed">Dashed</string>
+    <string name="textbox_underline_wavy">Wavy</string>
+    <string name="textbox_font_family">Font family</string>
+    <string name="textbox_font_size">Font size</string>
+    <string name="textbox_text_color">Text color</string>
+    <string name="textbox_fill_color">Fill color</string>
+    <string name="textbox_fill_transparent">Transparent</string>
+    <string name="textbox_apply">Apply</string>
+    <string name="textbox_empty_text">Text cannot be empty</string>
+    <!-- Palette rename (§6.10.7). -->
+    <string name="palette_rename">Rename palette</string>
+    <string name="palette_rename_hint">New palette name</string>
+    <string name="palette_renamed">Palette renamed</string>
+    <!-- Equation LaTeX edit (§7.3.4b). -->
+    <string name="snip_latex_edit_title">Edit LaTeX</string>
+    <string name="snip_latex_edit_hint">Edit the recognised LaTeX</string>
+    <string name="snip_latex_re_render">Re-render</string>
+    <string name="snip_latex_confirm">Confirm</string>
     <string name="canvas_color_swatch">Color %1$d</string>
     <string name="canvas_stroke_width">Stroke width %1$d</string>
     <string name="canvas_page_indicator">%1$d / %2$d</string>

@@ -206,4 +206,20 @@ class CanvasDocumentTest {
         assertNull(doc.removeTextbox("nope"))
         assertEquals(1, doc.currentTextboxes.size)
     }
+
+    // ─── Phase 9h: updateTextbox (the §7.1 editor Apply path) ───────────
+
+    @Test fun `updateTextbox swaps the record by id`() {
+        val orig = tb("t1").copy(text = "orig", bold = false)
+        doc.addTextbox(orig)
+        val updated = orig.copy(text = "edited", bold = true)
+        assertTrue(doc.updateTextbox(updated))
+        assertEquals(1, doc.currentTextboxes.size)
+        assertEquals("edited", doc.currentTextboxes[0].text)
+        assertTrue(doc.currentTextboxes[0].bold)
+    }
+
+    @Test fun `updateTextbox with unknown id returns false`() {
+        assertFalse(doc.updateTextbox(tb("nope").copy(text = "x")))
+    }
 }

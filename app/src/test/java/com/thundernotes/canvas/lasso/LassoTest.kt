@@ -158,4 +158,32 @@ class LassoTest {
         assertEquals(0, doc.currentStrokes.size)
         assertFalse(ThunderClipboard.hasItem)
     }
+
+    // ─── Phase 9h: free-form (random) lasso — selectByPolygon ────────────
+
+    @Test fun `pointInPolygon true for a point inside a square`() {
+        // Square polygon: (0,0)(10,0)(10,10)(0,10).
+        val poly = listOf(0f, 0f, 10f, 0f, 10f, 10f, 0f, 10f)
+        assertTrue(LassoSelector.pointInPolygon(5f, 5f, poly))
+    }
+
+    @Test fun `pointInPolygon false for a point outside`() {
+        val poly = listOf(0f, 0f, 10f, 0f, 10f, 10f, 0f, 10f)
+        assertFalse(LassoSelector.pointInPolygon(15f, 15f, poly))
+    }
+
+    @Test fun `selectByPolygon selects strokes whose bbox corner is inside`() {
+        // A stroke at (2,2)-(4,4) is inside the polygon (0,0)(10,0)(10,10)(0,10).
+        val inside = stroke("inside", listOf(2f, 2f, 4f, 4f))
+        val outside = stroke("outside", listOf(20f, 20f, 30f, 30f))
+        val poly = listOf(0f, 0f, 10f, 0f, 10f, 10f, 0f, 10f)
+        val sel = LassoSelector.selectByPolygon(listOf(inside, outside), poly)
+        assertEquals(listOf("inside"), sel.strokeIds)
+    }
+
+    @Test fun `selectByPolygon with fewer than 3 points returns empty`() {
+        val s = stroke("a", listOf(0f, 0f, 5f, 5f))
+        val sel = LassoSelector.selectByPolygon(listOf(s), listOf(0f, 0f, 1f, 1f))
+        assertTrue(sel.isEmpty)
+    }
 }

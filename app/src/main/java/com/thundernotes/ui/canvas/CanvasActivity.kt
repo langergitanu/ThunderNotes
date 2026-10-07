@@ -75,6 +75,7 @@ class CanvasActivity : AppCompatActivity() {
 
     // Map tool → the ImageButton id so render() can highlight the active one.
     private val toolButtonIds: List<Pair<EditorTool, Int>> = listOf(
+        EditorTool.FOUNTAIN_PEN to R.id.toolFountainPen,
         EditorTool.PEN to R.id.toolPen,
         EditorTool.HIGHLIGHTER to R.id.toolHighlighter,
         EditorTool.ERASER to R.id.toolEraser,
@@ -122,6 +123,11 @@ class CanvasActivity : AppCompatActivity() {
         binding = ActivityCanvasBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Init the palette-name store (spec §6.10.7 — user-renamable palettes).
+        PaletteNameStore.init(this)
+        // Init the font cache (Phase 9e — 10 spec fonts + JetBrains Mono).
+        com.thundernotes.ui.common.FontCache.init(this)
+
         wireToolbar()
         wireWorkflowRow()
         wireToolTray()
@@ -157,6 +163,7 @@ class CanvasActivity : AppCompatActivity() {
             applyTheme()
         }
         // Palette switcher (spec §6.10 Row 3c) — PopupMenu of the 3 palettes.
+        // Long-press → Rename popup (spec §6.10.7: Sunflower can be renamed).
         binding.paletteSwitcher.setOnClickListener { anchor ->
             val menu = PopupMenu(this, anchor)
             EditorPalette.PALETTE_NAMES.forEachIndexed { idx, name ->
@@ -169,6 +176,18 @@ class CanvasActivity : AppCompatActivity() {
                 true
             }
             menu.show()
+        }
+        binding.paletteSwitcher.setOnLongClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            EditorPalette.PALETTE_NAMES.forEachIndexed { idx, name ->
+                menu.menu.add(0, idx, idx, "$name — ${getString(R.string.palette_rename)}")
+            }
+            menu.setOnMenuItemClickListener { item ->
+                showPaletteRenameDialog(item.itemId)
+                true
+            }
+            menu.show()
+            true
         }
         // Line-type switcher (spec §6.10 Row 3a: straight / dotted / dashed).
         binding.lineTypeSwitcher.setOnClickListener { anchor ->
@@ -215,6 +234,31 @@ class CanvasActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) { titleEditing = false }
         })
+    }
+
+    /** Palette-rename dialog (spec §6.10.7 — Sunflower can be renamed; here
+     *  any of the 3 palettes can be renamed, since they're all user-visible). */
+    private fun showPaletteRenameDialog(paletteIndex: Int) {
+        val current = EditorPalette.PALETTE_NAMES.getOrElse(paletteIndex) { "Palette" }
+        val input = EditText(this).apply {
+            hint = getString(R.string.palette_rename_hint)
+            setText(current)
+            setSelection(current.length)
+            setPadding(48, 24, 48, 24)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.palette_rename)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val newName = input.text?.toString().orEmpty().trim()
+                if (newName.isNotEmpty() && newName != current) {
+                    PaletteNameStore.rename(paletteIndex, newName)
+                    binding.paletteSwitcher.text = newName
+                    Toast.makeText(this, R.string.palette_renamed, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun wireWorkflowRow() {
@@ -562,6 +606,36 @@ class CanvasActivity : AppCompatActivity() {
         toolButtonIds.forEach { (tool, id) ->
             findViewById<ImageButton>(id).setOnClickListener { viewModel.selectTool(tool) }
         }
+        // Eraser long-press → type popup (Area/Shape). Spec §6.10.6d.
+        findViewById<ImageButton>(R.id.toolEraser).setOnLongClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            EraserType.entries.forEachIndexed { idx, t ->
+                val label = if (t == EraserType.AREA) R.string.eraser_type_area
+                    else R.string.eraser_type_shape
+                menu.menu.add(0, idx, idx, getString(label))
+            }
+            menu.setOnMenuItemClickListener { item ->
+                viewModel.setEraserType(EraserType.entries[item.itemId])
+                true
+            }
+            menu.show()
+            true
+        }
+        // Lasso long-press → mode popup (Rect/Freeform). Spec §6.10.6e.
+        findViewById<ImageButton>(R.id.toolLasso).setOnLongClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            LassoMode.entries.forEachIndexed { idx, m ->
+                val label = if (m == LassoMode.RECT) R.string.lasso_mode_rect
+                    else R.string.lasso_mode_freeform
+                menu.menu.add(0, idx, idx, getString(label))
+            }
+            menu.setOnMenuItemClickListener { item ->
+                viewModel.setLassoMode(LassoMode.entries[item.itemId])
+                true
+            }
+            menu.show()
+            true
+        }
     }
 
     // ─── Phase 8: page-host lifecycle + document bridge ─────────────────────
@@ -594,6 +668,32 @@ class CanvasActivity : AppCompatActivity() {
             onStrokeRemoved = { id ->
                 document.removeStroke(id)
                 syncUndoRedoFlags()
+            }
+            // Phase 9h: eraser hit-test callbacks (spec §6.10.6d). The host
+            // calls these with page-local coords; we look up the stroke(s) from
+            // the document's current page + return the ids to remove.
+            onErasePoint = { x, y ->
+                val strokes = document.currentStrokes
+                val r = viewModel.uiState.value.eraserSizeDp *
+                    (resources.displayMetrics.density)
+                // Topmost stroke (most-recently-drawn wins) whose bbox contains
+                // (x, y) within the eraser radius.
+                var hit: String? = null
+                for (s in strokes.asReversed()) {
+                    val bb = com.thundernotes.canvas.lasso.LassoSelector.strokeBounds(s)
+                    if (x + r >= bb[0] && x - r <= bb[2] &&
+                        y + r >= bb[1] && y - r <= bb[3]) {
+                        hit = s.id; break
+                    }
+                }
+                hit
+            }
+            onEraseRect = { l, t, r, b ->
+                // Area eraser: every stroke whose bbox intersects the drag rect.
+                val sel = com.thundernotes.canvas.lasso.LassoSelector.selectByRect(
+                    document.currentStrokes, l, t, r, b
+                )
+                sel.strokeIds
             }
             // Phase 8b: TEXT + LASSO tool routing (per-page, with the page index
             // captured so the activity targets the right page's overlays/layers).
@@ -724,10 +824,21 @@ class CanvasActivity : AppCompatActivity() {
      * colours are font-agnostic spans, so a later font change to JetBrains
      * Mono (monospace) survives. The theme defaults to
      * [com.thundernotes.snip.CodeTheme.forLanguage].
+     *
+     * **Phase 9h:** applies [TextBoxRecord.fillColor] (spec §7.1 Fill Color)
+     * + wires a long-press on the rendered textbox → [TextboxEditorBottomSheet]
+     * (the full §7.1 formatting popup). On Apply, the old TextView is removed
+     * + the updated record is re-rendered (same id → the document swap is
+     * undoable).
      */
     private fun renderTextbox(pageIndex: Int, tb: TextBoxRecord) {
         val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
         val tv = TextView(this).apply {
+            // Fill color (spec §7.1 Fill Color — background of the textbox).
+            if (tb.fillColor != null) {
+                setBackgroundColor(tb.fillColor)
+                setPadding(dp(12), dp(8), dp(12), dp(8))
+            }
             // Code snip → syntax-coloured Spannable; otherwise plain text.
             val lang = tb.codeLanguage
             if (lang != null) {
@@ -740,11 +851,14 @@ class CanvasActivity : AppCompatActivity() {
                     text = com.thundernotes.snip.CodeFormatter.toSpannable(tb.text, codeLang, theme)
                     // Code textbox: dark background so the theme colours read right
                     // (One Dark / Monokai / GitHub Dark all target dark bg).
+                    // This overrides the user fill color for code (the syntax theme
+                    // is paired with its bg); a future editor can make this optional.
                     setBackgroundColor(theme.background)
                     setPadding(dp(12), dp(8), dp(12), dp(8))
                     setTextColor(theme.plain)
                 } else {
                     text = tb.text  // unknown language → plain
+                    setTextColor(tb.colorArgb)
                 }
             } else {
                 text = tb.text
@@ -762,6 +876,15 @@ class CanvasActivity : AppCompatActivity() {
             if (tb.underline != 0) {
                 paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
             }
+            // Long-press → open the §7.1 editor popup (edit text + formatting).
+            setOnLongClickListener {
+                TextboxEditorBottomSheet.newInstance(tb) { updated ->
+                    applyTextboxEdit(pageIndex, tb.id, updated)
+                }.show(supportFragmentManager, "textbox_editor")
+                true
+            }
+            // Tag the view with the textbox id so applyTextboxEdit can find it.
+            tag = tb.id
         }
         val lp = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -770,6 +893,24 @@ class CanvasActivity : AppCompatActivity() {
             leftMargin = tb.x.toInt(); topMargin = tb.y.toInt()
         }
         layer.addView(tv, lp)
+    }
+
+    /**
+     * Apply a textbox edit (§7.1 editor Apply): remove the old TextView from
+     * the page's textbox layer + re-render with the updated record. The
+     * [CanvasDocument] swap is done via [CanvasDocument.updateTextbox] (so
+     * the change is undoable). Phase 9h.
+     */
+    private fun applyTextboxEdit(pageIndex: Int, textboxId: String, updated: TextBoxRecord) {
+        val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
+        // Find + remove the old TextView whose tag matches the textbox id.
+        for (i in 0 until layer.childCount) {
+            val child = layer.getChildAt(i)
+            if (child.tag == textboxId) { layer.removeViewAt(i); break }
+        }
+        // Swap the record in the document (undoable) + re-render (tagged).
+        document.updateTextbox(updated)
+        renderTextbox(pageIndex, updated)
     }
 
     // ─── Phase 8b: Lasso (spec §7.2 — select + 9 functions) ────────────────
@@ -1253,6 +1394,12 @@ class CanvasActivity : AppCompatActivity() {
             if (state.selectedTool == EditorTool.SHAPE) View.VISIBLE else View.GONE
         binding.shapeTypeSwitcher.text =
             state.shapeType.name.lowercase().replaceFirstChar { it.uppercase() }
+        // Phase 9h: propagate the eraser type + size + lasso mode to every
+        // page's ink host (spec §6.10.6d + §6.10.6e).
+        pageHosts.forEach { host ->
+            host.eraserType = state.eraserType
+            host.eraserRadiusPx = state.eraserSizeDp * resources.displayMetrics.density
+        }
         // Gridline overlay per page (§6.10 Row 2c) — toggle + size.
         pageGridlineOverlays.forEach { ov ->
             if (state.gridVisible) { ov.show(state.gridRows, state.gridCols); ov.visibility = View.VISIBLE }

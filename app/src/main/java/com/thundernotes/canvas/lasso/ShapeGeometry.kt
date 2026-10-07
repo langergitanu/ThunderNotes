@@ -35,9 +35,14 @@ object ShapeGeometry {
         val top = minOf(y1, y2); val bottom = maxOf(y1, y2)
         val cfg = BrushCfg(colorArgb, brushSize, epsilon)
         return when (shape) {
-            ShapeType.RECTANGLE -> listOf(rectStroke(left, top, right, bottom, cfg))
             ShapeType.LINE -> listOf(lineStroke(x1, y1, x2, y2, cfg))
-            ShapeType.CIRCLE -> listOf(circleStroke(left, top, right, bottom, cfg, circleSegments))
+            ShapeType.RECTANGLE -> listOf(rectStroke(left, top, right, bottom, cfg))
+            ShapeType.ROUNDED_RECTANGLE -> listOf(rectStroke(left, top, right, bottom, cfg))
+            ShapeType.ELLIPSE -> listOf(circleStroke(left, top, right, bottom, cfg, circleSegments))
+            ShapeType.TRIANGLE -> listOf(triangleStroke(left, top, right, bottom, cfg))
+            ShapeType.ARROW -> listOf(arrowStroke(x1, y1, x2, y2, cfg))
+            ShapeType.POLYGON -> listOf(polygonStroke(left, top, right, bottom, cfg, sides = 6))
+            ShapeType.STAR -> listOf(starStroke(left, top, right, bottom, cfg, points = 5))
         }
     }
 
@@ -61,6 +66,64 @@ object ShapeGeometry {
             val ang = (2.0 * Math.PI * i / segments).toFloat()
             xy.add((cx + rx * cos(ang)).toFloat())
             xy.add((cy + ry * sin(ang)).toFloat())
+        }
+        return stroke(xy, c)
+    }
+
+    /** Equilateral triangle inscribed in the box, apex at the top. */
+    private fun triangleStroke(l: Float, t: Float, r: Float, b: Float, c: BrushCfg): StrokeRecord {
+        val cx = (l + r) / 2f
+        val xy = listOf(cx, t, r, b, l, b, cx, t)
+        return stroke(xy, c)
+    }
+
+    /** Arrow from (x1,y1) → (x2,y2) with two head barbs. */
+    private fun arrowStroke(x1: Float, y1: Float, x2: Float, y2: Float, c: BrushCfg): StrokeRecord {
+        // The arrow = shaft + two head barbs (single polyline: barb1 → tip → barb2 → tip → shaft start → tip).
+        // Keep it simple: one polyline along the shaft + the barbs.
+        val dx = x2 - x1; val dy = y2 - y1
+        val len = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+        if (len < 1f) return stroke(listOf(x1, y1, x2, y2), c)
+        val ux = dx / len; val uy = dy / len  // unit shaft direction
+        val headLen = minOf(len * 0.3f, 40f)
+        val ang = Math.PI / 6.0  // 30° head angle
+        val cosA = Math.cos(ang).toFloat(); val sinA = Math.sin(ang).toFloat()
+        // Rotate the unit shaft by ±30° to get the two barb directions.
+        val barb1x = x2 - headLen * (ux * cosA + uy * sinA)
+        val barb1y = y2 - headLen * (-ux * sinA + uy * cosA)
+        val barb2x = x2 - headLen * (ux * cosA - uy * sinA)
+        val barb2y = y2 - headLen * (ux * sinA + uy * cosA)
+        // Polyline: shaft start → tip → barb1 → tip → barb2 → tip.
+        return stroke(listOf(x1, y1, x2, y2, barb1x, barb1y, x2, y2, barb2x, barb2y, x2, y2), c)
+    }
+
+    /** Regular polygon with [sides] vertices inscribed in the box. */
+    private fun polygonStroke(l: Float, t: Float, r: Float, b: Float, c: BrushCfg, sides: Int): StrokeRecord {
+        val cx = (l + r) / 2f; val cy = (t + b) / 2f
+        val rx = (r - l) / 2f; val ry = (b - t) / 2f
+        val xy = ArrayList<Float>((sides + 1) * 2)
+        for (i in 0..sides) {
+            val ang = (2.0 * Math.PI * i / sides - Math.PI / 2).toFloat()  // start at top
+            xy.add((cx + rx * cos(ang)).toFloat())
+            xy.add((cy + ry * sin(ang)).toFloat())
+        }
+        return stroke(xy, c)
+    }
+
+    /** Star with [points] outer vertices (alternating inner vertices at 0.4× radius). */
+    private fun starStroke(l: Float, t: Float, r: Float, b: Float, c: BrushCfg, points: Int): StrokeRecord {
+        val cx = (l + r) / 2f; val cy = (t + b) / 2f
+        val rx = (r - l) / 2f; val ry = (b - t) / 2f
+        val innerRx = rx * 0.4f; val innerRy = ry * 0.4f
+        val verts = points * 2
+        val xy = ArrayList<Float>((verts + 1) * 2)
+        for (i in 0..verts) {
+            val ang = (Math.PI * i / points - Math.PI / 2).toFloat()
+            val isOuter = (i % 2 == 0)
+            val xr = if (isOuter) rx else innerRx
+            val yr = if (isOuter) ry else innerRy
+            xy.add((cx + xr * cos(ang)).toFloat())
+            xy.add((cy + yr * sin(ang)).toFloat())
         }
         return stroke(xy, c)
     }

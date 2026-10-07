@@ -41,4 +41,14 @@ class BrushRegistryTest {
             assertFalse(cfg.isEraser)
         }
     }
+
+    // ─── Phase 9h: fountain pen (distinct tool, §6.10.6a) ───────────────
+
+    @Test fun `fountain pen uses the fountain family with a wider width`() {
+        val cfg = BrushRegistry.configFor(EditorTool.FOUNTAIN_PEN, 0xFF1A1A1A.toInt(), 2.0f)
+        assertEquals(BrushFamily.THUNDER_FOUNTAIN_V1, cfg.familyId)
+        assertEquals(2.8f, cfg.sizeDp, 0.001f)  // 2.0 * 1.4
+        assertFalse(cfg.isEraser)
+        assertEquals(0xFF1A1A1A.toInt(), cfg.colorArgb)
+    }
 }

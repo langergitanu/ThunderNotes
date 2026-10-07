@@ -29,8 +29,14 @@ data class EditorUiState(
     val gridVisible: Boolean = false,
     val gridRows: Int = 8,
     val gridCols: Int = 4,
-    /** Spec §6.10 Row 3g Shape Picker: the active shape type (Rectangle/Circle/Line). */
-    val shapeType: ShapeType = ShapeType.RECTANGLE,
+    /** Spec §6.10 Row 3g Shape Picker: the active shape type (Line/Rect/etc.). */
+    val shapeType: ShapeType = ShapeType.entries[ShapeType.DEFAULT_ORDINAL],
+    /** Spec §6.10.6d Eraser: AREA = drag-rect-remove-all; SHAPE = tap-remove-one. */
+    val eraserType: EraserType = EraserType.entries[EraserType.DEFAULT_ORDINAL],
+    /** Spec §6.10.6d Eraser size index (reuses EditorStrokeWidths for the slider). */
+    val eraserSizeIndex: Int = EditorStrokeWidths.DEFAULT_WIDTH_INDEX,
+    /** Spec §6.10.6e Lasso: RECT = drag-rectangle; FREEFORM = trace polygon. */
+    val lassoMode: LassoMode = LassoMode.entries[LassoMode.DEFAULT_ORDINAL],
     val currentPageIndex: Int = 0,
     val totalPages: Int = 1,
     val zoomPercent: Int = EditorZoom.DEFAULT_PERCENT,
@@ -58,5 +64,9 @@ data class EditorUiState(
     val showsStrokeWidth: Boolean get() = selectedTool.showsStrokeWidth
 
     /** True when the line-type selector should be visible (pens + highlighter). */
-    val showsLineType: Boolean get() = selectedTool.showsStrokeWidth
+    val showsLineType: Boolean get() = selectedTool.showsLineType
+
+    /** Convenience: the eraser hit radius in dp (reuses the stroke-width slider). */
+    val eraserSizeDp: Float
+        get() = EditorStrokeWidths.WIDTHS_DP.getOrElse(eraserSizeIndex) { 6.0f } * 4f
 }

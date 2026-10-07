@@ -1,10 +1,14 @@
 package com.thundernotes.ui.canvas
 
 /**
- * The six authoring tools available on the canvas pen tray.
+ * The authoring tools available on the canvas pen tray (spec §6.10.6 — 6
+ * components: Fountain Pen, Ballpoint Pen, Highlighter, Eraser, Lasso, Filler).
  *
- * Mirrors the tool set in the Frontend `canvasLayoutPage` mock:
- * Pen · Highlighter · Eraser · Lasso · Shape · Text.
+ * The original mock split pens into Fountain + Ballpoint (two distinct tools
+ * with different stroke behaviour). Phase 8b shipped only `PEN` (ballpoint);
+ * Phase 9h adds `FOUNTAIN_PEN` as a distinct tool (variable-width, pressure-
+ * responsive — spec §6.10.6a "4 functions: Brush Thickness, Line Type, Pressure
+ * Sensitivity, Color Picker"). The two share the same customization surface.
  *
  * Each tool declares whether it shows the color picker and the stroke-width
  * selector in the secondary tray row. (Eraser + Lasso ignore color; Text
@@ -12,12 +16,13 @@ package com.thundernotes.ui.canvas
  * keeps the tray logic testable without a View.
  */
 enum class EditorTool {
-    PEN,
-    HIGHLIGHTER,
-    ERASER,
-    LASSO,
-    SHAPE,
-    TEXT;
+    FOUNTAIN_PEN,   // §6.10.6a — variable-width, pressure-responsive
+    PEN,            // §6.10.6b — ballpoint, fixed-width
+    HIGHLIGHTER,    // §6.10.6c — wide, semi-transparent
+    ERASER,         // §6.10.6d — area / shape, with size
+    LASSO,          // §6.10.6e — random (free-form) / rectangular
+    SHAPE,          // §6.10.9a
+    TEXT;           // §7.1
 
     /** Whether the color swatch row is relevant for this tool. */
     val showsColorPicker: Boolean
@@ -25,7 +30,34 @@ enum class EditorTool {
 
     /** Whether the stroke-width selector is relevant for this tool. */
     val showsStrokeWidth: Boolean
-        get() = this == PEN || this == HIGHLIGHTER || this == SHAPE
+        get() = this == FOUNTAIN_PEN || this == PEN || this == HIGHLIGHTER || this == SHAPE
+
+    /** Whether the line-type selector is relevant (pens + highlighter). */
+    val showsLineType: Boolean
+        get() = this == FOUNTAIN_PEN || this == PEN || this == HIGHLIGHTER
+}
+
+/**
+ * Eraser behaviour modes (spec §6.10.6d: "2 functions — Type (area eraser &
+ * shape eraser), Size"). AREA = drag a rectangle → remove every stroke whose
+ * bbox intersects it; SHAPE = tap individual strokes to remove them (point-in-
+ * bbox hit-test with the eraser-size radius).
+ */
+enum class EraserType {
+    AREA,   // drag-to-remove-all-in-rect
+    SHAPE;  // tap-to-remove-one
+    companion object { const val DEFAULT_ORDINAL = 1 }  // SHAPE (tap) is the safer default
+}
+
+/**
+ * Lasso selection modes (spec §6.10.6e: "2 types — Random Lasso, Rectangular
+ * Lasso"). RECT = drag a rectangle; FREEFORM = trace a free-hand polygon +
+ * point-in-polygon hit-test.
+ */
+enum class LassoMode {
+    RECT,
+    FREEFORM;
+    companion object { const val DEFAULT_ORDINAL = 0 }
 }
 
 /**
@@ -76,7 +108,17 @@ object EditorPalette {
 
     /** The three named palettes, in the order the palette-switcher shows them. */
     val PALETTES: List<List<Int>> = listOf(THUNDER_DARK, THUNDER_LIGHT, SUNFLOWER)
-    val PALETTE_NAMES: List<String> = listOf("ThunderDark", "ThunderLight", "Sunflower")
+
+    /**
+     * The palette display names (spec §6.10.7: Sunflower is "a user-created
+     * color set; can be renamed"). Phase 9h makes these user-overridable via
+     * a [PaletteNameStore] (SharedPreferences-backed). The store is null on
+     * pure-JVM tests → falls back to the default names.
+     */
+    val PALETTE_NAMES: List<String>
+        get() = PaletteNameStore.currentNamesOrDefault(
+            listOf("ThunderDark", "ThunderLight", "Sunflower")
+        )
 
     /** Default palette per the spec: ThunderDark for pens, ThunderLight for highlighter. */
     const val DEFAULT_PALETTE_INDEX = 0
@@ -122,11 +164,21 @@ object EditorZoom {
 }
 
 /**
- * Shape types for the Shape Picker (spec §6.10 Row 3g). The SHAPE tool draws the
- * selected shape via [com.thundernotes.canvas.lasso.ShapeGeometry] → StrokeRecords.
+ * Shape types for the Shape Picker (spec §6.10.9a — "7 options" incl. Shape
+ * Types). Phase 9h extends the set from {RECT,CIRCLE,LINE} to the full 8:
+ * line / rectangle / rounded-rectangle / ellipse / triangle / arrow / polygon
+ * / star (mirrors `ShapeEntity.shapeType` which already supports these via
+ * the DB schema). The SHAPE tool draws the selected shape via
+ * [com.thundernotes.canvas.lasso.ShapeGeometry] → StrokeRecords.
  */
 enum class ShapeType {
+    LINE,
     RECTANGLE,
-    CIRCLE,
-    LINE;
+    ROUNDED_RECTANGLE,
+    ELLIPSE,
+    TRIANGLE,
+    ARROW,
+    POLYGON,
+    STAR;
+    companion object { const val DEFAULT_ORDINAL = 1 }  // RECTANGLE
 }

@@ -33,8 +33,14 @@ object BrushRegistry {
         colorArgb: Int,
         widthDp: Float,
     ): EditorBrushConfig = when (tool) {
-        // Fountain-style pen — variable width. We use the ballpoint family for
-        // now (PHASE 8 core); fountain family is a brush-asset concern (Phase 8b).
+        // Fountain pen (spec §6.10.6a) — variable-width, pressure-responsive.
+        // Uses the fountain family (THUNDER_FOUNTAIN_V1) + a wider base width +
+        // tighter epsilon so pressure variation shows. The Ink host maps this
+        // family to a variable-width StockBrushes family.
+        com.thundernotes.ui.canvas.EditorTool.FOUNTAIN_PEN ->
+            EditorBrushConfig(BrushFamily.THUNDER_FOUNTAIN_V1, widthDp * 1.4f, 0.06f, colorArgb, false)
+
+        // Ballpoint pen (spec §6.10.6b) — fixed-width, solid line.
         com.thundernotes.ui.canvas.EditorTool.PEN ->
             EditorBrushConfig(BrushFamily.THUNDER_BALLPOINT_V1, widthDp, 0.10f, colorArgb, false)
 

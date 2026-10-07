@@ -16,6 +16,8 @@ import java.util.UUID
  *   renderer applies [com.thundernotes.snip.CodeFormatter] syntax colours on
  *   top of the base Typeface. Pure data (the language name string, not the
  *   Android Spannable). Null for TEXT/EQUATION/typed textboxes.
+ * @param fillColor ARGB int for the textbox background, or null for
+ *   transparent (spec §7.1: "Fill Color (background color of the textbox)").
  */
 data class TextBoxRecord(
     val id: String = UUID.randomUUID().toString(),
@@ -30,4 +32,5 @@ data class TextBoxRecord(
     val underline: Int = 0,
     val colorArgb: Int = 0xFF1A1A1A.toInt(),
     val codeLanguage: String? = null,
+    val fillColor: Int? = null,
 )

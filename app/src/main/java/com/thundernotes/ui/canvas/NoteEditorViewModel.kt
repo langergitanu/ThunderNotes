@@ -139,6 +139,15 @@ class NoteEditorViewModel(
     /** Set the active shape type for the SHAPE tool (spec §6.10 Row 3g). */
     fun setShapeType(type: ShapeType) = _uiState.update { it.copy(shapeType = type) }
 
+    /** Spec §6.10.6d Eraser Type (AREA / SHAPE). */
+    fun setEraserType(type: EraserType) = _uiState.update { it.copy(eraserType = type) }
+    /** Spec §6.10.6d Eraser Size (reuses the stroke-width slider indices). */
+    fun setEraserSize(index: Int) = _uiState.update {
+        it.copy(eraserSizeIndex = index.coerceIn(0, EditorStrokeWidths.WIDTHS_DP.lastIndex))
+    }
+    /** Spec §6.10.6e Lasso Mode (RECT / FREEFORM). */
+    fun setLassoMode(mode: LassoMode) = _uiState.update { it.copy(lassoMode = mode) }
+
     fun nextPage() = _uiState.update {
         val next = (it.currentPageIndex + 1).coerceAtMost((it.totalPages - 1).coerceAtLeast(0))
         it.copy(currentPageIndex = next)

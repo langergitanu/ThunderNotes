@@ -98,6 +98,19 @@ class CanvasDocument {
         return page.textboxes.removeAt(idx)
     }
 
+    /**
+     * Replace a textbox (by id) with [updated]. Used by the §7.1 textbox editor
+     * popup on Apply — the same id is kept so the view swap is idempotent.
+     * Returns true if the textbox was found + replaced.
+     */
+    fun updateTextbox(updated: TextBoxRecord): Boolean {
+        val page = _pages.getOrNull(currentPageIndex) ?: return false
+        val idx = page.textboxes.indexOfFirst { it.id == updated.id }
+        if (idx < 0) return false
+        page.textboxes[idx] = updated
+        return true
+    }
+
     /** Remove a finished stroke by id (eraser / undo of a single stroke). */
     fun removeStroke(strokeId: String): StrokeRecord? {
         val page = _pages.getOrNull(currentPageIndex) ?: return null
