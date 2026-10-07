@@ -203,6 +203,28 @@
             android:contentDescription="@string/canvas_add_space"
             android:tint="@color/canvas_on_surface_variant" />
 
+        <!-- Table Maker (§6.10 Row 3g). Tap → rows/cols dialog → build table. -->
+        <ImageButton
+            android:id="@+id/btnTable"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_table"
+            android:contentDescription="@string/canvas_table"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Finger/Stylus Mode (§6.10 Row 3g). Tap → toggle palm rejection. -->
+        <ImageButton
+            android:id="@+id/btnFingerStylus"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_finger_stylus"
+            android:contentDescription="@string/canvas_finger_stylus"
+            android:tint="@color/canvas_on_surface_variant" />
+
         <Space
             android:layout_width="0dp"
             android:layout_height="1dp"

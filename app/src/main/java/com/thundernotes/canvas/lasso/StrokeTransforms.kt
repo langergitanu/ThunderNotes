@@ -47,6 +47,14 @@ object StrokeTransforms {
         }
     }
 
+    /** Translate every point by (dx, dy) — the Vertical/Horizontal Shifters
+     *  (spec §6.10 Row 3g: lasso-selected content repositions vertically/horizontally). */
+    fun translate(strokes: List<StrokeRecord>, dx: Float, dy: Float): List<StrokeRecord> {
+        return strokes.map { s ->
+            s.copy(inputXy = mapPoints(s.inputXy) { x, y -> (x + dx) to (y + dy) })
+        }
+    }
+
     /** Scale every point by [factor] around the group bbox center (Enlarge/Reduce).
      *  @param scaleBrushSize when true (constant-scaling OFF, spec §7.5), also scale
      *    each stroke's [StrokeRecord.brushSize] by [factor] so the thickness grows/

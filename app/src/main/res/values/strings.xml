@@ -192,6 +192,13 @@
     <string name="canvas_image_failed">Could not load the image</string>
     <string name="canvas_add_space">Add writing space</string>
     <string name="canvas_space_added">Added %1$dpx of writing space</string>
+    <string name="canvas_table">Table Maker</string>
+    <string name="canvas_table_rows">Rows</string>
+    <string name="canvas_table_cols">Columns</string>
+    <string name="canvas_table_title">Create table</string>
+    <string name="canvas_finger_stylus">Finger/Stylus mode</string>
+    <string name="canvas_stylus_only">Stylus-only mode ON</string>
+    <string name="canvas_finger_allowed">Finger input allowed</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

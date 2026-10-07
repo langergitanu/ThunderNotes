@@ -79,6 +79,18 @@ class LassoTest {
         assertEquals(listOf(10f, 0f, 0f, 10f), flipped[0].inputXy)
     }
 
+    @Test fun `translate shifts every point by dx dy (Vertical Horizontal Shifters)`() {
+        val s = stroke("a", listOf(1f, 2f, 3f, 4f))
+        val shifted = StrokeTransforms.translate(listOf(s), dx = 10f, dy = 20f)
+        assertEquals(listOf(11f, 22f, 13f, 24f), shifted[0].inputXy)
+    }
+
+    @Test fun `translate preserves ids (in-place replace by id)`() {
+        val s = stroke("orig", listOf(0f, 0f))
+        val shifted = StrokeTransforms.translate(listOf(s), 5f, 5f)
+        assertEquals("orig", shifted[0].id)
+    }
+
     @Test fun `flipVertical mirrors y around center`() {
         val s = stroke("a", listOf(0f, 0f, 10f, 10f))  // center y = 5
         val flipped = StrokeTransforms.flipVertical(listOf(s))

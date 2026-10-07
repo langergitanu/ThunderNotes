@@ -278,6 +278,42 @@ class CanvasActivity : AppCompatActivity() {
                 getString(R.string.canvas_space_added, gapPx),
                 Toast.LENGTH_SHORT).show()
         }
+        // Table Maker (§6.10 Row 3g): dialog for rows/cols → build table grid lines.
+        binding.btnTable.setOnClickListener {
+            val rowsInput = EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                hint = getString(R.string.canvas_table_rows)
+                setText("3")
+            }
+            val colsInput = EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                hint = getString(R.string.canvas_table_cols)
+                setText("4")
+            }
+            val container = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                addView(rowsInput); addView(colsInput)
+                setPadding(48, 24, 48, 24)
+            }
+            AlertDialog.Builder(this)
+                .setTitle(R.string.canvas_table_title)
+                .setView(container)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val rows = rowsInput.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                    val cols = colsInput.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 4
+                    handleTableCreated(rows, cols)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+        // Finger/Stylus Mode (§6.10 Row 3g): toggle palm rejection.
+        binding.btnFingerStylus.setOnClickListener {
+            val newState = !viewModel.uiState.value.palmRejection
+            viewModel.setPalmRejection(newState)
+            Toast.makeText(this,
+                if (newState) R.string.canvas_stylus_only else R.string.canvas_finger_allowed,
+                Toast.LENGTH_SHORT).show()
+        }
         binding.btnAiSnip.setOnClickListener {
             // SnipEngine fallback chain is Phase 9.
             Toast.makeText(this, R.string.canvas_ai_snip_pending, Toast.LENGTH_SHORT).show()
@@ -508,6 +544,27 @@ class CanvasActivity : AppCompatActivity() {
         syncUndoRedoFlags()
     }
 
+    /** Table Maker (§6.10 Row 3g): build a [rows]×[cols] table grid at the page
+     *  centre + add each grid-line stroke to the document + CompletedStrokesView. */
+    private fun handleTableCreated(rows: Int, cols: Int) {
+        val idx = viewModel.uiState.value.currentPageIndex
+        document.goToPage(idx)
+        val cv = pageCompletedViews.getOrNull(idx)
+        val state = viewModel.uiState.value
+        val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
+        val width = state.selectedStrokeWidthDp ?: EditorStrokeWidths.WIDTHS_DP[EditorStrokeWidths.DEFAULT_WIDTH_INDEX]
+        val strokes = com.thundernotes.canvas.lasso.TableGeometry.buildTable(
+            x = 50f, y = 50f, w = 600f, h = 400f, rows = rows, cols = cols,
+            colorArgb = color, brushSize = width,
+        )
+        for (s in strokes) {
+            val record = s.copy(pageId = document.currentPage?.id.orEmpty())
+            document.addStroke(record)
+            cv?.addFromRecord(record)
+        }
+        syncUndoRedoFlags()
+    }
+
     private fun showLassoMenu(
         anchor: View,
         pageIndex: Int,
@@ -523,10 +580,12 @@ class CanvasActivity : AppCompatActivity() {
             "Cut", "Copy", "Rotate 90°", "Enlarge 1.5×", "Reduce 0.66×",
             "Change Color", "Thicker 1.5×", "Thinner 0.66×",
             "Flip Horizontal", "Flip Vertical", "Delete",
+            "Shift Up 50dp", "Shift Down 50dp", "Shift Left 50dp", "Shift Right 50dp",
         )
         items.forEachIndexed { idx, label -> menu.menu.add(0, idx, idx, label) }
         menu.setOnMenuItemClickListener { item ->
             val sel = selected  // capture
+            val shift = dp(50).toFloat()
             when (item.itemId) {
                 0 -> { // Cut — clipboard + remove (drawn: host; injected: cv)
                     LassoOps.cut(document, sel)
@@ -554,6 +613,11 @@ class CanvasActivity : AppCompatActivity() {
                     sel.forEach { host?.removeStrokeFromView(it.id); cv?.remove(it.id) }
                     syncUndoRedoFlags()
                 }
+                // §6.10 Row 3d/e/f — Vertical/Horizontal Shifters (lasso-selected content repositions).
+                11 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.translate(it, 0f, -shift) }
+                12 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.translate(it, 0f, shift) }
+                13 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.translate(it, -shift, 0f) }
+                14 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.translate(it, shift, 0f) }
             }
             true
         }
