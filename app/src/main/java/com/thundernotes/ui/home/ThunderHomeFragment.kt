@@ -19,6 +19,7 @@ import com.thundernotes.ui.create.CreateFolderFragment
 import com.thundernotes.ui.create.CreateNoteFragment
 import com.thundernotes.ui.folders.FolderAdapter
 import com.thundernotes.ui.notes.NoteAdapter
+import com.thundernotes.ui.notes.NoteOverflowBottomSheet
 import kotlinx.coroutines.launch
 
 /**
@@ -64,13 +65,8 @@ class ThunderHomeFragment : Fragment() {
                 CanvasActivity.launch(requireContext(), note.noteId)
             },
             onMoreClick = { note, anchor ->
-                // Phase 5b will add the 7-function overflow menu (Rename, Change Cover,
-                // Move, Export, Bookmark, Information, Trash). For now, just show a toast.
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Overflow menu coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                NoteOverflowBottomSheet.newInstance(note.noteId)
+                    .show(childFragmentManager, "note_overflow")
             }
         )
         binding.recentNotesRecycler.apply {

@@ -15,8 +15,10 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.thundernotes.data.repository.BookmarksRepository
 import com.thundernotes.data.repository.RepositoryModule
 import com.thundernotes.databinding.FragmentBookmarksBinding
+import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.folders.FolderAdapter
 import com.thundernotes.ui.notes.NoteAdapter
+import com.thundernotes.ui.notes.NoteOverflowBottomSheet
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -49,18 +51,11 @@ class BookmarksFragment : Fragment() {
 
         noteAdapter = NoteAdapter(
             onItemClick = { note ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Opening \"${note.displayName}\" — canvas coming in Phase 6",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                CanvasActivity.launch(requireContext(), note.noteId)
             },
-            onMoreClick = { _, _ ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Overflow menu coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+            onMoreClick = { note, _ ->
+                NoteOverflowBottomSheet.newInstance(note.noteId)
+                    .show(childFragmentManager, "note_overflow")
             }
         )
         binding.bookmarkedNotesGrid.apply {

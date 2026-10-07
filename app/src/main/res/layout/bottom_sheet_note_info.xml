@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Note "Information" bottom sheet (spec §6.2.4 overflow → Information).
+  Surfaces file name / size / pages / folder / created / modified — mirroring
+  Samsung Notes' document-info popup, fed from NoteEntity columns.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingHorizontal="@dimen/space_md"
+    android:paddingTop="@dimen/space_md"
+    android:paddingBottom="@dimen/space_lg">
+
+    <!-- Header: title + close -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="@dimen/space_md">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/overflow_information"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/overflow_close"
+            android:tint="@color/text_muted" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/surface_container_high"
+        android:layout_marginBottom="@dimen/space_md" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Name -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_name" />
+            <TextView android:id="@+id/valueName" style="@style/InfoRowValue" tools:text="Math Lecture 3" xmlns:tools="http://schemas.android.com/tools" />
+            <View android:layout_width="match_parent" android:layout_height="@dimen/space_md" />
+
+            <!-- File size -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_file_size" />
+            <TextView android:id="@+id/valueFileSize" style="@style/InfoRowValue" tools:text="1.4 MB" xmlns:tools="http://schemas.android.com/tools" />
+            <View android:layout_width="match_parent" android:layout_height="@dimen/space_md" />
+
+            <!-- Pages -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_pages" />
+            <TextView android:id="@+id/valuePages" style="@style/InfoRowValue" tools:text="12 pages" xmlns:tools="http://schemas.android.com/tools" />
+            <View android:layout_width="match_parent" android:layout_height="@dimen/space_md" />
+
+            <!-- Folder -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_folder" />
+            <TextView android:id="@+id/valueFolder" style="@style/InfoRowValue" tools:text="Folder: Math" xmlns:tools="http://schemas.android.com/tools" />
+            <View android:layout_width="match_parent" android:layout_height="@dimen/space_md" />
+
+            <!-- Created -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_created" />
+            <TextView android:id="@+id/valueCreated" style="@style/InfoRowValue" tools:text="Oct 7, 2026 11:28 AM" xmlns:tools="http://schemas.android.com/tools" />
+            <View android:layout_width="match_parent" android:layout_height="@dimen/space_md" />
+
+            <!-- Modified -->
+            <TextView style="@style/InfoRowLabel" android:text="@string/info_modified" />
+            <TextView android:id="@+id/valueModified" style="@style/InfoRowValue" tools:text="Oct 7, 2026 11:30 AM" xmlns:tools="http://schemas.android.com/tools" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

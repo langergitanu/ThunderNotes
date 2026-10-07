@@ -54,4 +54,49 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">@color/surface_base</item>
     </style>
+
+    <!-- ─── Overflow / bottom-sheet row styles (Phase 7) ───────────────────── -->
+    <!-- One action row in a per-item overflow sheet (Samsung-style option menu). -->
+    <style name="OverflowRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingHorizontal">@dimen/space_md</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="OverflowRowIcon">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginEnd">@dimen/space_md</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:tint">@color/text_high_contrast</item>
+    </style>
+
+    <style name="OverflowRowLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/text_high_contrast</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- Info-sheet row: label (small, muted) above value (medium, high-contrast). -->
+    <style name="InfoRowLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/text_muted</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="InfoRowValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/text_high_contrast</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:layout_marginTop">2dp</item>
+    </style>
 </resources>

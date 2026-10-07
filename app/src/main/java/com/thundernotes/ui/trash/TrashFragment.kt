@@ -18,6 +18,7 @@ import com.thundernotes.data.repository.TrashedItems
 import com.thundernotes.databinding.FragmentTrashBinding
 import com.thundernotes.ui.folders.FolderAdapter
 import com.thundernotes.ui.notes.NoteAdapter
+import com.thundernotes.ui.trash.TrashItemBottomSheet
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -50,10 +51,8 @@ class TrashFragment : Fragment() {
         noteAdapter = NoteAdapter(
             onItemClick = { /* no-op — trashed notes don't open */ },
             onMoreClick = { note, _ ->
-                // Simple restore for now — Phase 5b will add a per-item popup.
-                viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.restoreNote(note.noteId)
-                }
+                TrashItemBottomSheet.forNote(note.noteId, note.displayName)
+                    .show(childFragmentManager, "trash_item")
             }
         )
         binding.trashedNotesGrid.apply {
@@ -64,9 +63,8 @@ class TrashFragment : Fragment() {
         folderAdapter = FolderAdapter(
             onItemClick = { /* no-op */ },
             onMoreClick = { folder, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.restoreFolder(folder.folderId)
-                }
+                TrashItemBottomSheet.forFolder(folder.folderId, folder.displayName)
+                    .show(childFragmentManager, "trash_item")
             }
         )
         binding.trashedFoldersList.adapter = folderAdapter

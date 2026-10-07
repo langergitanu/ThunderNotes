@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Export (upload from tray) -->
+    <path android:fillColor="?attr/colorOnSurface"
+        android:pathData="M5,20 H19 V18 H5 V20 z M12,16 L17,11 L15.59,9.59 L13,12.17 V4 H11 V12.17 L8.41,9.59 L7,11 L12,16 z" />
+</vector>

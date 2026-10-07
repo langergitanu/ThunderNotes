@@ -169,4 +169,43 @@
     <string name="canvas_redo_pending">Redo — available with Ink in Phase 7</string>
     <string name="canvas_ai_snip_pending">AI Snip — SnipEngine chain lands in Phase 9</string>
     <string name="canvas_overflow_pending">More options — coming soon</string>
+
+    <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
+    <string name="overflow_close">Close</string>
+    <string name="overflow_rename">Rename</string>
+    <string name="overflow_change_cover">Change Cover</string>
+    <string name="overflow_move">Move</string>
+    <string name="overflow_export">Export</string>
+    <string name="overflow_bookmark">Bookmark</string>
+    <string name="overflow_remove_bookmark">Remove bookmark</string>
+    <string name="overflow_information">Information</string>
+    <string name="overflow_trash">Trash</string>
+
+    <string name="rename_dialog_title">Rename note</string>
+    <string name="rename_hint">Note name</string>
+    <string name="rename_empty_blocked">Name cannot be empty</string>
+
+    <!-- Note Information popup (spec §6.2.4 → Information) -->
+    <string name="info_name">Name</string>
+    <string name="info_file_size">File size</string>
+    <string name="info_pages">Pages</string>
+    <string name="info_folder">Folder</string>
+    <string name="info_created">Created</string>
+    <string name="info_modified">Modified</string>
+
+    <!-- Trash per-item popup (spec §6.5) -->
+    <string name="trash_restore">Restore</string>
+    <string name="trash_delete_permanently">Delete permanently</string>
+
+    <!-- Deferred-action toasts (engines land in later phases) -->
+    <string name="overflow_cover_pending">Change cover — Template library lands in a later phase</string>
+    <string name="overflow_move_pending">Move to folder — folder picker lands in a later phase</string>
+    <string name="overflow_export_pending">Export (.thunder / PDF) — export engine lands in a later phase</string>
+    <string name="overflow_bookmarked">Bookmarked</string>
+    <string name="overflow_unbookmarked">Removed bookmark</string>
+    <string name="overflow_trashed">Moved to Trash</string>
+    <string name="trash_restored">Restored</string>
+    <string name="trash_deleted">Deleted permanently</string>
+    <string name="trash_restore_failed">Restore failed</string>
+    <string name="trash_delete_failed">Delete failed</string>
 </resources>

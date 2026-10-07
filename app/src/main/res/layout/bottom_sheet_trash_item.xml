@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Trash per-item bottom sheet (spec §6.5: each trashed item can be Restored or
+  permanently Deleted). Pattern adapted from Samsung Notes' recycle-bin option
+  menu (OptionMenuRecycleBinPresenter → Restore / Delete).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingHorizontal="@dimen/space_md"
+    android:paddingTop="@dimen/space_md"
+    android:paddingBottom="@dimen/space_sm">
+
+    <!-- Header: item name + close -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="@dimen/space_md">
+
+        <TextView
+            android:id="@+id/itemNameTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            tools:text="Math Lecture 3"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/overflow_close"
+            android:tint="@color/text_muted" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/surface_container_high"
+        android:layout_marginBottom="@dimen/space_sm" />
+
+    <!-- Restore -->
+    <LinearLayout
+        android:id="@+id/rowRestore"
+        style="@style/OverflowRow">
+        <ImageView style="@style/OverflowRowIcon" android:src="@drawable/ic_trash_restore" />
+        <TextView style="@style/OverflowRowLabel" android:text="@string/trash_restore" />
+    </LinearLayout>
+
+    <!-- Delete permanently -->
+    <LinearLayout
+        android:id="@+id/rowDeletePermanently"
+        style="@style/OverflowRow">
+        <ImageView style="@style/OverflowRowIcon" android:src="@drawable/ic_trash_delete" android:tint="@color/thunder_primary" />
+        <TextView style="@style/OverflowRowLabel" android:text="@string/trash_delete_permanently" android:textColor="@color/thunder_primary" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.thundernotes.databinding.FragmentNotesLibraryBinding
 import com.thundernotes.ui.canvas.CanvasActivity
 import com.thundernotes.ui.create.CreateNoteFragment
+import com.thundernotes.ui.notes.NoteOverflowBottomSheet
 import kotlinx.coroutines.launch
 
 /**
@@ -46,12 +47,9 @@ class NotesLibraryFragment : Fragment() {
             onItemClick = { note ->
                 CanvasActivity.launch(requireContext(), note.noteId)
             },
-            onMoreClick = { _, anchor ->
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Overflow menu coming in Phase 5b",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+            onMoreClick = { note, anchor ->
+                NoteOverflowBottomSheet.newInstance(note.noteId)
+                    .show(childFragmentManager, "note_overflow")
             }
         )
         binding.notesGrid.apply {

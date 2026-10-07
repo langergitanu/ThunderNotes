@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rename note dialog body (spec §6.2.4 overflow → Rename).
+     Shown inside an AlertDialog; the OK/Cancel buttons are provided by the dialog. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/space_md">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/rename_hint"
+        app:boxStrokeColor="@color/thunder_primary"
+        app:hintTextColor="@color/thunder_primary"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/nameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text|textCapSentences|textNoSuggestions"
+            android:imeOptions="actionDone"
+            android:singleLine="true"
+            android:textColor="@color/text_high_contrast"
+            android:textSize="15sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+</LinearLayout>
