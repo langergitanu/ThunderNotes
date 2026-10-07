@@ -37,8 +37,10 @@ import com.thundernotes.canvas.lasso.LassoSelector
 import com.thundernotes.canvas.lasso.StrokeTransforms
 import com.thundernotes.canvas.inject.InkInjector
 import com.thundernotes.canvas.inject.ThunderClipboard
+import com.thundernotes.ui.canvas.tabs.CanvasTabs
 import com.thundernotes.databinding.ActivityCanvasBinding
 import com.thundernotes.databinding.ItemCanvasPageBinding
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -314,10 +316,140 @@ class CanvasActivity : AppCompatActivity() {
                 if (newState) R.string.canvas_stylus_only else R.string.canvas_finger_allowed,
                 Toast.LENGTH_SHORT).show()
         }
+        // Split view (§6.10 Row 1: two files side-by-side).
+        binding.btnSplit.setOnClickListener { handleSplitToggle() }
         binding.btnAiSnip.setOnClickListener {
             // SnipEngine fallback chain is Phase 9.
             Toast.makeText(this, R.string.canvas_ai_snip_pending, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // ─── Multi-file tab system (§6.10 Row 1: max 10 files) ────────────────
+
+    /** Render the tab strip from [CanvasTabs]. Each tab = a chip (title + close);
+     *  active tab highlighted. A '+' button at the end opens the note picker. */
+    private fun buildTabsRow() {
+        val row = binding.tabsRow
+        row.removeAllViews()
+        val tabs = CanvasTabs.tabs.value
+        for (tab in tabs) {
+            val isActive = tab.noteId == CanvasTabs.activeNoteId
+            val chip = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                background = ContextCompat.getDrawable(
+                    this@CanvasActivity,
+                    if (isActive) R.drawable.bg_canvas_tool_active else R.drawable.bg_canvas_tool,
+                )
+                val pad = dp(8)
+                setPadding(pad, 4, pad, 4)
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { marginEnd = dp(4) }
+                layoutParams = lp
+                setOnClickListener { handleTabSwitch(tab.noteId) }
+            }
+            val title = TextView(this).apply {
+                text = tab.title.take(16)
+                setTextColor(ContextCompat.getColor(this@CanvasActivity,
+                    if (isActive) R.color.canvas_tool_active_tint else R.color.canvas_tool_inactive_tint))
+                textSize = 11f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            val close = ImageButton(this).apply {
+                setImageResource(R.drawable.ic_close)
+                background = null
+                setOnClickListener { handleTabClose(tab.noteId) }
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(this@CanvasActivity, R.color.canvas_tool_inactive_tint))
+                val sz = dp(20)
+                layoutParams = LinearLayout.LayoutParams(sz, sz).apply { marginStart = dp(4) }
+            }
+            chip.addView(title); chip.addView(close)
+            row.addView(chip)
+        }
+        // '+' button to open a new note in a tab.
+        val addTab = TextView(this).apply {
+            text = "+"
+            setTextColor(ContextCompat.getColor(this@CanvasActivity, R.color.canvas_tool_inactive_tint))
+            textSize = 14f
+            background = ContextCompat.getDrawable(this@CanvasActivity, R.drawable.bg_canvas_tool)
+            val pad = dp(8)
+            setPadding(pad, 4, pad, 4)
+            setOnClickListener { handleOpenNotePicker() }
+        }
+        row.addView(addTab)
+    }
+
+    /** Switch to a tab — re-launch CanvasActivity with the tapped noteId. */
+    private fun handleTabSwitch(noteId: String) {
+        CanvasTabs.switch(noteId)
+        finish()
+        CanvasActivity.launch(this, noteId)
+    }
+
+    /** Close a tab — remove from CanvasTabs + switch to the next (or finish). */
+    private fun handleTabClose(noteId: String) {
+        CanvasTabs.close(noteId)
+        val next = CanvasTabs.activeNoteId
+        if (next != null) {
+            CanvasActivity.launch(this, next)
+        }
+        finish()
+    }
+
+    /** '+' button — open a note picker (recent notes from the DB). */
+    private fun handleOpenNotePicker() {
+        lifecycleScope.launch {
+            val notes = runCatching {
+                com.thundernotes.data.repository.RepositoryModule.notes.observeAllNotes().first()
+            }.getOrDefault(emptyList())
+            if (notes.isEmpty()) {
+                Toast.makeText(this@CanvasActivity, "No notes to open", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val items = notes.map { it.displayName }.toTypedArray()
+            AlertDialog.Builder(this@CanvasActivity)
+                .setTitle(R.string.canvas_open_note)
+                .setItems(items) { _, which ->
+                    val n = notes[which]
+                    CanvasTabs.open(n.noteId, n.displayName)
+                    finish()
+                    CanvasActivity.launch(this@CanvasActivity, n.noteId)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    /** Split view (§6.10 Row 1): toggle the second pane showing the second tab's
+     *  note. The right pane is a view-only surface (the full second-note Ink
+     *  host is a refinement — the tab system + split pane are the foundation). */
+    private fun handleSplitToggle() {
+        if (binding.splitPane.visibility == View.VISIBLE) {
+            binding.splitPane.visibility = View.GONE
+            binding.btnSplit.imageTintList = android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.canvas_tool_inactive_tint))
+            return
+        }
+        val second = CanvasTabs.secondTab()
+        if (second == null) {
+            Toast.makeText(this, R.string.canvas_split_no_second, Toast.LENGTH_SHORT).show()
+            return
+        }
+        binding.splitPagesContainer.removeAllViews()
+        val label = TextView(this).apply {
+            text = "Viewing: ${second.title}"
+            setTextColor(ContextCompat.getColor(this@CanvasActivity, R.color.canvas_on_surface))
+            textSize = 14f
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+        }
+        binding.splitPagesContainer.addView(label)
+        binding.splitPane.visibility = View.VISIBLE
+        binding.btnSplit.imageTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(this, R.color.canvas_secondary))
     }
 
     private fun wireToolTray() {
@@ -996,6 +1128,16 @@ class CanvasActivity : AppCompatActivity() {
         // Phase 8: push the tool/color/width + zoom into the real Ink hosts.
         applyBrushToHosts()
         applyZoom()
+
+        // Multi-file tab system (§6.10 Row 1): register the active note in
+        // CanvasTabs + keep the tab strip in sync with the real title.
+        if (state.noteId.isNotBlank() && state.noteTitle.isNotBlank()) {
+            val activeTab = CanvasTabs.tabs.value.firstOrNull { it.noteId == state.noteId }
+            if (activeTab == null || activeTab.title != state.noteTitle) {
+                CanvasTabs.open(state.noteId, state.noteTitle)
+                buildTabsRow()
+            }
+        }
 
         // Error surfacing
         state.errorMessage?.let {

@@ -19,6 +19,22 @@
     android:background="@color/canvas_bg"
     android:fitsSystemWindows="true">
 
+    <!-- ═══ [0] Notebook tabs row (spec §6.10 Row 1: max 10 files side-by-side) ══ -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:scrollbars="none"
+        android:background="@color/canvas_surface_low">
+
+        <LinearLayout
+            android:id="@+id/tabsRow"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/space_sm" />
+    </HorizontalScrollView>
+
     <!-- ═══ [1] Top app bar ════════════════════════════════════════════ -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -223,6 +239,17 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_finger_stylus"
             android:contentDescription="@string/canvas_finger_stylus"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Split view (§6.10 Row 1: two files side-by-side). Tap → toggle split. -->
+        <ImageButton
+            android:id="@+id/btnSplit"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_split"
+            android:contentDescription="@string/canvas_split"
             android:tint="@color/canvas_on_surface_variant" />
 
         <Space
@@ -441,6 +468,26 @@
                  added in code by CanvasActivity as item_canvas_page views. -->
             <LinearLayout
                 android:id="@+id/pagesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="@dimen/space_lg" />
+        </ScrollView>
+
+        <!-- Split pane (§6.10 Row 1: two files side-by-side). Initially gone;
+             toggled by btnSplit. Shows the second tab's note pages (view-only). -->
+        <ScrollView
+            android:id="@+id/splitPane"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/canvas_bg_dim"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/splitPagesContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"

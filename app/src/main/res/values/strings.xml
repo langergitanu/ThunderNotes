@@ -199,6 +199,10 @@
     <string name="canvas_finger_stylus">Finger/Stylus mode</string>
     <string name="canvas_stylus_only">Stylus-only mode ON</string>
     <string name="canvas_finger_allowed">Finger input allowed</string>
+    <string name="canvas_split">Split view</string>
+    <string name="canvas_split_no_second">Open a second note to use split view</string>
+    <string name="canvas_open_note">Open note</string>
+    <string name="canvas_close_tab">Close tab</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>
