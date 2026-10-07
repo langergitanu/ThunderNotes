@@ -2,6 +2,7 @@ package com.thundernotes.ui.canvas
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -17,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -39,6 +41,7 @@ import com.thundernotes.databinding.ActivityCanvasBinding
 import com.thundernotes.databinding.ItemCanvasPageBinding
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * CanvasActivity — the full-screen note editor (Phase 6).
@@ -91,8 +94,18 @@ class CanvasActivity : AppCompatActivity() {
     private val pageTextboxLayers = mutableListOf<ViewGroup>()  // typed-content overlay per page
     private val pageLassoOverlays = mutableListOf<LassoOverlayView>()  // lasso drag overlay per page
     private val pageGridlineOverlays = mutableListOf<GridlineOverlayView>()  // grid overlay per page
+    private val pageRulerOverlays = mutableListOf<RulerOverlayView>()  // ruler overlay per page
     private val injector = InkInjector(document)
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
+    private var rulerVisible = false  // spec §6.10 Row 2c Scale ruler toggle state
+
+    /** System image picker (spec §6.10 Row 2b Image insert) — returns the picked
+     *  image Uri; the callback loads it + drops an ImageView on the current page. */
+    private val imagePicker = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) handleImagePicked(uri)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -229,6 +242,27 @@ class CanvasActivity : AppCompatActivity() {
             menu.show()
             true
         }
+        // Scale ruler (§6.10 Row 2c): toggle visibility. Long-press → rotation-angle presets.
+        binding.btnRuler.setOnClickListener {
+            rulerVisible = !rulerVisible
+            applyRuler()
+        }
+        binding.btnRuler.setOnLongClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            val angles = listOf(0, 15, 30, 45, 60, 75, 90, -15, -30, -45, -60, -75, -90)
+            angles.forEachIndexed { idx, deg -> menu.menu.add(0, idx, idx, "${deg}°") }
+            menu.setOnMenuItemClickListener { item ->
+                val deg = angles[item.itemId].toFloat()
+                pageRulerOverlays.forEach { it.setAngle(deg) }
+                true
+            }
+            menu.show()
+            true
+        }
+        // Image insert (§6.10 Row 2b): launch the system image picker.
+        binding.btnImage.setOnClickListener {
+            imagePicker.launch(arrayOf("image/*"))
+        }
         binding.btnAiSnip.setOnClickListener {
             // SnipEngine fallback chain is Phase 9.
             Toast.makeText(this, R.string.canvas_ai_snip_pending, Toast.LENGTH_SHORT).show()
@@ -285,6 +319,7 @@ class CanvasActivity : AppCompatActivity() {
         pageTextboxLayers.add(pageBinding.textboxLayer)
         pageLassoOverlays.add(pageBinding.lassoOverlay)
         pageGridlineOverlays.add(pageBinding.gridlineOverlay)
+        pageRulerOverlays.add(pageBinding.rulerOverlay)
         binding.pagesContainer.addView(pageBinding.root)
 
         // Phase 8b: pages sidebar / minimap chip (canvasUtilityPage) — a small
@@ -564,6 +599,67 @@ class CanvasActivity : AppCompatActivity() {
         ContextCompat.getDrawable(this, bg)?.let { d ->
             pageRoots.forEach { it.background = d } }
         pageCompletedViews.forEach { it.setColorInverted(!canvasLight) }
+    }
+
+    /** Show/hide the Scale ruler on every page (spec §6.10 Row 2c). The ruler
+     *  is draggable + rotatable (long-press the button → angle presets). */
+    private fun applyRuler() {
+        pageRulerOverlays.forEach { ov ->
+            ov.visibility = if (rulerVisible) View.VISIBLE else View.GONE
+            if (rulerVisible) ov.initAtCentre()
+        }
+        binding.btnRuler.imageTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(this,
+                if (rulerVisible) R.color.canvas_secondary else R.color.canvas_tool_inactive_tint)
+        )
+    }
+
+    /** Image insert callback (§6.10 Row 2b): load the picked image + drop an
+     *  ImageView on the current page's textbox layer. Downsamples to ≤1024px on
+     *  the long edge to avoid OOM. (Persisting the ImageEntity to the .thunder DB
+     *  is a later step; the in-memory + on-canvas display is now.) */
+    private fun handleImagePicked(uri: android.net.Uri) {
+        val idx = viewModel.uiState.value.currentPageIndex
+        val layer = pageTextboxLayers.getOrNull(idx)
+        if (layer == null) {
+            Toast.makeText(this, R.string.canvas_image_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Take the persistable read permission so the Uri survives (best-effort).
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
+        // Decode on a background coroutine (Dispatchers.IO), then add the ImageView
+        // on the main thread.
+        lifecycleScope.launch {
+            val bmp = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+                    val longEdge = maxOf(opts.outWidth, opts.outHeight)
+                    var sample = 1
+                    while (longEdge / sample > 1024) sample *= 2
+                    val dec = BitmapFactory.Options().apply { inSampleSize = sample }
+                    contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, dec) }
+                }.getOrNull()
+            }
+            if (bmp == null) {
+                Toast.makeText(this@CanvasActivity, R.string.canvas_image_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val iv = android.widget.ImageView(this@CanvasActivity).apply {
+                setImageBitmap(bmp)
+                adjustViewBounds = true
+                maxWidth = dp(320); maxHeight = dp(320)
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { leftMargin = dp(16); topMargin = dp(16) }
+            }
+            layer.addView(iv)
+        }
     }
 
     /** A finished stroke arrived from a host → record it in the document. */

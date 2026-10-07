@@ -186,6 +186,10 @@
     <string name="canvas_gridline">Gridline</string>
     <string name="canvas_grid_presets">Grid size</string>
     <string name="canvas_shape_type">Shape type</string>
+    <string name="canvas_ruler">Scale ruler</string>
+    <string name="canvas_ruler_angle">Ruler angle</string>
+    <string name="canvas_image">Insert image</string>
+    <string name="canvas_image_failed">Could not load the image</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

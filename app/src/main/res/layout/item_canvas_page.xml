@@ -72,6 +72,13 @@
             android:id="@+id/lassoOverlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <!-- Scale ruler overlay (§6.10 Row 2c) — draggable, rotatable. Visibility in code. -->
+        <com.thundernotes.ui.canvas.RulerOverlayView
+            android:id="@+id/rulerOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
     </FrameLayout>
 
 </LinearLayout>

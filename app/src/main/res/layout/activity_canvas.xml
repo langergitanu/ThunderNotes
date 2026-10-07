@@ -170,6 +170,28 @@
             android:contentDescription="@string/canvas_gridline"
             android:tint="@color/canvas_on_surface_variant" />
 
+        <!-- Scale ruler (§6.10 Row 2c). Long-press → rotation-angle presets. -->
+        <ImageButton
+            android:id="@+id/btnRuler"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_ruler"
+            android:contentDescription="@string/canvas_ruler"
+            android:tint="@color/canvas_on_surface_variant" />
+
+        <!-- Image insert (§6.10 Row 2b). Tap → image picker. -->
+        <ImageButton
+            android:id="@+id/btnImage"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/space_sm"
+            android:background="@drawable/bg_canvas_tool"
+            android:src="@drawable/ic_editor_image"
+            android:contentDescription="@string/canvas_image"
+            android:tint="@color/canvas_on_surface_variant" />
+
         <Space
             android:layout_width="0dp"
             android:layout_height="1dp"
