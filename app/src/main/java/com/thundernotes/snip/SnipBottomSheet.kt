@@ -146,6 +146,32 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             if (perLineResults.isEmpty()) throw RuntimeException("All engines failed")
 
             // 4. Map SnipResult → ClipboardItem.
+            // For EQUATION snips: LaTeX → KaTeX render → centerline trace →
+            // StrokeGroup (native erasable strokes). Falls back to TextBox
+            // (showing the LaTeX) if the trace fails.
+            if (type == SnipType.EQUATION) {
+                val latex = LatexCleaner.joinMultiLine(
+                    perLineResults.map { r -> (r as? SnipResult.LaTeX)?.latex
+                        ?: (r as? SnipResult.Text)?.text ?: "" }
+                )
+                if (latex.isNotBlank()) {
+                    val strokes = LatexToStrokes.convert(latex, requireContext())
+                    if (strokes != null && strokes.isNotEmpty()) {
+                        return@runCatching ClipboardItem.StrokeGroup(
+                            strokes = strokes,
+                            bbox = floatArrayOf(0f, 0f, 600f, 400f),
+                        )
+                    }
+                    // Fallback: show the LaTeX as a textbox (never silently drop content).
+                    return@runCatching ClipboardItem.TextBox(
+                        text = latex,
+                        fontFamily = 2, bold = false, italic = true, underline = 0,
+                        x = 50f, y = 50f,
+                        bbox = floatArrayOf(0f, 0f, 400f, 200f),
+                    )
+                }
+            }
+
             mapResultToClipboard(perLineResults, type)
         }
     }
