@@ -122,8 +122,10 @@ class CanvasActivity : AppCompatActivity() {
 
     private fun wireToolbar() {
         binding.btnBack.setOnClickListener { finish() }
+        // Phase 8b: the overflow button opens the canvas Settings popup
+        // (canvasSettingsPage — constant-scaling toggle §7.5 + palm rejection §6.1.9).
         binding.btnOverflow.setOnClickListener {
-            Toast.makeText(this, R.string.canvas_overflow_pending, Toast.LENGTH_SHORT).show()
+            CanvasSettingsBottomSheet().show(supportFragmentManager, "canvas_settings")
         }
         // Phase 8b: canvas-area theme toggle (spec §6.10 Row 1 right).
         binding.btnThemeToggle.setOnClickListener {
@@ -140,6 +142,21 @@ class CanvasActivity : AppCompatActivity() {
                 viewModel.selectPalette(item.itemId)
                 binding.paletteSwitcher.text = EditorPalette.PALETTE_NAMES[item.itemId]
                 buildColorSwatches()
+                true
+            }
+            menu.show()
+        }
+        // Line-type switcher (spec §6.10 Row 3a: straight / dotted / dashed).
+        binding.lineTypeSwitcher.setOnClickListener { anchor ->
+            val menu = PopupMenu(this, anchor)
+            LineType.entries.forEachIndexed { idx, lt ->
+                menu.menu.add(0, idx, idx, lt.name.lowercase().replaceFirstChar { it.uppercase() })
+            }
+            menu.setOnMenuItemClickListener { item ->
+                val lt = LineType.entries[item.itemId]
+                viewModel.selectLineType(lt)
+                binding.lineTypeSwitcher.text = lt.name.lowercase()
+                    .replaceFirstChar { it.uppercase() }
                 true
             }
             menu.show()
@@ -391,6 +408,9 @@ class CanvasActivity : AppCompatActivity() {
         cv: CompletedStrokesView?,
         host: CanvasInkHost?,
     ) {
+        // Spec §7.5: constant-scaling ON → Enlarge/Reduce keeps stroke thickness;
+        // OFF → thickness scales with the resize.
+        val scaleBrush = !viewModel.uiState.value.constantScaling
         val menu = PopupMenu(this, anchor)
         val items = listOf(
             "Cut", "Copy", "Rotate 90°", "Enlarge 1.5×", "Reduce 0.66×",
@@ -410,8 +430,8 @@ class CanvasActivity : AppCompatActivity() {
                     LassoOps.copy(sel)
                 }
                 2 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.rotate(it, 90f) }
-                3 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 1.5f) }
-                4 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 0.66f) }
+                3 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 1.5f, scaleBrush) }
+                4 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 0.66f, scaleBrush) }
                 5 -> { // Change Color — the currently-selected pen color
                     val color = viewModel.uiState.value.selectedColorArgb
                         ?: EditorPalette.COLORS.getOrNull(viewModel.uiState.value.selectedColorIndex)
@@ -556,6 +576,7 @@ class CanvasActivity : AppCompatActivity() {
         pageHosts.forEach {
             it.setBrush(config)
             it.currentTool = state.selectedTool
+            it.currentLineType = state.selectedLineType
             // onTextTap / onLassoDrag / onLassoEnd are set per-host in addPageItem
             // (with the page index captured) — don't clobber them here.
         }
@@ -696,6 +717,10 @@ class CanvasActivity : AppCompatActivity() {
         binding.paletteSwitcher.text =
             EditorPalette.PALETTE_NAMES.getOrNull(state.selectedPaletteIndex)
                 ?: EditorPalette.PALETTE_NAMES.first()
+        binding.lineTypeSwitcher.visibility =
+            if (state.showsLineType) View.VISIBLE else View.GONE
+        binding.lineTypeSwitcher.text =
+            state.selectedLineType.name.lowercase().replaceFirstChar { it.uppercase() }
         binding.colorSwatchesContainer.visibility =
             if (state.showsColorPicker) View.VISIBLE else View.GONE
         binding.strokeWidthContainer.visibility =

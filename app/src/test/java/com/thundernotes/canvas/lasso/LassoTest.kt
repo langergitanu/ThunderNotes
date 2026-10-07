@@ -60,6 +60,18 @@ class LassoTest {
         assertEquals(listOf(-5f, -5f, 15f, 15f), scaled[0].inputXy)
     }
 
+    @Test fun `scale with scaleBrushSize also scales the brush (constant-scaling OFF, §7_5)`() {
+        val s = stroke("a", listOf(0f, 0f, 10f, 10f)).copy(brushSize = 2f)
+        val scaled = StrokeTransforms.scale(listOf(s), 2f, scaleBrushSize = true)
+        assertEquals(4f, scaled[0].brushSize, 0.001f)  // thickness doubled
+    }
+
+    @Test fun `scale without scaleBrushSize keeps brush (constant-scaling ON, §7_5)`() {
+        val s = stroke("a", listOf(0f, 0f, 10f, 10f)).copy(brushSize = 2f)
+        val scaled = StrokeTransforms.scale(listOf(s), 2f, scaleBrushSize = false)
+        assertEquals(2f, scaled[0].brushSize, 0.001f)  // thickness unchanged
+    }
+
     @Test fun `flipHorizontal mirrors x around center`() {
         val s = stroke("a", listOf(0f, 0f, 10f, 10f))  // center x = 5
         val flipped = StrokeTransforms.flipHorizontal(listOf(s))

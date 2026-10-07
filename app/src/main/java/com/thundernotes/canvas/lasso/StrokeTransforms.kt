@@ -47,15 +47,20 @@ object StrokeTransforms {
         }
     }
 
-    /** Scale every point by [factor] around the group bbox center (Enlarge/Reduce). */
-    fun scale(strokes: List<StrokeRecord>, factor: Float): List<StrokeRecord> {
+    /** Scale every point by [factor] around the group bbox center (Enlarge/Reduce).
+     *  @param scaleBrushSize when true (constant-scaling OFF, spec §7.5), also scale
+     *    each stroke's [StrokeRecord.brushSize] by [factor] so the thickness grows/
+     *    shrinks proportionally. Default false (constant scaling ON). */
+    fun scale(strokes: List<StrokeRecord>, factor: Float, scaleBrushSize: Boolean = false): List<StrokeRecord> {
         val bb = groupBounds(strokes)
         val cx = (bb[0] + bb[2]) / 2f
         val cy = (bb[1] + bb[3]) / 2f
         return strokes.map { s ->
-            s.copy(inputXy = mapPoints(s.inputXy) { x, y ->
+            val scaledPts = mapPoints(s.inputXy) { x, y ->
                 (cx + (x - cx) * factor) to (cy + (y - cy) * factor)
-            })
+            }
+            if (scaleBrushSize) s.copy(inputXy = scaledPts, brushSize = s.brushSize * factor)
+            else s.copy(inputXy = scaledPts)
         }
     }
 

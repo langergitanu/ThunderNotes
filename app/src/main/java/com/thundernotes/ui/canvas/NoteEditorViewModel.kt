@@ -107,6 +107,17 @@ class NoteEditorViewModel(
         _uiState.update { it.copy(strokeWidthIndex = index) }
     }
 
+    /** Set the pen line type (spec §6.10 Row 3a: straight / dotted / dashed). */
+    fun selectLineType(type: LineType) = _uiState.update {
+        it.copy(selectedLineType = type)
+    }
+
+    /** Toggle constant scaling (spec §7.5 settings popup): ON → lasso Enlarge/Reduce
+     *  keeps stroke thickness; OFF → thickness scales with the resize. */
+    fun setConstantScaling(on: Boolean) = _uiState.update {
+        it.copy(constantScaling = on)
+    }
+
     fun nextPage() = _uiState.update {
         val next = (it.currentPageIndex + 1).coerceAtMost((it.totalPages - 1).coerceAtLeast(0))
         it.copy(currentPageIndex = next)

@@ -178,6 +178,11 @@
     <string name="canvas_textbox_title">Add text</string>
     <string name="canvas_textbox_hint">Type text…</string>
     <string name="canvas_lasso_empty">No strokes in the lasso</string>
+    <string name="canvas_settings_title">Canvas settings</string>
+    <string name="settings_constant_scaling">Constant stroke scaling</string>
+    <string name="settings_constant_scaling_hint">ON: lasso Enlarge/Reduce keeps stroke thickness. OFF: thickness scales with the resize.</string>
+    <string name="settings_palm_rejection">Palm rejection</string>
+    <string name="settings_palm_rejection_hint">Reject touches that aren\'t from the stylus (on by default).</string>
 
     <!-- ─── Note overflow menu (Phase 7, spec §6.2.4) ─────────────────────── -->
     <string name="overflow_close">Close</string>

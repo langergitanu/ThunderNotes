@@ -297,6 +297,23 @@
                 android:clickable="true"
                 android:focusable="true" />
 
+            <!-- Line-type switcher (spec §6.10 Row 3a: straight / dotted / dashed).
+                 Tap → PopupMenu. Shown only for pens + highlighter (render() toggles). -->
+            <TextView
+                android:id="@+id/lineTypeSwitcher"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_sm"
+                android:paddingHorizontal="@dimen/space_sm"
+                android:paddingVertical="6dp"
+                android:text="Straight"
+                android:textColor="@color/canvas_on_surface"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/bg_canvas_tool"
+                android:clickable="true"
+                android:focusable="true" />
+
             <HorizontalScrollView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

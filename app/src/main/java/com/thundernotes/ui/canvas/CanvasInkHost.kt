@@ -126,6 +126,11 @@ class CanvasInkHost @JvmOverloads constructor(
      *  to start/add/finish; TEXT routes to [onTextTap]). Set alongside [setBrush]. */
     var currentTool: com.thundernotes.ui.canvas.EditorTool? = null
 
+    /** The active pen line type (spec §6.10 Row 3a). DOTTED/DASHED switch the
+     *  Ink brush family to [StockBrushes.dashedLine]; STRAIGHT keeps pressurePen. */
+    var currentLineType: com.thundernotes.ui.canvas.LineType =
+        com.thundernotes.ui.canvas.LineType.STRAIGHT
+
     /** Called when the TEXT tool taps the canvas at (x, y) — the activity opens
      *  a text-input dialog + drops a TextBoxRecord at the tap. */
     var onTextTap: ((Float, Float) -> Unit)? = null
@@ -142,11 +147,18 @@ class CanvasInkHost @JvmOverloads constructor(
 
     private fun currentBrush(): Brush? {
         val cfg = currentConfig ?: return null
-        val family = when (cfg.familyId) {
-            BrushFamily.THUNDER_HIGHLIGHTER_V1 ->
+        // Line type (spec §6.10 Row 3a): DOTTED/DASHED switch to the dashed family;
+        // STRAIGHT keeps the tool's normal family. (Highlighter keeps its family —
+        // a dashed highlighter is uncommon; the line-type applies to pens.)
+        val family = when {
+            currentLineType != com.thundernotes.ui.canvas.LineType.STRAIGHT
+                && cfg.familyId != BrushFamily.THUNDER_HIGHLIGHTER_V1 ->
+                StockBrushes.dashedLine()
+            cfg.familyId == BrushFamily.THUNDER_HIGHLIGHTER_V1 ->
                 StockBrushes.highlighter(SelfOverlap.ANY, StockBrushes.HighlighterVersion.V1)
-            BrushFamily.THUNDER_FOUNTAIN_V1, BrushFamily.THUNDER_PENCIL_V1 ->
-                StockBrushes.marker() // refined families are a brush-asset concern (Phase 8b)
+            cfg.familyId == BrushFamily.THUNDER_FOUNTAIN_V1 ||
+                cfg.familyId == BrushFamily.THUNDER_PENCIL_V1 ->
+                StockBrushes.marker() // refined families are a brush-asset concern
             else -> StockBrushes.pressurePen() // THUNDER_BALLPOINT_V1 + default
         }
         return Brush.createWithColorIntArgb(family, cfg.colorArgb, cfg.sizeDp, cfg.epsilon)

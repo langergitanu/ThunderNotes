@@ -98,6 +98,21 @@ object EditorStrokeWidths {
     const val DEFAULT_WIDTH_INDEX = 1 // medium
 }
 
+/**
+ * Pen line type (spec §6.10 Row 3a: "Line Type (straight, dotted, dashed)").
+ * Drives the AndroidX Ink brush family — STRAIGHT → `StockBrushes.pressurePen()`;
+ * DOTTED/DASHED → `StockBrushes.dashedLine()` (the public built-in dashed family,
+ * since Notein's `.brushfamily` assets are proprietary).
+ */
+enum class LineType {
+    STRAIGHT,
+    DOTTED,
+    DASHED;
+    companion object {
+        const val DEFAULT_ORDINAL = 0
+    }
+}
+
 /** Zoom bounds for the page surface, as percentages. */
 object EditorZoom {
     const val MIN_PERCENT = 50

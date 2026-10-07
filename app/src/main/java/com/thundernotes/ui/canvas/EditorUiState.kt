@@ -18,6 +18,10 @@ data class EditorUiState(
     val selectedPaletteIndex: Int = EditorPalette.DEFAULT_PALETTE_INDEX,
     val selectedColorIndex: Int = EditorPalette.DEFAULT_COLOR_INDEX,
     val strokeWidthIndex: Int = EditorStrokeWidths.DEFAULT_WIDTH_INDEX,
+    val selectedLineType: LineType = LineType.entries[LineType.DEFAULT_ORDINAL],
+    /** Spec §7.5: if constant scaling is ON, a lasso Enlarge/Reduce does NOT change
+     *  stroke thickness; if OFF, thickness scales proportionally with the resize. */
+    val constantScaling: Boolean = true,
     val currentPageIndex: Int = 0,
     val totalPages: Int = 1,
     val zoomPercent: Int = EditorZoom.DEFAULT_PERCENT,
@@ -43,4 +47,7 @@ data class EditorUiState(
 
     /** True when the stroke-width selector should be visible. */
     val showsStrokeWidth: Boolean get() = selectedTool.showsStrokeWidth
+
+    /** True when the line-type selector should be visible (pens + highlighter). */
+    val showsLineType: Boolean get() = selectedTool.showsStrokeWidth
 }

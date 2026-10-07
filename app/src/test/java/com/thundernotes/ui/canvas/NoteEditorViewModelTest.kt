@@ -211,6 +211,34 @@ class NoteEditorViewModelTest {
         assertEquals(before, vm.uiState.value.selectedPaletteIndex)
     }
 
+    // ─── line type (spec §6.10 Row 3a) ──────────────────────────────────────
+
+    @Test
+    fun `default line type is STRAIGHT`() {
+        assertEquals(LineType.STRAIGHT, vm.uiState.value.selectedLineType)
+    }
+
+    @Test
+    fun `selectLineType switches the active line type`() {
+        vm.selectLineType(LineType.DASHED)
+        assertEquals(LineType.DASHED, vm.uiState.value.selectedLineType)
+    }
+
+    // ─── constant scaling (spec §7.5 settings) ─────────────────────────────
+
+    @Test
+    fun `constant scaling defaults on`() {
+        assertTrue(vm.uiState.value.constantScaling)
+    }
+
+    @Test
+    fun `setConstantScaling toggles the flag`() {
+        vm.setConstantScaling(false)
+        assertFalse(vm.uiState.value.constantScaling)
+        vm.setConstantScaling(true)
+        assertTrue(vm.uiState.value.constantScaling)
+    }
+
     // ─── zoom bounds ──────────────────────────────────────────────────────────
 
     @Test
