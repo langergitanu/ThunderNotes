@@ -109,6 +109,18 @@ class CanvasDocument {
         return removed
     }
 
+    /** Replace a stroke (matched by id) in place — used by lasso transforms
+     *  (Rotate/Scale/Flip/ChangeColor/ChangeThickness) which produce a new
+     *  [StrokeRecord] with the same id. Immediate (not on the undo stack —
+     *  transform undo is a refinement). Returns true if a stroke was replaced. */
+    fun replaceStroke(newRecord: StrokeRecord): Boolean {
+        val page = _pages.getOrNull(currentPageIndex) ?: return false
+        val idx = page.strokes.indexOfFirst { it.id == newRecord.id }
+        if (idx < 0) return false
+        page.strokes[idx] = newRecord
+        return true
+    }
+
     /** Append a blank page + make it the current page. Returns the new index. */
     fun addPage(): Int {
         _pages.add(PageRecord())

@@ -59,6 +59,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@android:color/transparent" />
+
+        <!-- Lasso drag overlay (top) — translucent dashed rect during a LASSO-tool drag. -->
+        <com.thundernotes.ui.canvas.LassoOverlayView
+            android:id="@+id/lassoOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
     </FrameLayout>
 
 </LinearLayout>

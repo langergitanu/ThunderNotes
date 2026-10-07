@@ -79,6 +79,18 @@ class CompletedStrokesView @JvmOverloads constructor(
         return true
     }
 
+    /** Replace a finished stroke (matched by record id) with a new live Stroke —
+     *  used by lasso transforms (the model's [com.thundernotes.canvas.CanvasDocument.replaceStroke]
+     *  produces a new StrokeRecord; the host converts it → a new Stroke + swaps here).
+     *  No redo buffering (transforms are immediate). Returns true if a stroke was swapped. */
+    fun replace(recordId: String, newStroke: Stroke): Boolean {
+        val idx = strokes.indexOfFirst { it.recordId == recordId }
+        if (idx < 0) return false
+        strokes[idx] = Entry(recordId, newStroke)
+        invalidate()
+        return true
+    }
+
     /** Theme toggle — when true, each stroke is drawn with its brush color
      *  passed through [ColorInverter] (preserve hue, invert lightness). */
     fun setColorInverted(inverted: Boolean) {

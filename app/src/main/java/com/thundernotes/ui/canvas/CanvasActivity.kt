@@ -20,6 +20,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -29,6 +30,9 @@ import com.thundernotes.canvas.BrushRegistry
 import com.thundernotes.canvas.CanvasDocument
 import com.thundernotes.canvas.StrokeRecord
 import com.thundernotes.canvas.TextBoxRecord
+import com.thundernotes.canvas.lasso.LassoOps
+import com.thundernotes.canvas.lasso.LassoSelector
+import com.thundernotes.canvas.lasso.StrokeTransforms
 import com.thundernotes.canvas.inject.InkInjector
 import com.thundernotes.canvas.inject.ThunderClipboard
 import com.thundernotes.databinding.ActivityCanvasBinding
@@ -85,6 +89,7 @@ class CanvasActivity : AppCompatActivity() {
     private val pageRoots = mutableListOf<View>()  // page-item roots (for theme toggle)
     private val pageCompletedViews = mutableListOf<CompletedStrokesView>()  // finished-stroke layer per page
     private val pageTextboxLayers = mutableListOf<ViewGroup>()  // typed-content overlay per page
+    private val pageLassoOverlays = mutableListOf<LassoOverlayView>()  // lasso drag overlay per page
     private val injector = InkInjector(document)
     private var canvasLight = true   // spec §6.10 Row 1 right theme toggle state
 
@@ -192,6 +197,7 @@ class CanvasActivity : AppCompatActivity() {
         }
         val pageBinding = ItemCanvasPageBinding.inflate(layoutInflater, binding.pagesContainer, false)
         pageBinding.pageNumberText.text = pageNumber.toString()
+        val pageIndex = pageHosts.size  // index this page will have after add
         val host = CanvasInkHost(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -202,12 +208,18 @@ class CanvasActivity : AppCompatActivity() {
                 document.removeStroke(id)
                 syncUndoRedoFlags()
             }
+            // Phase 8b: TEXT + LASSO tool routing (per-page, with the page index
+            // captured so the activity targets the right page's overlays/layers).
+            onTextTap = { x, y -> handleTextTap(x, y) }
+            onLassoDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }
+            onLassoEnd = { l, t, r, b -> handleLassoEnd(pageIndex, l, t, r, b) }
         }
         pageBinding.inkHostContainer.addView(host)
         pageHosts.add(host)
         pageRoots.add(pageBinding.root)
         pageCompletedViews.add(pageBinding.completedStrokesView)
         pageTextboxLayers.add(pageBinding.textboxLayer)
+        pageLassoOverlays.add(pageBinding.lassoOverlay)
         binding.pagesContainer.addView(pageBinding.root)
 
         // Apply the current brush config + theme + stroke-inversion to the new page.
@@ -300,6 +312,105 @@ class CanvasActivity : AppCompatActivity() {
             leftMargin = tb.x.toInt(); topMargin = tb.y.toInt()
         }
         layer.addView(tv, lp)
+    }
+
+    // ─── Phase 8b: Lasso (spec §7.2 — select + 9 functions) ────────────────
+
+    /** Live lasso-drag update: draw the rect on the page's overlay. */
+    private fun handleLassoDrag(pageIndex: Int, l: Float, t: Float, r: Float, b: Float) {
+        pageLassoOverlays.getOrNull(pageIndex)?.setRect(l, t, r, b)
+    }
+
+    /** Lasso drag finalized: select strokes by rect-intersect + show the
+     *  9-function context menu (Cut/Copy/Rotate/Enlarge/Reduce/Change Color/
+     *  Change Stroke Thickness/Flip H/Flip V/Delete). */
+    private fun handleLassoEnd(pageIndex: Int, l: Float, t: Float, r: Float, b: Float) {
+        val overlay = pageLassoOverlays.getOrNull(pageIndex)
+        overlay?.clear()
+        // Operate on the pageIndex the user drew on.
+        document.goToPage(pageIndex)
+        val sel = LassoSelector.selectByRect(document.currentStrokes, l, t, r, b)
+        if (sel.isEmpty) {
+            Toast.makeText(this, R.string.canvas_lasso_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val selected = document.currentStrokes.filter { it.id in sel.strokeIds }
+        val host = pageHosts.getOrNull(pageIndex) ?: return
+        val cv = pageCompletedViews.getOrNull(pageIndex)
+        val anchor: View = host
+        showLassoMenu(anchor, pageIndex, selected, cv, host)
+    }
+
+    private fun showLassoMenu(
+        anchor: View,
+        pageIndex: Int,
+        selected: List<StrokeRecord>,
+        cv: CompletedStrokesView?,
+        host: CanvasInkHost?,
+    ) {
+        val menu = PopupMenu(this, anchor)
+        val items = listOf(
+            "Cut", "Copy", "Rotate 90°", "Enlarge 1.5×", "Reduce 0.66×",
+            "Change Color", "Thicker 1.5×", "Thinner 0.66×",
+            "Flip Horizontal", "Flip Vertical", "Delete",
+        )
+        items.forEachIndexed { idx, label -> menu.menu.add(0, idx, idx, label) }
+        menu.setOnMenuItemClickListener { item ->
+            val sel = selected  // capture
+            when (item.itemId) {
+                0 -> { // Cut — clipboard + remove (drawn: host; injected: cv)
+                    LassoOps.cut(document, sel)
+                    sel.forEach { host?.removeStrokeFromView(it.id); cv?.remove(it.id) }
+                    syncUndoRedoFlags()
+                }
+                1 -> { // Copy — clipboard only
+                    LassoOps.copy(sel)
+                }
+                2 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.rotate(it, 90f) }
+                3 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 1.5f) }
+                4 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.scale(it, 0.66f) }
+                5 -> { // Change Color — the currently-selected pen color
+                    val color = viewModel.uiState.value.selectedColorArgb
+                        ?: EditorPalette.COLORS.getOrNull(viewModel.uiState.value.selectedColorIndex)
+                        ?: 0xFF1A1A1A.toInt()
+                    applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.changeColor(it, color) }
+                }
+                6 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.changeStrokeThickness(it, 1.5f) }
+                7 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.changeStrokeThickness(it, 0.66f) }
+                8 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.flipHorizontal(it) }
+                9 -> applyTransform(pageIndex, sel, cv, host) { StrokeTransforms.flipVertical(it) }
+                10 -> { // Delete — remove (no clipboard)
+                    LassoOps.delete(document, sel)
+                    sel.forEach { host?.removeStrokeFromView(it.id); cv?.remove(it.id) }
+                    syncUndoRedoFlags()
+                }
+            }
+            true
+        }
+        menu.show()
+    }
+
+    /** Apply a [StrokeTransforms] op to the selected strokes: replace each in the
+     *  document + re-render on the CompletedStrokesView (remove old + addFromRecord
+     *  the new). Drawn strokes (on the InProgressStrokesView) are removed from
+     *  the host + re-rendered on the CompletedStrokesView post-transform. */
+    private fun applyTransform(
+        pageIndex: Int,
+        selected: List<StrokeRecord>,
+        cv: CompletedStrokesView?,
+        host: CanvasInkHost?,
+        op: (List<StrokeRecord>) -> List<StrokeRecord>,
+    ) {
+        val transformed = op(selected)
+        for (i in selected.indices) {
+            val old = selected[i]
+            val new = transformed[i]
+            document.replaceStroke(new)              // model: swap by id
+            host?.removeStrokeFromView(old.id)       // drawn-stroke: off the in-progress view
+            cv?.remove(old.id)                        // injected-stroke: off the completed view (no redo buffer)
+            cv?.addFromRecord(new)                    // re-render the transformed stroke on the completed view
+        }
+        syncUndoRedoFlags()
     }
 
     /** Observe the clipboard → toggle the paste button's glow (emerald ring
@@ -402,7 +513,8 @@ class CanvasActivity : AppCompatActivity() {
         pageHosts.forEach {
             it.setBrush(config)
             it.currentTool = state.selectedTool
-            it.onTextTap = ::handleTextTap
+            // onTextTap / onLassoDrag / onLassoEnd are set per-host in addPageItem
+            // (with the page index captured) — don't clobber them here.
         }
     }
 

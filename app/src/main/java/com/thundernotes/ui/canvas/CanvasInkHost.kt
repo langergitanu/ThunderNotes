@@ -130,6 +130,16 @@ class CanvasInkHost @JvmOverloads constructor(
      *  a text-input dialog + drops a TextBoxRecord at the tap. */
     var onTextTap: ((Float, Float) -> Unit)? = null
 
+    /** LASSO-tool drag (MOVE): (left, top, right, bottom) of the drag rect —
+     *  the activity updates the lasso overlay. */
+    var onLassoDrag: ((Float, Float, Float, Float) -> Unit)? = null
+
+    /** LASSO-tool drag finalized (UP): the activity selects strokes + shows the
+     *  9-function context menu. */
+    var onLassoEnd: ((Float, Float, Float, Float) -> Unit)? = null
+
+    private var lassoStart: Pair<Float, Float>? = null
+
     private fun currentBrush(): Brush? {
         val cfg = currentConfig ?: return null
         val family = when (cfg.familyId) {
@@ -155,6 +165,23 @@ class CanvasInkHost @JvmOverloads constructor(
                 onTextTap?.invoke(ev.getX(0), ev.getY(0))
             }
             return true  // consume the touch so it doesn't reach the Ink view
+        }
+
+        // LASSO tool: drag a rectangle (DOWN→start, MOVE→update overlay, UP→finalize+select).
+        if (currentTool == com.thundernotes.ui.canvas.EditorTool.LASSO) {
+            val x = ev.getX(0); val y = ev.getY(0)
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> lassoStart = x to y
+                MotionEvent.ACTION_MOVE -> {
+                    val s = lassoStart
+                    if (s != null) onLassoDrag?.invoke(s.first, s.second, x, y)
+                }
+                MotionEvent.ACTION_UP -> {
+                    val s = lassoStart; lassoStart = null
+                    if (s != null) onLassoEnd?.invoke(s.first, s.second, x, y)
+                }
+            }
+            return true
         }
 
         // Eraser: a tap (DOWN+UP with no significant MOVE) on a finished stroke removes it.
