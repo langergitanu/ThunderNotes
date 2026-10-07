@@ -192,14 +192,38 @@ object CenterlineTracer {
 
     /**
      * Convert the polylines to [StrokeRecord]s. Downsamples to ~1 point per 3px
-     * (spec §7.8). Uses a fixed medium brush size (3dp) — the distance-transform
-     * width estimation is a refinement. Emits row-major (deterministic).
+     * (spec §7.8). Emits row-major (deterministic).
+     *
+     * **Phase 9j-3 (§7.8.2 width measurement):** when [sourceImage] is
+     * provided, the brush size per stroke is estimated via a two-pass chamfer
+     * distance transform on the source binary image (max distance along the
+     * polyline × 2 = full stroke width), quantized to {1.5, 3.0, 6.0} buckets
+     * (the [com.thundernotes.ui.canvas.EditorStrokeWidths] set). When null,
+     * falls back to the fixed 3f (the previous behaviour — for tests that
+     * don't supply an image).
      */
-    fun toStrokeRecords(polylines: List<List<FloatArray>>, pageId: String = "latex"): List<StrokeRecord> {
+    fun toStrokeRecords(
+        polylines: List<List<FloatArray>>,
+        pageId: String = "latex",
+        sourceImage: SnipImage? = null,
+    ): List<StrokeRecord> {
+        // Pre-compute the distance transform once (if the image is available).
+        val dist = sourceImage?.let { distanceTransform(it) }
         return polylines.map { polyline ->
             val downsampled = downsamplePolyline(polyline, minGap = 3f)
             val n = downsampled.size
-            val xy = downsampled.flatMap { it.toList() }  // [x0,y0,x1,y1,...]
+            val xy = downsampled.flatMap { it.toList() }
+            // §7.8.2: estimate the stroke width from the distance transform.
+            val brushSize = if (dist != null && sourceImage != null) {
+                val maxDist = downsampled.map { p ->
+                    val xi = p[0].toInt().coerceIn(0, sourceImage.width - 1)
+                    val yi = p[1].toInt().coerceIn(0, sourceImage.height - 1)
+                    dist[yi * sourceImage.width + xi]
+                }.maxOrNull() ?: 1.5f
+                quantizeBrushSize(maxDist * 2f)
+            } else {
+                3f  // medium (the fallback for tests)
+            }
             val attrs = FloatArray(n * 5).also { arr ->
                 for (i in 0 until n) {
                     arr[i * 5 + 1] = 1f  // pressure = 1
@@ -209,7 +233,7 @@ object CenterlineTracer {
                 id = UUID.randomUUID().toString(),
                 layerId = "layer-0",
                 pageId = pageId,
-                brushSize = 3f,        // medium (refinement: distance-transform width)
+                brushSize = brushSize,
                 brushColorArgb = 0xFF1A1A1A.toInt(),  // base color black (spec §7.8)
                 brushEpsilon = 0.1f,
                 brushFamilyId = BrushFamily.THUNDER_BALLPOINT_V1,
@@ -218,6 +242,66 @@ object CenterlineTracer {
                 inputAttrs = attrs.toList(),
             )
         }
+    }
+
+    /** Quantize a measured width (px) to the nearest {1.5, 3.0, 6.0} bucket. */
+    private fun quantizeBrushSize(widthPx: Float): Float {
+        val buckets = floatArrayOf(1.5f, 3.0f, 6.0f)
+        var best = buckets[0]; var bestDist = Math.abs(widthPx - best)
+        for (b in buckets) {
+            val d = Math.abs(widthPx - b)
+            if (d < bestDist) { best = b; bestDist = d }
+        }
+        return best
+    }
+
+    /**
+     * Two-pass chamfer distance transform (§7.8.2). For each foreground (ink)
+     * pixel, computes the distance to the nearest background (white) pixel.
+     * Returns a FloatArray (one per pixel) where background = 0 + foreground =
+     * the chamfer distance (≈ Euclidean, with 1.0 for orthogonal + 1.414 for
+     * diagonal steps). Pure + unit-testable.
+     */
+    fun distanceTransform(img: SnipImage): FloatArray {
+        val w = img.width; val h = img.height
+        val isFg = BooleanArray(w * h) { i ->
+            // Foreground = ink. The SnipImage pixels are ARGB ints; treat the
+            // alpha channel (or a dark pixel) as ink. For the KaTeX render
+            // (black-on-white), the ink is dark (luminance < 128).
+            val p = img.pixels[i]
+            val r = (p shr 16) and 0xFF
+            val g = (p shr 8) and 0xFF
+            val b = p and 0xFF
+            (r + g + b) / 3 < 128
+        }
+        val dist = FloatArray(w * h) { if (isFg[it]) Float.MAX_VALUE else 0f }
+        // Forward pass (top-left → bottom-right).
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val i = y * w + x
+                if (!isFg[i]) continue
+                var d = dist[i]
+                if (x > 0) d = minOf(d, dist[i - 1] + 1f)
+                if (y > 0) d = minOf(d, dist[i - w] + 1f)
+                if (x > 0 && y > 0) d = minOf(d, dist[i - w - 1] + 1.414f)
+                if (x < w - 1 && y > 0) d = minOf(d, dist[i - w + 1] + 1.414f)
+                dist[i] = d
+            }
+        }
+        // Backward pass (bottom-right → top-left).
+        for (y in h - 1 downTo 0) {
+            for (x in w - 1 downTo 0) {
+                val i = y * w + x
+                if (!isFg[i]) continue
+                var d = dist[i]
+                if (x < w - 1) d = minOf(d, dist[i + 1] + 1f)
+                if (y < h - 1) d = minOf(d, dist[i + w] + 1f)
+                if (x < w - 1 && y < h - 1) d = minOf(d, dist[i + w + 1] + 1.414f)
+                if (x > 0 && y < h - 1) d = minOf(d, dist[i + w - 1] + 1.414f)
+                dist[i] = d
+            }
+        }
+        return dist
     }
 
     /** Downsample: keep only points ≥ [minGap] apart from the last kept. */
@@ -248,6 +332,8 @@ object CenterlineTracer {
         val bw = SnipPreprocessor.binarize(img)  // ensure pure B/W
         val skeleton = skeletonize(bw)
         val polylines = tracePolylines(skeleton)
-        return toStrokeRecords(polylines)
+        // §7.8.2: pass the binarized source so toStrokeRecords can run the
+        // distance-transform width measurement on the original stroke thickness.
+        return toStrokeRecords(polylines, sourceImage = bw)
     }
 }

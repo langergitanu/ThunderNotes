@@ -111,4 +111,50 @@ class CenterlineTracerTest {
         val b = CenterlineTracer.trace(img)
         assertEquals(a.size, b.size)
     }
+
+    // ─── Phase 9j-3: distance-transform width measurement (§7.8.2) ─────────
+
+    @Test fun `distanceTransform returns 0 for background pixels`() {
+        // All-white image (no ink) → every pixel is background → dist = 0.
+        val img = SnipImage(4, 4, IntArray(16) { 0xFFFFFFFF.toInt() })
+        val dist = CenterlineTracer.distanceTransform(img)
+        dist.forEach { assertEquals(0f, it, 0.001f) }
+    }
+
+    @Test fun `distanceTransform measures the half-width of a vertical bar`() {
+        // A 3-px-wide vertical ink bar in a 5×5 image. The center column is
+        // ink; the half-width at the centre = 1 (the distance to the left/right
+        // edge). So the center pixel's dist should be 1.0.
+        val px = IntArray(25) { 0xFFFFFFFF.toInt() }  // white
+        for (y in 0 until 5) {
+            px[y * 5 + 1] = 0xFF000000.toInt()  // column 1 = ink
+            px[y * 5 + 2] = 0xFF000000.toInt()  // column 2 = ink (centre)
+            px[y * 5 + 3] = 0xFF000000.toInt()  // column 3 = ink
+        }
+        val img = SnipImage(5, 5, px)
+        val dist = CenterlineTracer.distanceTransform(img)
+        // The centre column's pixels have dist >= 1 (they're ≥1 px from the edge).
+        assertTrue("centre column dist >= 1",
+            dist[2] >= 1f && dist[7] >= 1f && dist[12] >= 1f)
+        // The edge columns' pixels (column 1 and 3) are at the boundary → dist ≈ 0..1.
+        assertTrue("edge column dist <= 1",
+            dist[1] <= 1.01f && dist[3] <= 1.01f)
+    }
+
+    @Test fun `toStrokeRecords uses the source-image width when provided`() {
+        // A 3-px-wide bar → the estimated width should be in the {1.5, 3, 6} buckets.
+        val px = IntArray(25) { 0xFFFFFFFF.toInt() }
+        for (y in 0 until 5) {
+            px[y * 5 + 1] = 0xFF000000.toInt()
+            px[y * 5 + 2] = 0xFF000000.toInt()
+            px[y * 5 + 3] = 0xFF000000.toInt()
+        }
+        val img = SnipImage(5, 5, px)
+        val strokes = CenterlineTracer.trace(img)
+        // The strokes' brushSize should be one of the quantized buckets.
+        strokes.forEach {
+            assertTrue("brushSize in {1.5, 3, 6}",
+                it.brushSize in setOf(1.5f, 3.0f, 6.0f))
+        }
+    }
 }

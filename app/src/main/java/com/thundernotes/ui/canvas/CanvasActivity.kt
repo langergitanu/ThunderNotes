@@ -337,10 +337,28 @@ class CanvasActivity : AppCompatActivity(),
         // stroke reflow (content below the spacer shifts by the cumulative offset)
         // is the remaining rendering piece.
         binding.btnAddSpace.setOnClickListener {
+            // §7.4 Add Extra Writing Space: insert a spacer (recorded in the
+            // page-local CanvasSpacerManager) + grow the page root's height
+            // by the gap so the user sees the extra blank canvas. The drag-
+            // the-fat-blue-arrow interaction is a refinement; this makes the
+            // button functional (extra space appears immediately).
             val state = viewModel.uiState.value
+            val idx = state.currentPageIndex
             val pageId = document.currentPage?.id.orEmpty()
             val gapPx = dp(200)
             spacerManager.insertSpacer(pageId, offsetInPage = 500f, height = gapPx.toFloat())
+            // Grow the page root's height.
+            val root = pageRoots.getOrNull(idx)
+            if (root != null) {
+                val lp = root.layoutParams
+                if (lp is LinearLayout.LayoutParams) {
+                    lp.height = lp.height + gapPx
+                    root.layoutParams = lp
+                } else if (lp is ViewGroup.MarginLayoutParams) {
+                    lp.height = lp.height + gapPx
+                    root.layoutParams = lp
+                }
+            }
             Toast.makeText(this,
                 getString(R.string.canvas_space_added, gapPx),
                 Toast.LENGTH_SHORT).show()
