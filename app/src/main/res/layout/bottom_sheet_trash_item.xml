@@ -5,6 +5,7 @@
   menu (OptionMenuRecycleBinPresenter → Restore / Delete).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -41,7 +42,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
             android:contentDescription="@string/overflow_close"
-            android:tint="@color/text_muted" />
+            app:tint="@color/text_muted" />
     </LinearLayout>
 
     <View
@@ -62,7 +63,7 @@
     <LinearLayout
         android:id="@+id/rowDeletePermanently"
         style="@style/OverflowRow">
-        <ImageView style="@style/OverflowRowIcon" android:src="@drawable/ic_trash_delete" android:tint="@color/thunder_primary" />
+        <ImageView style="@style/OverflowRowIcon" android:src="@drawable/ic_trash_delete" app:tint="@color/thunder_primary" />
         <TextView style="@style/OverflowRowLabel" android:text="@string/trash_delete_permanently" android:textColor="@color/thunder_primary" />
     </LinearLayout>
 

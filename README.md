@@ -9,7 +9,9 @@ holds the HTML/Tailwind reference screens; this repo holds the production Androi
 
 ## Project status
 
-Phase 1 — project skeleton + Room schema + `.thunder` format (in progress).
+Phase 9j-3 + **bug-fix round 2026-10-08** — canvas bug fixes, auto-save persistence wired,
+textbox editing reachable, undo/redo visual sync, OnePlus Pad 2 responsiveness.
+`./gradlew assembleDebug lintDebug testDebugUnitTest` → BUILD SUCCESSFUL (301 tests, lint 0 errors).
 
 See `docs/architecture-plan.md` for the full layered plan and `docs/thunder-format-proposal.md`
 for the `.thunder` container + writing-space + LaTeX→stroke pipeline design. `docs/Notein-README.md`,

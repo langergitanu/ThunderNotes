@@ -57,7 +57,8 @@ class CoverSelectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.coversGrid.apply {
-            layoutManager = GridLayoutManager(requireContext(), 4)
+            layoutManager = GridLayoutManager(requireContext(),
+                com.thundernotes.ui.common.ResponsiveSpans.tileSpans(requireContext()))
             adapter = this@CoverSelectionFragment.adapter
         }
         viewLifecycleOwner.lifecycleScope.launch {

@@ -20,6 +20,13 @@ interface TextBoxDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(textboxes: List<TextBoxEntity>): List<Long>
 
+    /**
+     * Insert-or-replace by textbox_id — the editor's incremental auto-save path
+     * (textbox edits, undo→redo re-inserts, FILLER stamp updates).
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(textbox: TextBoxEntity)
+
     @Update
     suspend fun update(textbox: TextBoxEntity)
 

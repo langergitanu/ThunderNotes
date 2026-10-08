@@ -26,6 +26,7 @@ import com.thundernotes.data.entity.BrushFamily
  */
 object StrokeRecordConverter {
 
+    @android.annotation.SuppressLint("RestrictedApi")  // androidx.ink is an alpha Jetpack lib; InputToolType.fromInt is the documented conversion path for our stored tool_type ints.
     fun toInkStroke(record: StrokeRecord): Stroke? {
         val points = StrokeRecordPoints.extract(record) ?: return null
         val batch = MutableStrokeInputBatch()

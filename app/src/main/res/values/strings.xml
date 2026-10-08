@@ -341,6 +341,7 @@
 
     <!-- Deferred-action toasts (engines land in later phases) -->
     <string name="overflow_cover_pending">Change cover — Template library lands in a later phase</string>
+    <string name="overflow_cover_changed">Cover updated</string>
     <string name="overflow_move_pending">Move to folder — folder picker lands in a later phase</string>
     <string name="overflow_export_pending">Export (.thunder / PDF) — export engine lands in a later phase</string>
     <string name="overflow_bookmarked">Bookmarked</string>

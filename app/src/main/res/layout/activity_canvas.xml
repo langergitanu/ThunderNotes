@@ -51,7 +51,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_back"
             android:contentDescription="@string/canvas_back"
-            android:tint="@color/canvas_on_surface" />
+            app:tint="@color/canvas_on_surface" />
 
         <EditText
             android:id="@+id/noteTitle"
@@ -87,7 +87,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_theme"
             android:contentDescription="@string/canvas_theme_toggle"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <ImageButton
             android:id="@+id/btnOverflow"
@@ -97,7 +97,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_more_vert"
             android:contentDescription="@string/canvas_more"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
     </LinearLayout>
 
     <!-- ═══ [2] Workflow row ═══════════════════════════════════════════ -->
@@ -116,7 +116,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_undo"
             android:contentDescription="@string/canvas_undo"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <ImageButton
             android:id="@+id/btnRedo"
@@ -126,7 +126,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_redo"
             android:contentDescription="@string/canvas_redo"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Paste button — glows (emerald ring) while ThunderClipboard holds 1 item.
              Tapping drops the item onto the canvas via InkInjector (Phase 8b). -->
@@ -138,7 +138,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_paste"
             android:contentDescription="@string/canvas_paste"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- spacer pushes zoom group to center-right -->
         <Space
@@ -153,7 +153,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_zoom_out"
             android:contentDescription="@string/canvas_zoom_out"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <TextView
             android:id="@+id/zoomIndicator"
@@ -173,7 +173,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_zoom_in"
             android:contentDescription="@string/canvas_zoom_in"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Gridline toggle (spec §6.10 Row 2c). Long-press → m×n presets popup. -->
         <ImageButton
@@ -184,7 +184,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_grid"
             android:contentDescription="@string/canvas_gridline"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Scale ruler (§6.10 Row 2c). Long-press → rotation-angle presets. -->
         <ImageButton
@@ -195,7 +195,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_ruler"
             android:contentDescription="@string/canvas_ruler"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Image insert (§6.10 Row 2b). Tap → image picker. -->
         <ImageButton
@@ -206,7 +206,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_image"
             android:contentDescription="@string/canvas_image"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Add Writing Space (§6.10 Row 3c). Tap → insert a spacer gap. -->
         <ImageButton
@@ -217,7 +217,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_add_space"
             android:contentDescription="@string/canvas_add_space"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Table Maker (§6.10 Row 3g). Tap → rows/cols dialog → build table. -->
         <ImageButton
@@ -228,7 +228,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_table"
             android:contentDescription="@string/canvas_table"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Finger/Stylus Mode (§6.10 Row 3g). Tap → toggle palm rejection. -->
         <ImageButton
@@ -239,7 +239,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_finger_stylus"
             android:contentDescription="@string/canvas_finger_stylus"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Split view (§6.10 Row 1: two files side-by-side). Tap → toggle split. -->
         <ImageButton
@@ -250,7 +250,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_split"
             android:contentDescription="@string/canvas_split"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <Space
             android:layout_width="0dp"
@@ -267,7 +267,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_bookmark"
             android:contentDescription="@string/canvas_btn_bookmark"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Read Mode (hide editing chrome, textboxes read-only). -->
         <ImageButton
@@ -278,7 +278,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_read_mode"
             android:contentDescription="@string/canvas_btn_read_mode"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Fullscreen Mode (hides the topmost file-explorer row). -->
         <ImageButton
@@ -289,7 +289,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_fullscreen"
             android:contentDescription="@string/canvas_btn_fullscreen"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Lock Canvas (disables finger/stylus move of the canvas). -->
         <ImageButton
@@ -300,7 +300,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_lock"
             android:contentDescription="@string/canvas_btn_lock_canvas"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Change Page Margin. -->
         <ImageButton
@@ -311,7 +311,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_margin"
             android:contentDescription="@string/canvas_btn_change_margin"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Change Cover Page. -->
         <ImageButton
@@ -322,7 +322,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_cover"
             android:contentDescription="@string/canvas_btn_change_cover"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- LaTeX Direct-Input shortcut (§7.7 — typed LaTeX → strokes). -->
         <ImageButton
@@ -333,7 +333,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_latex_direct"
             android:contentDescription="@string/snip_latex_direct_input"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <!-- Page Minimap (toggles the pages sidebar visibility). -->
         <ImageButton
@@ -344,7 +344,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_minimap"
             android:contentDescription="@string/canvas_btn_minimap"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <ImageButton
             android:id="@+id/btnAddPage"
@@ -353,7 +353,7 @@
             android:background="@drawable/bg_canvas_tool"
             android:src="@drawable/ic_editor_add_page"
             android:contentDescription="@string/canvas_add_page"
-            android:tint="@color/canvas_on_surface_variant" />
+            app:tint="@color/canvas_on_surface_variant" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAiSnip"
@@ -398,7 +398,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_fountain"
                     android:contentDescription="@string/canvas_tool_fountain"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolPen"
@@ -408,7 +408,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_pen"
                     android:contentDescription="@string/canvas_tool_pen"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolHighlighter"
@@ -418,7 +418,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_highlighter"
                     android:contentDescription="@string/canvas_tool_highlighter"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolEraser"
@@ -428,7 +428,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_eraser"
                     android:contentDescription="@string/canvas_tool_eraser"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolLasso"
@@ -438,7 +438,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_lasso"
                     android:contentDescription="@string/canvas_tool_lasso"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolShape"
@@ -448,7 +448,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_shape"
                     android:contentDescription="@string/canvas_tool_shape"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <!-- Filler (§6.10.6f — fills enclosed areas; fill color + opacity). -->
                 <ImageButton
@@ -459,7 +459,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_filler"
                     android:contentDescription="@string/canvas_tool_filler"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
 
                 <ImageButton
                     android:id="@+id/toolText"
@@ -469,7 +469,7 @@
                     android:background="@drawable/bg_canvas_tool"
                     android:src="@drawable/ic_editor_text"
                     android:contentDescription="@string/canvas_tool_text"
-                    android:tint="@color/canvas_tool_inactive_tint" />
+                    app:tint="@color/canvas_tool_inactive_tint" />
             </LinearLayout>
         </HorizontalScrollView>
 

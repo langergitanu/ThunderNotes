@@ -82,12 +82,16 @@ class CanvasDocument {
     }
 
     /**
-     * Add a textbox to the current page (spec §7.1). Immediate (not on the
-     * undo/redo stack yet — textbox undo/redo is a refinement; the textbox is
-     * a full document citizen via [PageRecord.textboxes]).
+     * Add a textbox to the current page (spec §7.1). Undoable — pushes a
+     * [DocAction.AddTextbox] so a stray double-tap of the TEXT tool can be
+     * undone (the editor removes the rendered TextView on undo + re-renders
+     * it on redo).
      */
     fun addTextbox(tb: TextBoxRecord) {
-        _pages.getOrNull(currentPageIndex)?.textboxes?.add(tb)
+        val page = _pages.getOrNull(currentPageIndex) ?: return
+        page.textboxes.add(tb)
+        _undoStack.addLast(DocAction.AddTextbox(page.id, tb))
+        _redoStack.clear()
     }
 
     /** Remove a textbox by id; returns it if found. */
@@ -111,9 +115,27 @@ class CanvasDocument {
         return true
     }
 
-    /** Remove a finished stroke by id (eraser / undo of a single stroke). */
+    /** Remove a finished stroke by id (eraser / undo of a single stroke).
+     * Searches the CURRENT page. */
     fun removeStroke(strokeId: String): StrokeRecord? {
         val page = _pages.getOrNull(currentPageIndex) ?: return null
+        val idx = page.strokes.indexOfFirst { it.id == strokeId }
+        if (idx < 0) return null
+        val removed = page.strokes.removeAt(idx)
+        _undoStack.addLast(DocAction.RemoveStroke(page.id, removed))
+        _redoStack.clear()
+        return removed
+    }
+
+    /**
+     * Remove a finished stroke by id from a SPECIFIC page (found by pageId —
+     * the eraser's page-aware path; the visible page and the document's
+     * current page can briefly diverge while scrolling). Records the undo
+     * action against the real page. Returns the removed record or null.
+     */
+    fun removeStrokeFromPage(pageId: String, strokeId: String): StrokeRecord? {
+        if (pageId.isBlank()) return removeStroke(strokeId)
+        val page = _pages.firstOrNull { it.id == pageId } ?: return null
         val idx = page.strokes.indexOfFirst { it.id == strokeId }
         if (idx < 0) return null
         val removed = page.strokes.removeAt(idx)
@@ -178,11 +200,16 @@ class CanvasDocument {
                 val page = _pages.firstOrNull { it.id == action.pageId }
                 page?.strokes?.add(action.stroke)
             }
+            is DocAction.AddTextbox -> {
+                val page = _pages.firstOrNull { it.id == action.pageId }
+                page?.textboxes?.removeAll { it.id == action.textbox.id }
+            }
             is DocAction.AddPage -> {
                 // Only remove if it's still the last + empty (no subsequent edits).
                 if (_pages.lastIndex == action.pageIndex &&
                     _pages.getOrNull(action.pageIndex)?.id == action.pageId &&
-                    _pages[action.pageIndex].strokes.isEmpty()) {
+                    _pages[action.pageIndex].strokes.isEmpty() &&
+                    _pages[action.pageIndex].textboxes.isEmpty()) {
                     _pages.removeAt(action.pageIndex)
                     currentPageIndex = (action.pageIndex - 1).coerceAtLeast(0)
                 }
@@ -207,6 +234,10 @@ class CanvasDocument {
                 val page = _pages.firstOrNull { it.id == action.pageId }
                 page?.strokes?.removeAll { it.id == action.stroke.id }
             }
+            is DocAction.AddTextbox -> {
+                val page = _pages.firstOrNull { it.id == action.pageId }
+                page?.textboxes?.add(action.textbox)
+            }
             is DocAction.AddPage -> {
                 if (_pages.none { it.id == action.pageId }) {
                     _pages.add(PageRecord(action.pageId))
@@ -227,6 +258,24 @@ class CanvasDocument {
 
     /** All strokes across all pages, for a save snapshot. */
     fun allStrokes(): List<StrokeRecord> = _pages.flatMap { it.strokes.toList() }
+
+    /**
+     * Replace the whole page list (load-from-`.thunder` path — the editor
+     * rebuilds its page hosts from the DB). Clears undo history: the loaded
+     * state is the new baseline.
+     */
+    fun resetWith(pages: List<PageRecord>) {
+        _pages.clear()
+        _pages.addAll(pages)
+        if (_pages.isEmpty()) _pages.add(PageRecord())
+        _undoStack.clear()
+        _redoStack.clear()
+        currentPageIndex = 0
+    }
+
+    /** Index of the page with [pageId], or -1. */
+    fun indexOfPage(pageId: String): Int =
+        _pages.indexOfFirst { it.id == pageId }
 }
 
 /** Sealed undo/redo action — the document's edit log entry. */
@@ -234,5 +283,6 @@ sealed class DocAction {
     abstract val pageId: String
     data class AddStroke(override val pageId: String, val stroke: StrokeRecord) : DocAction()
     data class RemoveStroke(override val pageId: String, val stroke: StrokeRecord) : DocAction()
+    data class AddTextbox(override val pageId: String, val textbox: TextBoxRecord) : DocAction()
     data class AddPage(override val pageId: String, val pageIndex: Int) : DocAction()
 }

@@ -195,17 +195,39 @@ open class NotesRepository(
      * Open an existing note for editing. Extracts the .thunder to staging
      * and opens the NoteDatabase. Returns a [NoteEditingSession] which the
      * caller MUST close (typically via `.use { ... }`).
+     *
+     * @param resumeStaging when true, an existing `note.sqlite` in the staging
+     *   dir is opened directly instead of re-extracting the ZIP. This is the
+     *   crash-recovery path for the editor's incremental auto-save: after a
+     *   process death between DAO writes and the next ZIP flush, the staging
+     *   DB is NEWER than (or identical to) the ZIP — resuming it loses nothing.
+     *   The manifest is rebuilt from the app-global NoteEntity row in that case.
      */
-    suspend fun openNote(noteId: String): NoteEditingSession {
+    suspend fun openNote(noteId: String, resumeStaging: Boolean = false): NoteEditingSession {
         val noteEntity = noteDao.getByNoteId(noteId)
             ?: throw IllegalArgumentException("Note not found: $noteId")
         val thunderFile = File(noteEntity.filePath)
         val stagingDir = stagingDirFor(noteId)
-        if (stagingDir.exists()) stagingDir.deleteRecursively()
-        stagingDir.mkdirs()
-
-        val manifest = ThunderFile.extract(thunderFile, stagingDir)
         val sqliteFile = File(stagingDir, "note.sqlite")
+
+        val manifest: ThunderManifest
+        if (resumeStaging && sqliteFile.exists()) {
+            // Crash-recovery / post-save resume: the staging DB is current.
+            manifest = ThunderManifest(
+                noteId = noteId,
+                displayName = noteEntity.displayName,
+                pageCount = noteEntity.pageCount.coerceAtLeast(1),
+                fileSizeBytes = sqliteFile.length(),
+                checksum = "",
+                createdAt = noteEntity.createdTime,
+                modifiedAt = System.currentTimeMillis(),
+                extras = emptyMap()
+            )
+        } else {
+            if (stagingDir.exists()) stagingDir.deleteRecursively()
+            stagingDir.mkdirs()
+            manifest = ThunderFile.extract(thunderFile, stagingDir)
+        }
         val noteDb = NoteDatabase.open(appContext, sqliteFile)
 
         return NoteEditingSession(

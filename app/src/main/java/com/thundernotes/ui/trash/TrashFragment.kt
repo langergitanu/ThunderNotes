@@ -56,7 +56,8 @@ class TrashFragment : Fragment() {
             }
         )
         binding.trashedNotesGrid.apply {
-            layoutManager = GridLayoutManager(requireContext(), 3)
+            layoutManager = GridLayoutManager(requireContext(),
+                com.thundernotes.ui.common.ResponsiveSpans.cardSpans(requireContext()))
             adapter = noteAdapter
         }
 

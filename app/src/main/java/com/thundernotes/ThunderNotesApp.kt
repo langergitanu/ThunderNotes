@@ -108,5 +108,12 @@ class ThunderNotesApp : Application() {
 
         /** Singleton application context accessor. */
         fun get(): ThunderNotesApp = instance
+
+        /**
+         * The app-level coroutine scope (SupervisorJob + Dispatchers.IO).
+         * Exposed so the canvas editor's final auto-save (in Activity.onStop)
+         * can run on a scope that outlives the Activity's lifecycleScope.
+         */
+        fun appScope(): CoroutineScope = get().appScope
     }
 }

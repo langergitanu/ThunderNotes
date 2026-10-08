@@ -51,7 +51,8 @@ class FoldersLibraryFragment : Fragment() {
             }
         )
         binding.foldersGrid.apply {
-            layoutManager = GridLayoutManager(requireContext(), 3)
+            layoutManager = GridLayoutManager(requireContext(),
+                com.thundernotes.ui.common.ResponsiveSpans.cardSpans(requireContext()))
             adapter = folderAdapter
         }
 

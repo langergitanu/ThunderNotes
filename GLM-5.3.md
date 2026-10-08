@@ -293,3 +293,63 @@ BigPickle's NEW-3 finding: the HTML mockups are inconsistent — 6 library pages
 ## End of Sync 5
 
 Next sync: when Phase 5 UI is ready to push, OR when BigPickle reports new findings after pulling + verifying Sync 5.
+
+---
+
+## Sync 10 — 2026-10-08 — Full bug-fix round (auto-save + canvas correctness + Pad 2 tuning)
+
+### Critical bugs fixed
+
+1. **Auto-save / persistence was never wired (spec §2.5, priority #1):** the canvas kept
+   strokes only in memory — reopening a note showed a blank page and a process death lost
+   everything. Now: `NoteEditorViewModel` opens a `NoteEditingSession`, every mutation
+   writes through incrementally to the per-note DB (DAO upsert/delete with close-race
+   retries), a 10s debounced loop + `onStop` flush the staging DB into the `.thunder` ZIP
+   (atomic rename), and `openNote(resumeStaging=true)` recovers a staging DB that is newer
+   than the ZIP after a crash. Page rebuilds from DB on open (page ids now match the DB's).
+2. **Strokes landed on the wrong page:** all ink-host callbacks were page-agnostic while
+   `CanvasDocument.addStroke` writes to `currentPageIndex` — drawing on page 2 while page 1
+   was "current" stored the stroke on page 1 (and the eraser/text tools hit the wrong page
+   too). Every per-page callback now captures its page index; a scroll listener keeps the
+   document's current page synced to the visible one.
+3. **Undo/redo visual desync:** undo removed strokes from the *current* page's views (not
+   the action's page); undoing an erase didn't bring the stroke back; redo could re-add an
+   unrelated stroke from the CompletedStrokesView buffer; textbox add had no undo; AddPage
+   undo left the page view on screen. Undo/redo is now driven from the `DocAction`
+   (incl. new `AddTextbox`), resolves the page by id, syncs views + persistence.
+4. **Eraser left injected strokes on screen:** erasing a pasted/injected stroke removed it
+   from the model + Ink view but not from the CompletedStrokesView (and `removeStroke`
+   searched only the current page). Fixed via page-aware `removeStrokeFromPage` + cv removal.
+5. **Textbox editor (§7.1) was unreachable:** the textbox layer sat *below* the ink host,
+   whose touch interception ate every long-press. Layer order fixed (textbox layer above
+   the ink host) — long-press → formatting popup works.
+6. **Persisted strokes lost intermediate points:** `capturePoint` sampled only the newest
+   MotionEvent, dropping coalesced historical points — visible as degraded strokes after
+   reload, and doubled sample spacing on 120/144Hz displays. Historical points are now
+   captured (OnePlus Pad 2 144Hz smoothness + data integrity).
+
+### Completed / made functional
+
+- **Change Cover button (canvas)** now opens the real 60-template cover picker (was a
+  redirect toast).
+- **All 4 §7.1 underline styles** render (thin flag + custom thick/dashed/wavy
+  LineBackgroundSpans — previously everything rendered as thin).
+- **Table Maker geometry** is density-scaled + centered on the actual page (was hardcoded
+  600x400px at 50,50).
+- **Add Writing Space (§7.4)** appends the gap at the page's content bottom (no reflow,
+  O(1)) and persists the spacer row + grown page height.
+- **Note export path** is robust for absolute/relative `filePath`.
+
+### OnePlus Pad 2 optimizations
+
+- Historical touch capture (above) for 144Hz input fidelity.
+- All 7 library grids use width-responsive span counts (`ResponsiveSpans`) instead of
+  hardcoded 3/4 columns (landscape 7:5 panel + portrait both handled).
+- Lint cleaned: 42 pre-existing errors fixed (`android:tint` → `app:tint` with namespaces;
+  ink `RestrictedApi` suppressed with rationale).
+
+### Verification
+
+`./gradlew assembleDebug lintDebug testDebugUnitTest` → **BUILD SUCCESSFUL; 301/301 tests
+pass; lint 0 errors.** New files: `canvas/CanvasRecordMappers.kt`,
+`ui/canvas/UnderlineSpans.kt`, `ui/common/ResponsiveSpans.kt`.

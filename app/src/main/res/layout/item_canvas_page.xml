@@ -35,8 +35,13 @@
     </FrameLayout>
 
     <!-- Ink surface (layered, bottom→top):
-         CompletedStrokesView (finished strokes) → textboxLayer (typed content,
-         spec §7.1) → inkHostContainer (InProgressStrokesView, the live pen trail). -->
+         CompletedStrokesView (finished strokes) → gridline overlay →
+         inkHostContainer (InProgressStrokesView, the live pen trail) →
+         textboxLayer (typed content, spec §7.1).
+         The textbox layer sits ABOVE the ink host so its TextViews receive
+         long-presses (the §7.1 local textbox editor popup) — with the layer
+         below the ink host, the host's touch interception made every textbox
+         untouchable and the editor popup unreachable. -->
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -56,13 +61,13 @@
             android:visibility="gone" />
 
         <FrameLayout
-            android:id="@+id/textboxLayer"
+            android:id="@+id/inkHostContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@android:color/transparent" />
 
         <FrameLayout
-            android:id="@+id/inkHostContainer"
+            android:id="@+id/textboxLayer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@android:color/transparent" />

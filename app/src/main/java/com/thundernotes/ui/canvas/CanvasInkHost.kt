@@ -310,38 +310,34 @@ class CanvasInkHost @JvmOverloads constructor(
     }
 
     private fun capturePoint(ev: MotionEvent) {
+        // Capture ALL coalesced/historical points, not just the latest event.
+        // AndroidX Ink's addToStroke processes them for the LIVE rendering, but
+        // our StrokeRecord must mirror the same points or the persisted/reloaded
+        // stroke loses its intermediate samples (visible as jagged strokes after
+        // an undo→redo or app restart, and doubled sample spacing on 120/144Hz
+        // displays like the OnePlus Pad 2 where many points coalesce per frame).
+        val historyCount = ev.historySize
+        for (h in 0 until historyCount) {
+            trackedXy.add(ev.getHistoricalX(0, h))
+            trackedXy.add(ev.getHistoricalY(0, h))
+            trackedAttrs.add((ev.getHistoricalEventTime(h) - downEventTime).toFloat())
+            trackedAttrs.add(pressureOrNone(ev.getHistoricalPressure(0, h)))
+            trackedAttrs.add(0f)  // tilt — MotionEvent historical tilt extraction is complex; refine later
+            trackedAttrs.add(0f)  // orientation
+            trackedAttrs.add(0f)  // reserved (ATTR_STRIDE=5)
+        }
         trackedXy.add(ev.getX(0))
         trackedXy.add(ev.getY(0))
         // 5 attrs per point: elapsedMs, pressure, tilt, orientation, 0
-        val elapsed = (ev.eventTime - downEventTime).toFloat()
-        val pressure = if (ev.getPressure(0) > 0f) ev.getPressure(0) else 1f
-        trackedAttrs.add(elapsed)
-        trackedAttrs.add(pressure)
-        trackedAttrs.add(0f)  // tilt — MotionEvent historical tilt extraction is complex; refine later
+        trackedAttrs.add((ev.eventTime - downEventTime).toFloat())
+        trackedAttrs.add(pressureOrNone(ev.getPressure(0)))
+        trackedAttrs.add(0f)  // tilt
         trackedAttrs.add(0f)  // orientation
         trackedAttrs.add(0f)  // reserved (ATTR_STRIDE=5)
     }
 
-    /** Build the StrokeRecord from tracked inputs + the current brush config, keyed by the
-     *  record id we minted at startStroke (so undo can target it). */
-    private fun buildRecord(inkId: androidx.ink.authoring.InProgressStrokeId): StrokeRecord? {
-        val cfg = currentConfig ?: return null
-        val recordId = inkIdToRecordId.remove(inkId) ?: UUID.randomUUID().toString()
-        if (trackedXy.size < 2) return null // need at least 1 point (2 floats)
-        return StrokeRecord(
-            id = recordId,
-            layerId = "layer-0",
-            pageId = "page-0",
-            creationTime = System.currentTimeMillis(),
-            brushSize = cfg.sizeDp,
-            brushColorArgb = cfg.colorArgb,
-            brushEpsilon = cfg.epsilon,
-            brushFamilyId = cfg.familyId,
-            toolType = cfg.toolType,
-            inputXy = trackedXy.toList(),
-            inputAttrs = trackedAttrs.toList(),
-        )
-    }
+    private fun pressureOrNone(p: Float): Float =
+        if (p > 0f) p else 1f
 
     private fun handleFinished(
         finished: Map<androidx.ink.authoring.InProgressStrokeId, androidx.ink.strokes.Stroke>,

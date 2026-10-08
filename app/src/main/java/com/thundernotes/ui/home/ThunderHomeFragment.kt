@@ -74,7 +74,8 @@ class ThunderHomeFragment : Fragment() {
             }
         )
         binding.recentNotesRecycler.apply {
-            layoutManager = GridLayoutManager(requireContext(), 3)
+            layoutManager = GridLayoutManager(requireContext(),
+                com.thundernotes.ui.common.ResponsiveSpans.cardSpans(requireContext()))
             adapter = noteAdapter
         }
     }

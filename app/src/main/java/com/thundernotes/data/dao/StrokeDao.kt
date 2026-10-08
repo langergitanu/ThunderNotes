@@ -32,6 +32,14 @@ interface StrokeDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(strokes: List<StrokeEntity>): List<Long>
 
+    /**
+     * Insert-or-replace by stroke_id — the editor's incremental auto-save path.
+     * REPLACE (not ABORT) because an undo→redo cycle legitimately re-inserts
+     * a stroke row with the same id that was deleted on the undo.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(stroke: StrokeEntity)
+
     @Update
     suspend fun update(stroke: StrokeEntity)
 

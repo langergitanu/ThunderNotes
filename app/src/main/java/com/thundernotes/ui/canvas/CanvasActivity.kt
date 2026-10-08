@@ -8,8 +8,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,8 +29,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.thundernotes.R
+import com.thundernotes.ThunderNotesApp
 import com.thundernotes.canvas.BrushRegistry
 import com.thundernotes.canvas.CanvasDocument
+import com.thundernotes.canvas.DocAction
+import com.thundernotes.canvas.PageRecord
 import com.thundernotes.canvas.StrokeRecord
 import com.thundernotes.canvas.TextBoxRecord
 import com.thundernotes.canvas.lasso.LassoOps
@@ -91,7 +92,11 @@ class CanvasActivity : AppCompatActivity(),
     private val swatchViews: MutableList<View> = mutableListOf()
     private val strokeWidthViews: MutableList<View> = mutableListOf()
 
-    private var titleEditing = false  // guard so observer doesn't echo edits back
+    // ─── Persistence/session state (spec §2.5 auto-save) ──────────────────
+    /** True once openSessionAndLoad() ran (the auto-save loop is started). */
+    private var sessionLoaded = false
+    /** Rendered page height per pageId (grows with §7.4 writing space). */
+    private val pageHeightPxById = mutableMapOf<String, Int>()
 
     // ─── Phase 8: real Ink canvas ────────────────────────────────────────────
     // The document is the stroke/undo/redo source of truth (pure + tested).
@@ -156,10 +161,27 @@ class CanvasActivity : AppCompatActivity(),
         // Load (or create) the note. Empty id → new untitled note.
         viewModel.load(intent.getStringExtra(EXTRA_NOTE_ID))
 
+        // Keep the document's current page synced with the VISIBLE page while
+        // scrolling — strokes / eraser hits / text taps target the page the user
+        // actually sees, not whichever page was last explicitly selected.
+        binding.pageScroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            syncCurrentPageFromScroll(scrollY)
+        }
+
         // System back = activity back (consistent with the ← button).
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() { finish() }
         })
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Spec §2.5 auto-save: flush pending DAO writes into the .thunder ZIP
+        // when the editor leaves the foreground. Runs on the app scope so it
+        // survives the activity's lifecycle being torn down.
+        if (sessionLoaded) {
+            ThunderNotesApp.appScope().launch { viewModel.zipNow() }
+        }
     }
 
     // ─── wiring ─────────────────────────────────────────────────────────────
@@ -234,6 +256,10 @@ class CanvasActivity : AppCompatActivity(),
             menu.show()
         }
         // Rename on IME action "Done" or when focus leaves the title field.
+        // (A TextWatcher guard was removed — it set/cleared its flag inside the
+        // same event dispatch, so it never actually guarded the render echo.
+        // The render() side now simply skips title updates while the field has
+        // focus, and renameNote() no-ops when the text is unchanged.)
         binding.noteTitle.setOnEditorActionListener { v, _, _ ->
             viewModel.renameNote(v.text.toString())
             false
@@ -241,13 +267,6 @@ class CanvasActivity : AppCompatActivity(),
         binding.noteTitle.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) viewModel.renameNote(binding.noteTitle.text.toString())
         }
-        binding.noteTitle.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                titleEditing = true
-            }
-            override fun afterTextChanged(s: Editable?) { titleEditing = false }
-        })
     }
 
     /** Palette-rename dialog (spec §6.10.7 — Sunflower can be renamed; here
@@ -289,12 +308,7 @@ class CanvasActivity : AppCompatActivity(),
             viewModel.zoomOut()
             applyZoom()
         }
-        binding.btnAddPage.setOnClickListener {
-            viewModel.addPage()
-            document.addPage()
-            addPageItem(pageNumber = document.totalPages)
-            syncUndoRedoFlags()
-        }
+        binding.btnAddPage.setOnClickListener { handleAddPage() }
         // Phase 8b: Gridline toggle (§6.10 Row 2c). Long-press → m×n presets.
         binding.btnGridline.setOnClickListener { viewModel.toggleGrid() }
         binding.btnGridline.setOnLongClickListener { anchor ->
@@ -332,33 +346,39 @@ class CanvasActivity : AppCompatActivity(),
             imagePicker.launch(arrayOf("image/*"))
         }
         // Add Writing Space (§6.10 Row 3c + §7.4): insert a spacer gap on the
-        // current page. The spacer is recorded in CanvasSpacerManager (the tested
-        // O(log N) page-local Fenwick algorithm); the visual page-card growth +
-        // stroke reflow (content below the spacer shifts by the cumulative offset)
-        // is the remaining rendering piece.
+        // current page. The gap is appended AFTER the page's existing content
+        // (content-bottom), so existing strokes/textboxes never move — this
+        // keeps the operation O(1) on the render path (no reflow) and matches
+        // the page-local immutable-coordinate model (thunder-format-proposal
+        // Part C). The page card grows by the gap; the spacer row + new page
+        // height persist to the per-note DB (auto-save).
         binding.btnAddSpace.setOnClickListener {
-            // §7.4 Add Extra Writing Space: insert a spacer (recorded in the
-            // page-local CanvasSpacerManager) + grow the page root's height
-            // by the gap so the user sees the extra blank canvas. The drag-
-            // the-fat-blue-arrow interaction is a refinement; this makes the
-            // button functional (extra space appears immediately).
             val state = viewModel.uiState.value
             val idx = state.currentPageIndex
-            val pageId = document.currentPage?.id.orEmpty()
+            val page = document.pages.getOrNull(idx) ?: return@setOnClickListener
+            val pageId = page.id
             val gapPx = dp(200)
-            spacerManager.insertSpacer(pageId, offsetInPage = 500f, height = gapPx.toFloat())
+            val offset = contentBottomOn(page)
+            spacerManager.insertSpacer(pageId, offsetInPage = offset, height = gapPx.toFloat())
             // Grow the page root's height.
             val root = pageRoots.getOrNull(idx)
             if (root != null) {
                 val lp = root.layoutParams
+                val base = pageHeightPxById[pageId] ?: root.height
+                val newHeight = base + gapPx
+                pageHeightPxById[pageId] = newHeight
                 if (lp is LinearLayout.LayoutParams) {
-                    lp.height = lp.height + gapPx
+                    lp.height = newHeight
                     root.layoutParams = lp
                 } else if (lp is ViewGroup.MarginLayoutParams) {
-                    lp.height = lp.height + gapPx
+                    lp.height = newHeight
                     root.layoutParams = lp
                 }
             }
+            // Persist (§2.5 auto-save): the spacer row + the grown page height.
+            viewModel.persistSpacer(pageId, offset, gapPx.toFloat())
+            viewModel.persistPageHeight(pageId,
+                (pageHeightPxById[pageId] ?: dp(990)) )
             Toast.makeText(this,
                 getString(R.string.canvas_space_added, gapPx),
                 Toast.LENGTH_SHORT).show()
@@ -494,12 +514,40 @@ class CanvasActivity : AppCompatActivity(),
             }
             menu.show()
         }
-        // Change Cover Page — the cover picker is launched from the note's
-        // 3-dot menu (Change Cover). From the canvas, redirect the user there.
+        // Change Cover Page (spec §6.10 Row 2 right) — opens the same cover
+        // template picker the library's 3-dot menu uses (60 preinstalled
+        // engineering covers) and applies it to the current note.
         binding.btnChangeCover.setOnClickListener {
-            Toast.makeText(this,
-                "Use the note's 3-dot menu → Change Cover to pick a cover",
-                Toast.LENGTH_LONG).show()
+            val noteId = viewModel.uiState.value.noteId
+            if (noteId.isBlank()) {
+                Toast.makeText(this, R.string.overflow_cover_pending, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            lifecycleScope.launch {
+                val templates = runCatching {
+                    com.thundernotes.data.repository.RepositoryModule.templates
+                        .observeAll().first()
+                }.getOrDefault(emptyList())
+                if (templates.isEmpty()) {
+                    Toast.makeText(this@CanvasActivity,
+                        R.string.overflow_cover_pending, Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                val items = templates.map { it.displayName }.toTypedArray()
+                AlertDialog.Builder(this@CanvasActivity)
+                    .setTitle(R.string.overflow_change_cover)
+                    .setItems(items) { _, which ->
+                        val t = templates[which]
+                        lifecycleScope.launch {
+                            com.thundernotes.data.repository.RepositoryModule.notes
+                                .changeCover(noteId, t.templateId)
+                        }
+                        Toast.makeText(this@CanvasActivity,
+                            R.string.overflow_cover_changed, Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
         }
         // LaTeX Direct-Input shortcut (§7.7 — typed LaTeX → strokes → clipboard).
         binding.btnLatexDirect.setOnClickListener {
@@ -713,16 +761,16 @@ class CanvasActivity : AppCompatActivity(),
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
-            onStrokeFinished = { record -> handleStrokeFinished(record) }
-            onStrokeRemoved = { id ->
-                document.removeStroke(id)
-                syncUndoRedoFlags()
-            }
+            // Page-aware callbacks: every mutation targets THIS page (the
+            // visible page + the document's current page can diverge while
+            // scrolling; the captured index is authoritative).
+            onStrokeFinished = { record -> handleStrokeFinished(pageIndex, record) }
+            onStrokeRemoved = { id -> handleStrokeRemoved(pageIndex, id) }
             // Phase 9h: eraser hit-test callbacks (spec §6.10.6d). The host
             // calls these with page-local coords; we look up the stroke(s) from
-            // the document's current page + return the ids to remove.
+            // THIS page + return the ids to remove.
             onErasePoint = { x, y ->
-                val strokes = document.currentStrokes
+                val strokes = document.pages.getOrNull(pageIndex)?.strokes ?: emptyList()
                 val r = viewModel.uiState.value.eraserSizeDp *
                     (resources.displayMetrics.density)
                 // Topmost stroke (most-recently-drawn wins) whose bbox contains
@@ -739,17 +787,17 @@ class CanvasActivity : AppCompatActivity(),
             }
             onEraseRect = { l, t, r, b ->
                 // Area eraser: every stroke whose bbox intersects the drag rect.
-                val sel = com.thundernotes.canvas.lasso.LassoSelector.selectByRect(
-                    document.currentStrokes, l, t, r, b
-                )
-                sel.strokeIds
+                val pageStrokes = document.pages.getOrNull(pageIndex)?.strokes ?: emptyList()
+                com.thundernotes.canvas.lasso.LassoSelector.selectByRect(
+                    pageStrokes, l, t, r, b
+                ).strokeIds
             }
             // Phase 8b: TEXT + LASSO tool routing (per-page, with the page index
             // captured so the activity targets the right page's overlays/layers).
-            onTextTap = { x, y -> handleTextTap(x, y) }
+            onTextTap = { x, y -> handleTextTap(pageIndex, x, y) }
             // Phase 9j: FILLER tool (§6.10.6f) — tap → drop a translucent
             // filled rect (a fill stamp) at the tap point.
-            onFillTap = { x, y -> handleFillTap(x, y) }
+            onFillTap = { x, y -> handleFillTap(pageIndex, x, y) }
             onLassoDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }
             onLassoEnd = { l, t, r, b -> handleLassoEnd(pageIndex, l, t, r, b) }
             onShapeDrag = { l, t, r, b -> handleLassoDrag(pageIndex, l, t, r, b) }  // reuse lasso overlay for the shape preview
@@ -763,6 +811,13 @@ class CanvasActivity : AppCompatActivity(),
         pageLassoOverlays.add(pageBinding.lassoOverlay)
         pageGridlineOverlays.add(pageBinding.gridlineOverlay)
         pageRulerOverlays.add(pageBinding.rulerOverlay)
+        // Track the page's rendered height (§7.4 writing space grows it).
+        document.pages.getOrNull(pageIndex)?.let { page ->
+            if (!pageHeightPxById.containsKey(page.id)) {
+                pageHeightPxById[page.id] =
+                    pageBinding.root.layoutParams.height.takeIf { it > 0 } ?: dp(990)
+            }
+        }
         binding.pagesContainer.addView(pageBinding.root)
 
         // Phase 8b: pages sidebar / minimap chip (canvasUtilityPage) — a small
@@ -812,6 +867,9 @@ class CanvasActivity : AppCompatActivity(),
             Toast.makeText(this, R.string.canvas_paste_empty, Toast.LENGTH_SHORT).show()
             return
         }
+        // Make sure the document's current page matches the visible one — the
+        // injector writes to document.currentPage.
+        document.goToPage(viewModel.uiState.value.currentPageIndex)
         val idx = viewModel.uiState.value.currentPageIndex
         when (item) {
             is ClipboardItem.StrokeGroup -> {
@@ -820,13 +878,18 @@ class CanvasActivity : AppCompatActivity(),
                 pageCompletedViews.getOrNull(idx)?.let { cv ->
                     records.forEach { cv.addFromRecord(it) }
                 }
+                // §2.5 auto-save: write the pasted strokes through to the DB.
+                records.forEach { viewModel.persistStrokeUpsert(it) }
             }
             is ClipboardItem.TextBox -> {
                 // Phase 9g: the textbox injection path is now wired — pasted
                 // TEXT/CODE snip outputs land on the canvas. The injector adds
                 // the TextBoxRecord to the document + returns it for rendering.
                 val tb = injector.injectTextbox(item, dropX = 0f, dropY = 0f)
-                if (tb != null) renderTextbox(idx, tb)
+                if (tb != null) {
+                    renderTextbox(idx, tb)
+                    viewModel.persistTextboxUpsert(tb)
+                }
             }
         }
         syncUndoRedoFlags()
@@ -847,8 +910,8 @@ class CanvasActivity : AppCompatActivity(),
     }
 
     /** TEXT-tool tap (spec §7.1 Textbox): open a text-input dialog + drop a
-     *  [TextBoxRecord] at the tap coords on the current page's textbox layer. */
-    private fun handleTextTap(x: Float, y: Float) {
+     *  [TextBoxRecord] at the tap coords on the tapped page's textbox layer. */
+    private fun handleTextTap(pageIndex: Int, x: Float, y: Float) {
         val state = viewModel.uiState.value
         val input = EditText(this).apply {
             hint = getString(R.string.canvas_textbox_hint)
@@ -865,16 +928,19 @@ class CanvasActivity : AppCompatActivity(),
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val text = input.text?.toString().orEmpty().trim()
                 if (text.isEmpty()) return@setPositiveButton
+                val pageId = document.pages.getOrNull(pageIndex)?.id.orEmpty()
                 val tb = TextBoxRecord(
-                    pageId = document.currentPage?.id.orEmpty(),
+                    pageId = pageId,
                     text = text,
                     x = x, y = y,
                     colorArgb = (state.selectedColorArgb
                         ?: EditorPalette.COLORS.getOrNull(state.selectedColorIndex)
                         ?: 0xFF1A1A1A.toInt()),
                 )
+                document.goToPage(pageIndex)
                 document.addTextbox(tb)
-                renderTextbox(state.currentPageIndex, tb)
+                renderTextbox(pageIndex, tb)
+                viewModel.persistTextboxUpsert(tb)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -937,10 +1003,10 @@ class CanvasActivity : AppCompatActivity(),
                 com.thundernotes.ui.common.FontCache.get(tb.fontFamily),
                 android.graphics.Typeface.ITALIC,
             )
-            // Underline (spec §7.1 lists 4 styles; thin is the baseline).
-            if (tb.underline != 0) {
-                paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-            }
+            // Underline (spec §7.1: thin / thick / dashed / wavy). Thin uses the
+            // paint flag; the other three are custom LineBackgroundSpans so
+            // they work per visual line (multiline-safe).
+            applyUnderline(tb.underline)
             // Long-press → open the §7.1 editor popup (edit text + formatting).
             setOnLongClickListener {
                 TextboxEditorBottomSheet.newInstance(tb) { updated ->
@@ -964,6 +1030,24 @@ class CanvasActivity : AppCompatActivity(),
         layer.addView(tv, lp)
     }
 
+    /** Apply one of the §7.1 underline styles to this TextView. */
+    private fun TextView.applyUnderline(underlineType: Int) {
+        when (underlineType) {
+            1 -> paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            2 -> spanWholeText(ThickUnderlineSpan())
+            3 -> spanWholeText(DashedUnderlineSpan())
+            4 -> spanWholeText(WavyUnderlineSpan())
+        }
+    }
+
+    private fun TextView.spanWholeText(span: Any) {
+        val content = text ?: return
+        val spannable = android.text.SpannableString(content)
+        spannable.setSpan(span, 0, spannable.length,
+            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        text = spannable
+    }
+
     /**
      * Apply a textbox edit (§7.1 editor Apply): remove the old TextView from
      * the page's textbox layer + re-render with the updated record. The
@@ -973,13 +1057,22 @@ class CanvasActivity : AppCompatActivity(),
     private fun applyTextboxEdit(pageIndex: Int, textboxId: String, updated: TextBoxRecord) {
         val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
         // Find + remove the old TextView whose tag matches the textbox id.
+        removeTextboxView(pageIndex, textboxId)
+        // Swap the record in the document (undoable) + re-render (tagged).
+        document.goToPage(pageIndex)
+        document.updateTextbox(updated)
+        renderTextbox(pageIndex, updated)
+        // §2.5 auto-save: write the edit through to the per-note DB.
+        viewModel.persistTextboxUpsert(updated)
+    }
+
+    /** Remove the rendered TextView for [textboxId] from a page's textbox layer. */
+    private fun removeTextboxView(pageIndex: Int, textboxId: String) {
+        val layer = pageTextboxLayers.getOrNull(pageIndex) ?: return
         for (i in 0 until layer.childCount) {
             val child = layer.getChildAt(i)
             if (child.tag == textboxId) { layer.removeViewAt(i); break }
         }
-        // Swap the record in the document (undoable) + re-render (tagged).
-        document.updateTextbox(updated)
-        renderTextbox(pageIndex, updated)
     }
 
     // ─── Phase 8b: Lasso (spec §7.2 — select + 9 functions) ────────────────
@@ -1036,9 +1129,10 @@ class CanvasActivity : AppCompatActivity(),
         val cv = pageCompletedViews.getOrNull(pageIndex)
         for (s in strokes) {
             // Re-stamp the page id (ShapeGeometry uses a "shape" placeholder).
-            val record = s.copy(pageId = document.currentPage?.id.orEmpty())
+            val record = s.copy(pageId = document.pages.getOrNull(pageIndex)?.id.orEmpty())
             document.addStroke(record)
             cv?.addFromRecord(record)
+            viewModel.persistStrokeUpsert(record)
         }
         syncUndoRedoFlags()
     }
@@ -1053,14 +1147,14 @@ class CanvasActivity : AppCompatActivity(),
      * (it's an ordinary textbox → the eraser + lasso work on it). A future
      * editor can expose the opacity slider + true flood-fill.
      */
-    private fun handleFillTap(x: Float, y: Float) {
+    private fun handleFillTap(pageIndex: Int, x: Float, y: Float) {
         val state = viewModel.uiState.value
         val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
         // Bake 50% alpha into the fill color (spec §6.10.6f Fill Opacity).
         val alpha = (0x80 shl 24) or (color and 0x00FFFFFF)
         val sizeDp = state.selectedStrokeWidthDp ?: 3.0f
         val sizePx = sizeDp * 20f * resources.displayMetrics.density  // stamp ≈ 20× the stroke width
-        val pageId = document.currentPage?.id.orEmpty()
+        val pageId = document.pages.getOrNull(pageIndex)?.id.orEmpty()
         val tb = com.thundernotes.canvas.TextBoxRecord(
             pageId = pageId,
             text = "",
@@ -1070,8 +1164,10 @@ class CanvasActivity : AppCompatActivity(),
             widthPx = sizePx,
             heightPx = sizePx,
         )
+        document.goToPage(pageIndex)
         document.addTextbox(tb)
-        renderTextbox(state.currentPageIndex, tb)
+        renderTextbox(pageIndex, tb)
+        viewModel.persistTextboxUpsert(tb)
         Toast.makeText(this, R.string.canvas_fill_done, Toast.LENGTH_SHORT).show()
     }
 
@@ -1089,8 +1185,15 @@ class CanvasActivity : AppCompatActivity(),
         val state = viewModel.uiState.value
         val color = state.selectedColorArgb ?: EditorPalette.COLORS.first()
         val width = state.selectedStrokeWidthDp ?: EditorStrokeWidths.WIDTHS_DP[EditorStrokeWidths.DEFAULT_WIDTH_INDEX]
+        // Density-scaled + centered on the actual page (was hardcoded px,
+        // which broke proportions on different-density tablets).
+        val pageW = (pageRoots.getOrNull(idx)?.width?.takeIf { it > 0 } ?: dp(700)).toFloat()
+        val w = dp(480).toFloat().coerceAtMost(pageW - dp(32))
+        val h = dp(320).toFloat()
+        val x0 = ((pageW - w) / 2f).coerceAtLeast(dp(16).toFloat())
+        val y0 = dp(40).toFloat()
         val strokes = com.thundernotes.canvas.lasso.TableGeometry.buildTable(
-            x = 50f, y = 50f, w = 600f, h = 400f, rows = rows, cols = cols,
+            x = x0, y = y0, w = w, h = h, rows = rows, cols = cols,
             colorArgb = color, brushSize = width,
             borderVisible = borderVisible,
             borderThickness = width * 1.3f,
@@ -1098,9 +1201,10 @@ class CanvasActivity : AppCompatActivity(),
             altRowColor = altRowColor,
         )
         for (s in strokes) {
-            val record = s.copy(pageId = document.currentPage?.id.orEmpty())
+            val record = s.copy(pageId = document.pages.getOrNull(idx)?.id.orEmpty())
             document.addStroke(record)
             cv?.addFromRecord(record)
+            viewModel.persistStrokeUpsert(record)
         }
         syncUndoRedoFlags()
     }
@@ -1130,6 +1234,7 @@ class CanvasActivity : AppCompatActivity(),
                 0 -> { // Cut — clipboard + remove (drawn: host; injected: cv)
                     LassoOps.cut(document, sel)
                     sel.forEach { host?.removeStrokeFromView(it.id); cv?.remove(it.id) }
+                    sel.forEach { viewModel.persistStrokeRemove(it.pageId, it.id) }
                     syncUndoRedoFlags()
                 }
                 1 -> { // Copy — clipboard only
@@ -1151,6 +1256,7 @@ class CanvasActivity : AppCompatActivity(),
                 10 -> { // Delete — remove (no clipboard)
                     LassoOps.delete(document, sel)
                     sel.forEach { host?.removeStrokeFromView(it.id); cv?.remove(it.id) }
+                    sel.forEach { viewModel.persistStrokeRemove(it.pageId, it.id) }
                     syncUndoRedoFlags()
                 }
                 // §6.10 Row 3d/e/f — Vertical/Horizontal Shifters (lasso-selected content repositions).
@@ -1183,6 +1289,7 @@ class CanvasActivity : AppCompatActivity(),
             host?.removeStrokeFromView(old.id)       // drawn-stroke: off the in-progress view
             cv?.remove(old.id)                        // injected-stroke: off the completed view (no redo buffer)
             cv?.addFromRecord(new)                    // re-render the transformed stroke on the completed view
+            viewModel.persistStrokeUpsert(new)        // §2.5 auto-save: write-through the transform
         }
         syncUndoRedoFlags()
     }
@@ -1281,24 +1388,79 @@ class CanvasActivity : AppCompatActivity(),
         }
     }
 
-    /** A finished stroke arrived from a host → record it in the document. */
-    private fun handleStrokeFinished(record: StrokeRecord) {
-        document.addStroke(record)
+    /** A finished stroke arrived from a host → record it in the document
+     *  (on the page the host belongs to) + persist. */
+    private fun handleStrokeFinished(pageIndex: Int, record: StrokeRecord) {
+        val page = document.pages.getOrNull(pageIndex)
+        val stamped = if (page != null) record.copy(pageId = page.id) else record
+        document.goToPage(pageIndex)
+        document.addStroke(stamped)
+        viewModel.persistStrokeUpsert(stamped)
+        syncUndoRedoFlags()
+    }
+
+    /** An eraser removed a stroke on a host → remove it from the model + the
+     *  completed-strokes layer (drawn strokes vanish from the Ink view inside
+     *  the host; injected strokes only live on the CompletedStrokesView —
+     *  previously they were erased from the model but stayed visible). */
+    private fun handleStrokeRemoved(pageIndex: Int, strokeId: String) {
+        val page = document.pages.getOrNull(pageIndex) ?: return
+        if (document.removeStrokeFromPage(page.id, strokeId) != null) {
+            pageCompletedViews.getOrNull(pageIndex)?.remove(strokeId)
+            viewModel.persistStrokeRemove(page.id, strokeId)
+        }
+        syncUndoRedoFlags()
+    }
+
+    /** Add a page: model + view + VM counters + DB row, in one place (was
+     *  duplicated across the button handler). */
+    private fun handleAddPage() {
+        viewModel.addPage()
+        val newIdx = document.addPage()
+        addPageItem(pageNumber = document.totalPages)
+        val pageId = document.pages.getOrNull(newIdx)?.id ?: return
+        pageHeightPxById[pageId] = pageRoots.getOrNull(newIdx)?.height ?: dp(990)
+        viewModel.persistPageAdd(pageId, newIdx, pageHeightPxById[pageId] ?: dp(990))
         syncUndoRedoFlags()
     }
 
     private fun handleUndo() {
         val undone = document.undo()
         if (undone) {
-            // Phase 8b: remove the undone stroke from whichever layer renders it.
-            // Drawn strokes live on the InProgressStrokesView (host); injected/pasted
-            // strokes live on the CompletedStrokesView. Try both — only the one that
-            // has the stroke succeeds. (RemoveStroke/AddPage undos are model-only.)
-            val action = document.lastUndoneAction
-            if (action is com.thundernotes.canvas.DocAction.AddStroke) {
-                val idx = viewModel.uiState.value.currentPageIndex
-                pageHosts.getOrNull(idx)?.removeStrokeFromView(action.stroke.id)
-                pageCompletedViews.getOrNull(idx)?.remove(action.stroke.id)
+            // Drive the VISUAL undo from the document action — each action
+            // knows which page it belongs to (the old code assumed the current
+            // page, which broke for strokes drawn on a different page).
+            when (val action = document.lastUndoneAction) {
+                is DocAction.AddStroke -> {
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) {
+                        pageHosts.getOrNull(idx)?.removeStrokeFromView(action.stroke.id)
+                        pageCompletedViews.getOrNull(idx)?.remove(action.stroke.id)
+                    }
+                    viewModel.persistStrokeRemove(action.pageId, action.stroke.id)
+                }
+                is DocAction.RemoveStroke -> {
+                    // Undoing an erase → put the stroke back on-screen.
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) pageCompletedViews.getOrNull(idx)?.addFromRecord(action.stroke)
+                    viewModel.persistStrokeUpsert(action.stroke)
+                }
+                is DocAction.AddTextbox -> {
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) removeTextboxView(idx, action.textbox.id)
+                    viewModel.persistTextboxRemove(action.textbox.id)
+                }
+                is DocAction.AddPage -> {
+                    // The doc only removes the page when it's still empty —
+                    // mirror that: remove the view only if the page is gone.
+                    if (document.indexOfPage(action.pageId) < 0) {
+                        removePageView(action.pageIndex)
+                        viewModel.persistPageDelete(action.pageId)
+                        viewModel.syncPageCount(document.totalPages,
+                            document.currentPageIndex)
+                    }
+                }
+                null -> {}
             }
         }
         syncUndoRedoFlags()
@@ -1306,26 +1468,160 @@ class CanvasActivity : AppCompatActivity(),
 
     private fun handleRedo() {
         val redone = document.redo()
-        val idx = viewModel.uiState.value.currentPageIndex
-        val cv = pageCompletedViews.getOrNull(idx)
-        if (redone && cv != null) {
-            // Phase 8b: live redo for BOTH injected + drawn strokes.
-            // - Injected/pasted strokes: the CompletedStrokesView keeps a redo
-            //   buffer (its .remove buffered them) → .redo() re-adds the live Stroke.
-            // - Drawn strokes: undo removed them via CompletedStrokesView.remove
-            //   (which also buffered them) → .redo() re-adds. As a fallback, if the
-            //   CompletedStrokesView's redo buffer is empty (e.g. the stroke was
-            //   undone via the InProgressStrokesView path), re-render from the
-            //   document's redone record via addFromRecord.
-            val fromBuffer = cv.redo()
-            if (!fromBuffer) {
-                val action = document.lastRedoneAction
-                if (action is com.thundernotes.canvas.DocAction.AddStroke) {
-                    cv.addFromRecord(action.stroke)
+        if (redone) {
+            // Drive the visual redo from the document's redone action (the
+            // old CompletedStrokesView.redo() buffer could re-add an unrelated
+            // stroke when multiple pages were involved).
+            when (val action = document.lastRedoneAction) {
+                is DocAction.AddStroke -> {
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) {
+                        pageCompletedViews.getOrNull(idx)?.addFromRecord(action.stroke)
+                    }
+                    viewModel.persistStrokeUpsert(action.stroke)
                 }
+                is DocAction.RemoveStroke -> {
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) {
+                        pageHosts.getOrNull(idx)?.removeStrokeFromView(action.stroke.id)
+                        pageCompletedViews.getOrNull(idx)?.remove(action.stroke.id)
+                    }
+                    viewModel.persistStrokeRemove(action.pageId, action.stroke.id)
+                }
+                is DocAction.AddTextbox -> {
+                    val idx = document.indexOfPage(action.pageId)
+                    if (idx >= 0) {
+                        renderTextbox(idx, action.textbox)
+                    }
+                    viewModel.persistTextboxUpsert(action.textbox)
+                }
+                is DocAction.AddPage -> {
+                    if (document.indexOfPage(action.pageId) >= 0 &&
+                        document.indexOfPage(action.pageId) == document.totalPages - 1 &&
+                        pageHosts.size < document.totalPages) {
+                        addPageItem(pageNumber = document.totalPages)
+                        val pageId = action.pageId
+                        pageHeightPxById[pageId] = pageRoots.lastOrNull()?.height ?: dp(990)
+                        viewModel.persistPageAdd(pageId, document.totalPages - 1,
+                            pageHeightPxById[pageId] ?: dp(990))
+                        viewModel.syncPageCount(document.totalPages, document.currentPageIndex)
+                    }
+                }
+                null -> {}
             }
         }
         syncUndoRedoFlags()
+    }
+
+    /** Remove a page's view (page card + its preceding separator + minimap
+     *  chip + all per-page view registries at index [pageIndex]). */
+    private fun removePageView(pageIndex: Int) {
+        if (pageIndex < 0 || pageIndex >= pageHosts.size) return
+        // Child order in pagesContainer: page0, sep, page1, sep, page2…
+        // → page i is at child index i*2 (its separator, when present, at i*2-1).
+        val pageChild = binding.pagesContainer.getChildAt(pageIndex * 2)
+        if (pageIndex > 0) {
+            val sepChild = binding.pagesContainer.getChildAt(pageIndex * 2 - 1)
+            if (sepChild != null && sepChild !== pageChild) binding.pagesContainer.removeView(sepChild)
+        }
+        if (pageChild != null) binding.pagesContainer.removeView(pageChild)
+        binding.pagesSidebar.removeViewAt(pageIndex)
+        pageHosts.removeAt(pageIndex)
+        pageRoots.removeAt(pageIndex)
+        pageCompletedViews.removeAt(pageIndex)
+        pageTextboxLayers.removeAt(pageIndex)
+        pageLassoOverlays.removeAt(pageIndex)
+        pageGridlineOverlays.removeAt(pageIndex)
+        pageRulerOverlays.removeAt(pageIndex)
+        applyTheme()
+    }
+
+    // ─── load-from-DB rebuild (spec §2.5 persistence) ─────────────────────
+
+    /**
+     * Rebuild the whole canvas from the per-note DB's pages: reset the
+     * document (page ids now match the DB's), re-create the per-page views,
+     * and re-render every persisted stroke + textbox. Runs once when the
+     * session opens — this is what makes a note SHOW its previous content
+     * on reopen (previously every reopen started blank).
+     */
+    private fun rebuildFromLoad(loaded: List<NoteEditorViewModel.LoadedPage>) {
+        binding.pagesContainer.removeAllViews()
+        binding.pagesSidebar.removeAllViews()
+        pageHosts.clear()
+        pageRoots.clear()
+        pageCompletedViews.clear()
+        pageTextboxLayers.clear()
+        pageLassoOverlays.clear()
+        pageGridlineOverlays.clear()
+        pageRulerOverlays.clear()
+        pageHeightPxById.clear()
+
+        document.resetWith(loaded.map {
+            PageRecord(
+                id = it.pageId,
+                strokes = it.strokes.toMutableList(),
+                textboxes = it.textboxes.toMutableList(),
+            )
+        })
+        loaded.forEachIndexed { i, p ->
+            addPageItem(pageNumber = i + 1)
+            val cv = pageCompletedViews.getOrNull(i)
+            p.strokes.forEach { cv?.addFromRecord(it) }
+            p.textboxes.forEach { renderTextbox(i, it) }
+        }
+        viewModel.syncPageCount(loaded.size)
+        applyTheme()
+        applyBrushToHosts()
+        syncUndoRedoFlags()
+    }
+
+    /** Open the editing session once the note id is known (triggered from
+     *  render when the state first carries a noteId). */
+    private fun onNoteReadyForSession(noteId: String) {
+        if (sessionLoaded || noteId.isBlank()) return
+        sessionLoaded = true
+        lifecycleScope.launch {
+            val loaded = viewModel.openSessionAndLoad(noteId)
+            if (loaded != null) {
+                rebuildFromLoad(loaded)
+                viewModel.startAutoSaveLoop()
+            }
+        }
+    }
+
+    /** Track which page is visible while scrolling (drives the page indicator
+     *  + the document's current page so mutations target the seen page). */
+    private fun syncCurrentPageFromScroll(scrollY: Int) {
+        if (pageRoots.isEmpty()) return
+        val scale = binding.pagesContainer.scaleY.takeIf { it > 0f } ?: 1f
+        val center = (scrollY + binding.pageScroll.height / 2f) / scale
+        var idx = 0
+        for (i in pageRoots.indices) {
+            if (center >= pageRoots[i].top) idx = i
+        }
+        if (idx != viewModel.uiState.value.currentPageIndex) {
+            document.goToPage(idx)
+            viewModel.goToPage(idx)
+        }
+    }
+
+    /** The bottom edge of the content on a page (strokes + textboxes) — where
+     *  §7.4 writing space is appended. */
+    private fun contentBottomOn(page: PageRecord): Float {
+        var bottom = 0f
+        for (s in page.strokes) {
+            var i = 1
+            while (i < s.inputXy.size) {
+                if (s.inputXy[i] > bottom) bottom = s.inputXy[i]
+                i += 2
+            }
+        }
+        for (tb in page.textboxes) {
+            val tbBottom = tb.y + (tb.heightPx ?: 60f)
+            if (tbBottom > bottom) bottom = tbBottom
+        }
+        return bottom
     }
 
     /** Push the document's undo/redo availability into the VM so the buttons
@@ -1468,10 +1764,15 @@ class CanvasActivity : AppCompatActivity(),
     }
 
     private fun render(state: EditorUiState) {
-        // Title (don't clobber the EditText while the user is typing).
-        if (!titleEditing && binding.noteTitle.text?.toString() != state.noteTitle) {
+        // Title (don't clobber the EditText while the user is editing it).
+        if (!binding.noteTitle.hasFocus() &&
+            binding.noteTitle.text?.toString() != state.noteTitle) {
             binding.noteTitle.setText(state.noteTitle)
         }
+
+        // §2.5 persistence: once the state carries a real noteId, open the
+        // editing session + load the note's persisted pages (one-shot).
+        onNoteReadyForSession(state.noteId)
 
         // Page indicator + zoom
         binding.pageIndicator.text = getString(

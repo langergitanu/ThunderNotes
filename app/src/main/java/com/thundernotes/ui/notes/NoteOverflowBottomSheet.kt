@@ -169,8 +169,9 @@ class NoteOverflowBottomSheet : BottomSheetDialogFragment() {
      *  first since the format is ready). */
     private fun exportNote(note: NoteEntity?) {
         val n = note ?: run { toast(R.string.overflow_export_pending); return }
-        val dir = requireContext().getExternalFilesDir(null)
-        val file = File(dir, n.filePath)
+        // n.filePath is stored absolute; be robust for a future relative form.
+        val file = if (File(n.filePath).isAbsolute) File(n.filePath)
+        else File(requireContext().getExternalFilesDir(null), n.filePath)
         if (!file.exists()) {
             toast(R.string.overflow_export_pending)
             dismiss()
