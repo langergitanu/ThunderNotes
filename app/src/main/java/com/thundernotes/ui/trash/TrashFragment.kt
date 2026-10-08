@@ -28,6 +28,10 @@ import kotlinx.coroutines.launch
  *
  * Shows all trashed notes + folders. Each can be restored or permanently deleted.
  * The top bar has "Restore All" + "Empty Trash" buttons.
+ *
+ * Built on the standard library-fragment pattern (ViewBinding + ViewModel +
+ * RecyclerView + repeatOnLifecycle) — see FoldersLibraryFragment's NEWCOMER
+ * PRIMER for the five-piece recipe this screen repeats.
  */
 class TrashFragment : Fragment() {
 

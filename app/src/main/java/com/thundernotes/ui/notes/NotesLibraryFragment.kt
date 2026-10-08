@@ -24,6 +24,10 @@ import kotlinx.coroutines.launch
  * (blue) + Create Note (red) buttons in the top bar. Note cards show the title,
  * date, page count, and a 3-dots overflow button (Rename / Change Cover / Move /
  * Export / Bookmark / Information / Trash — spec §6.2 says 7 functions).
+ *
+ * Built on the standard library-fragment pattern (ViewBinding + ViewModel +
+ * RecyclerView + repeatOnLifecycle) — see FoldersLibraryFragment's NEWCOMER
+ * PRIMER for the five-piece recipe this screen repeats.
  */
 class NotesLibraryFragment : Fragment() {
 

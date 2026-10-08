@@ -159,6 +159,70 @@ object SnipPreprocessor {
         return SnipImage(w, h, out)
     }
 
+    /**
+     * Downscale by an integer [factor] (2 = halve both dimensions; 1 = no-op)
+     * using area-averaging (box filter) — a 2-4× reduction keeps thin ink lines
+     * visible far better than naive point sampling, which can drop 1-2 px lines
+     * entirely at factor 2.
+     *
+     * Used before diagram tracing: a full-screen capture (e.g. 3000×2000 =
+     * 6.4 MP) would take tens of seconds in the Zhang-Suen thinning loop,
+     * while a 1500×1000 trace is 4× faster and loses no meaningful detail
+     * (the traced group is rescaled to page size afterwards anyway —
+     * [StrokeGroupScaler]).
+     */
+    fun downscale(img: SnipImage, factor: Int): SnipImage {
+        if (factor <= 1) return img
+        val w = (img.width + factor - 1) / factor   // ceil — keep edge pixels
+        val h = (img.height + factor - 1) / factor
+        val out = IntArray(w * h)
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                // Average the factor×factor source block into one pixel.
+                var rs = 0L; var gs = 0L; var bs = 0L; var n = 0
+                for (sy in 0 until factor) {
+                    val syy = y * factor + sy
+                    if (syy >= img.height) continue
+                    for (sx in 0 until factor) {
+                        val sxx = x * factor + sx
+                        if (sxx >= img.width) continue
+                        val p = img.pixels[syy * img.width + sxx]
+                        rs += (p shr 16) and 0xFF
+                        gs += (p shr 8) and 0xFF
+                        bs += (p shr 0) and 0xFF
+                        n++
+                    }
+                }
+                if (n == 0) n = 1
+                out[y * w + x] = (0xFF shl 24) or
+                    ((rs / n).toInt() shl 16) or
+                    ((gs / n).toInt() shl 8) or
+                    (bs / n).toInt()
+            }
+        }
+        return SnipImage(w, h, out)
+    }
+
+    /**
+     * Largest useful integer downscale factor: the smallest [factor] that brings
+     * the larger dimension down to ≤ [maxDim], never shrinking the smaller
+     * dimension below [minDim] (a 1-px-wide trace target is useless). Returns ≥ 1.
+     */
+    fun downscaleFactorFor(width: Int, height: Int, maxDim: Int, minDim: Int = 400): Int {
+        var factor = 1
+        while (factor < 8) {
+            val w = (width + factor - 1) / factor
+            val h = (height + factor - 1) / factor
+            if (maxOf(w, h) <= maxDim) return factor   // current factor is enough
+            val next = factor + 1
+            val nw = (width + next - 1) / next
+            val nh = (height + next - 1) / next
+            if (minOf(nw, nh) < minDim) return factor  // shrinking more → unreadable
+            factor = next
+        }
+        return factor
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     /** Compute the mean grayscale of the image border (top + bottom + left + right rows). */

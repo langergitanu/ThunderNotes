@@ -8,6 +8,16 @@ import kotlinx.serialization.protobuf.ProtoNumber
  * Serialized form of an ink stroke, stored as a BLOB in
  * [com.thundernotes.data.entity.StrokeEntity.inkStrokeBlob].
  *
+ * ── NEWCOMER PRIMER: what is protobuf-style serialization + why BLOB? ───
+ * Protocol Buffers assign each field a NUMBER, not a name — the wire format
+ * is `[field-number][type][payload]` bytes, far smaller + faster to parse
+ * than JSON/XML. kotlinx.serialization's `@ProtoNumber` implements that
+ * scheme on the JVM. Storing the encoded bytes as ONE SQLite BLOB (instead
+ * of one row per point) keeps a 1000-point stroke in a single indexed row —
+ * loading a page stays O(strokes), not O(points). The denormalized columns
+ * on StrokeEntity (brush color/size/bbox) duplicate a few proto fields so
+ * SQL queries can filter without decoding every blob.
+ *
  * Pattern adopted from Notein's `InkStrokeProto` (readable in
  * `penkit/serialization/ink/proto/InkStrokeProto.java`; see
  * `docs/Notein-README.md` §3). We mirror Notein's 14 protobuf fields

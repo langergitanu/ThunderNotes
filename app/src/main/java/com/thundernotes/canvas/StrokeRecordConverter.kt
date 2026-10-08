@@ -15,10 +15,17 @@ import com.thundernotes.data.entity.BrushFamily
  * appear on-screen (the InProgressStrokesView only renders in-progress
  * strokes; finished strokes are handed off to a completed-strokes renderer).
  *
- * Pure point-iteration is delegated to [StrokeRecordPoints] (unit-tested);
- * this class wraps the androidx.ink construction (native-backed, so not
- * unit-testable on the JVM — but the logic it drives is tested via
- * [StrokeRecordPoints]).
+ * ── NEWCOMER PRIMER: why a converter at all? ────────────────────────────
+ * The app deliberately keeps TWO stroke representations:
+ *   - [StrokeRecord] — pure Kotlin (no Android imports): safe to unit-test,
+ *     serialize into the `.thunder` DB, and transform (lasso, paste, trace).
+ *   - `androidx.ink.strokes.Stroke` — the renderable object the Ink GL
+ *     renderer understands, but native-backed (can't be unit-tested on the
+ *     JVM and can't be persisted directly).
+ * This class is the ONLY bridge in the record→renderable direction (the
+ * reverse capture happens in CanvasInkHost when a stroke finishes). The
+ * point-iteration half is split out into [StrokeRecordPoints] precisely so
+ * the pure logic stays JVM-testable.
  *
  * Brush-family mapping: our `thunder-*-v1` family IDs ([BrushFamily]) →
  * `StockBrushes` (the public built-in families — Notein's `.brushfamily`

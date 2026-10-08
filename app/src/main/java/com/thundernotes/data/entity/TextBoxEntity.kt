@@ -80,6 +80,15 @@ data class TextBoxEntity(
     @ColumnInfo(name = "text_color")
     val textColor: Int = 0xFF000000.toInt(),
 
+    /**
+     * Non-null when this textbox holds a CODE-snipped snippet: the language
+     * name (e.g. "Python") identifying it as code, so the renderer re-applies
+     * [com.thundernotes.snip.CodeFormatter] syntax colours after a reload.
+     * Null for ordinary textboxes.
+     */
+    @ColumnInfo(name = "code_language")
+    val codeLanguage: String? = null,
+
     @ColumnInfo(name = "left")
     val left: Float,
     @ColumnInfo(name = "top")

@@ -13,12 +13,22 @@ import com.thundernotes.ui.common.SidebarItem
 /**
  * Launcher Activity + NavHost host.
  *
+ * ── NEWCOMER PRIMER: what is Navigation + why one Activity? ─────────────
+ * Android apps can have one Activity per screen OR one Activity hosting
+ * Fragments swapped in place. This app uses the **single-Activity + NavHost**
+ * style for the library screens: `res/navigation/nav_graph.xml` lists every
+ * screen (fragment) as a "destination"; the [NavHostFragment] in
+ * `activity_main.xml` shows the current one; `navController.navigate(id)`
+ * swaps screens (the system gets back-stack handling for free). The editor
+ * breaks the pattern deliberately — [com.thundernotes.ui.canvas.CanvasActivity]
+ * needs the whole screen + its own lifecycle (see its header).
+ *
  * Tablet-first master-detail layout:
  *   - Persistent left sidebar (280dp, RecyclerView with 7 items: Home, Notes,
  *     Folders, Bookmarks, Trash, Templates, Plugins).
  *   - NavHostFragment on the right that swaps between the 9 library pages.
  *
- * The sidebar is always present on library pages. It will be hidden on Canvas
+ * The sidebar is always present on library pages. It is hidden on Canvas
  * pages (Phase 6) via a separate CanvasActivity (the canvas needs the full
  * screen for the pen tray + page minimap + AI snip overlay).
  *

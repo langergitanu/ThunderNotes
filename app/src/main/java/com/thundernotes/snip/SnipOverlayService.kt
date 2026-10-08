@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.content.res.Resources
 import android.graphics.PixelFormat
 import android.os.Build
@@ -82,7 +83,24 @@ class SnipOverlayService : Service() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        // FGS type rules (Android 14+ / targetSdk 34+): a foreground service must
+        // pick a concrete type. This one is an always-available overlay button —
+        // NOT a capture session — so it uses `specialUse` (the manifest declares
+        // specialUse + the subtype property). The old code called the 2-arg
+        // startForeground while the manifest said `mediaProjection`, which
+        // Android 14+ rejects (that type is only legal AFTER capture consent) →
+        // ForegroundServiceTypeNotAllowedException → crash at app start.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // 3-arg overload: pin the runtime type to specialUse explicitly.
+            startForeground(
+                NOTIFICATION_ID, buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else {
+            // Pre-34: foreground-service types aren't enforced; the 2-arg call
+            // is the classic form (the manifest type is simply unused).
+            startForeground(NOTIFICATION_ID, buildNotification())
+        }
         showFloatingButton()
     }
 

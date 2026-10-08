@@ -27,6 +27,16 @@ import java.io.File
  * — the spec allows "any reliable engine"; the rasterized version is reliable
  * + produces a faithful visual copy of the canvas.
  *
+ * ── NEWCOMER PRIMER: PdfDocument + FileProvider ──────────────────────────
+ * [PdfDocument] (framework class) builds a PDF in memory: `startPage(PageInfo)`
+ * → draw on `page.canvas` with the normal Canvas API → `finishPage` →
+ * `writeTo(outputStream)`. [FileProvider] is the SECURITY piece: since
+ * Android 7 an app may not share raw file paths with other apps — it shares
+ * a `content://` URI instead. The provider (declared in AndroidManifest.xml
+ * + `res/xml/file_paths.xml`) maps a whitelisted folder to such URIs; the
+ * receiving app opens the URI through the provider with only the grant we
+ * gave it (FLAG_GRANT_READ_URI_PERMISSION on the ACTION_SEND intent).
+ *
  * Android-only (PdfDocument + View.draw). No external deps.
  */
 object PdfExporter {

@@ -21,6 +21,16 @@ import com.thundernotes.canvas.StrokeRecordConverter
  * handoff, can be re-added on redo, and can appear when **injected/pasted**
  * from the live-injection clipboard.
  *
+ * ── NEWCOMER PRIMER: what is a custom View? ─────────────────────────────
+ * A [View] is one rectangle in the UI tree; Android asks it to draw itself
+ * by calling `onDraw(canvas)` (we override the render loop via the Ink
+ * renderer instead of hand-drawing each stroke). The golden rule: **never**
+ * draw outside `onDraw`, and after changing any data the drawing depends on,
+ * call `invalidate()` — that schedules a redraw on the next frame. You'll
+ * see `invalidate()` at the end of every mutating method below for exactly
+ * that reason. (ViewStrokeRenderer hooks its own drawing into our View's
+ * canvas during onDraw.)
+ *
  * Operations: [add] (a finished Stroke, keyed by our record id), [remove]
  * (undo — keeps the Stroke for redo), [redo] (re-add the last-removed),
  * [addFromRecord] (inject/paste/load — convert a StrokeRecord → Stroke → add),

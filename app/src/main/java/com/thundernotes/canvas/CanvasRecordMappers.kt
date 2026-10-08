@@ -80,6 +80,7 @@ object CanvasRecordMappers {
             underlineType = underline,
             fillColor = fillColor,
             textColor = colorArgb,
+            codeLanguage = codeLanguage,
             left = x,
             top = y,
             right = x + w,
@@ -111,6 +112,7 @@ object CanvasRecordMappers {
             underline = underlineType,
             colorArgb = textColor,
             fillColor = fillColor,
+            codeLanguage = codeLanguage,   // v2 column — code highlighting survives reload
             widthPx = if (isStamp) (right - left) else null,
             heightPx = if (isStamp) (bottom - top) else null,
         )

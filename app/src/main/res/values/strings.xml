@@ -206,6 +206,12 @@
     <string name="snip_latex_edit_hint">Edit the recognised LaTeX</string>
     <string name="snip_latex_re_render">Re-render</string>
     <string name="snip_latex_confirm">Confirm</string>
+    <!-- Region selection + confirmation (§7.3.4 "Area captured → Confirmation"). -->
+    <string name="snip_region_title">Select the snip area</string>
+    <string name="snip_region_hint">Drag to select a region — drag inside it to move. The selected area is sent for recognition.</string>
+    <string name="snip_region_confirm">Confirm</string>
+    <string name="snip_region_whole_image">Whole image</string>
+    <string name="snip_region_none">Drag an area on the image first</string>
     <!-- Snip Settings (§7.3.6 — API keys + engine toggles + offline model). -->
     <string name="snip_settings_title">Snip Settings</string>
     <string name="settings_export_pdf">Export as PDF</string>

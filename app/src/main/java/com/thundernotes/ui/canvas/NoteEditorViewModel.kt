@@ -28,10 +28,28 @@ import java.util.UUID
 /**
  * ViewModel backing [CanvasActivity] — the full-screen note editor.
  *
- * Owns the editor UI state (tool / color / stroke width / page / zoom) plus
- * the lightweight note-metadata lifecycle (load + rename). The actual stroke
- * authoring + save-to-`.thunder` pipeline is Phase 7; this VM is the
- * interaction + navigation contract today and is fully unit-testable.
+ * ── NEWCOMER PRIMER: what is a ViewModel + StateFlow? ───────────────────
+ * A [ViewModel] outlives configuration changes (rotation, theme) — Android
+ * keeps it alive while the Activity is recreated, so editor state survives
+ * screen turns. NEVER store Views or Activities in it (that leaks memory);
+ * only data. The UI state lives in one [StateFlow] ([uiState]) — the flow
+ * always holds the latest [EditorUiState] snapshot; the activity observes it
+ * and re-renders. To change state: mutate a copy + push it into the flow
+ * (`_uiState.update { … }`) — never mutate the published object in place.
+ * `viewModelScope.launch` runs a coroutine tied to this VM's lifetime; use
+ * `Dispatchers.IO` for disk/network work so the UI thread never blocks.
+ *
+ * ── What this VM owns ────────────────────────────────────────────────────
+ *   - The editor UI state (tool / color / stroke width / page / zoom /
+ *     palm-rejection) in [uiState].
+ *   - The note-metadata lifecycle (load + rename).
+ *   - **The auto-save engine (spec §2.5)** — see the numbered block above
+ *     [openSessionAndLoad]: every stroke/textbox edit is written through to
+ *     the per-note Room DB IMMEDIATELY (persistStrokeUpsert etc. — O(1) per
+ *     change), and a debounced loop + onStop flush the staging DB into the
+ *     `.thunder` ZIP atomically. Crash recovery: the staging DB survives a
+ *     process death, so the next open resumes it — data loss window is one
+ *     ZIP flush, never a whole session.
  *
  * Constructed with a [NotesRepository] so tests can inject a fake. Production
  * uses [RepositoryModule.notes] via the default factory.

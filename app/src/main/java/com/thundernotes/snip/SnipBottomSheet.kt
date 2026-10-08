@@ -2,7 +2,6 @@ package com.thundernotes.snip
 
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,36 +20,33 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The snip-type selector + pipeline runner (spec §7.3). Launched from
- * [com.thundernotes.ui.canvas.CanvasActivity]'s btnAiSnip after capturing the
- * canvas surface.
+ * The snip-type selector + pipeline runner (spec §7.3). Shown after the
+ * region-selection confirmation step ([SnipRegionDialogFragment]) once the
+ * area to recognize has been captured.
  *
- * Shows 4 buttons (Text / Equation / Code / Diagram). On tap:
- * 1. Preprocess the captured bitmap (SnipPreprocessor: binarize → line-detect
- *    → crop per line → optionally upscale — mirrors the user's run_formula.py).
- * 2. Run the [FallbackSnipEngine] (Gemini → GLM → PaddleOCR, skipping disabled/
- *    keyless engines entirely).
- * 3. Map the [SnipResult] to a [ClipboardItem]:
- *    - Text → ClipboardItem.TextBox (recognized text, **Patrick Hand** font).
- *    - LaTeX → (Phase 9c: KaTeX render → centerline trace → StrokeGroup).
- *      Falls back to a Patrick Hand italic textbox (showing the LaTeX) if
- *      the trace fails.
- *    - Code → ClipboardItem.TextBox (formatted code, **Patrick Hand** base font
- *      + codeLanguage carried so the textbox renderer can apply [CodeFormatter]
- *      syntax colours). The colours are font-agnostic spans, so the user can
- *      switch the textbox font to JetBrains Mono afterward without losing
- *      the colours.
- *    - Strokes → (Phase 9d: diagram tracer) traced directly from the image.
- * 4. [ThunderClipboard].put(item) → the paste button glows → the user pastes
- *    via the existing Phase 8b injection path.
+ * Shows 4 buttons (Text / Equation / Code / Diagram). On tap the pipeline is:
+ *  1. **Preprocess** the captured bitmap ([SnipPreprocessor]): binarize to
+ *     pure black-on-white (auto-polarity — handles dark canvases), then
+ *     text-row detection + per-line crops for TEXT/EQUATION. **CODE skips
+ *     line-splitting** — code indentation would be destroyed by per-line
+ *     tight crops, so the whole binarized image is sent in one shot.
+ *  2. **Recognize** via [FallbackSnipEngine] (Gemini → GLM → PaddleOCR;
+ *     keyless/user-disabled engines are skipped entirely).
+ *  3. **Map** the [SnipResult] to a [ClipboardItem]:
+ *     - TEXT → [ClipboardItem.TextBox] (Patrick Hand font).
+ *     - EQUATION → user edits the OCR'd LaTeX ([LatexEditDialog]) →
+ *       [LatexToStrokes] (KaTeX render → centerline trace) → StrokeGroup,
+ *       **scaled to page size** by [StrokeGroupScaler]; falls back to a
+ *       Patrick Hand italic textbox (never silently drop content).
+ *     - CODE → [ClipboardItem.TextBox] + [TextBox.codeLanguage] so the
+ *       textbox renderer applies [CodeFormatter] syntax colours.
+ *     - DIAGRAM → traced directly from the image ([DiagramTracer]) — no OCR —
+ *       downscaled first for speed, then scaled to page size.
+ *  4. [ThunderClipboard].put(item) → the paste button glows → the user pastes
+ *     via the injection path ([com.thundernotes.ui.canvas.CanvasActivity]).
  *
- * **Default font (spec §6.10 + user request):** snipped text, equation
- * (textbox fallback), + code all default to **Patrick Hand** (index 4).
- * After pasting, the user can change the textbox font to any of the 10 spec
- * fonts (+ JetBrains Mono for code) via the textbox editor.
- *
- * The captured bitmap is passed via [Companion.bitmap] (a static holder — the
- * bitmap is too large for Bundle/Intent).
+ * The captured bitmap + the paste-target page size are passed via the
+ * [Companion] (a Bitmap is far too large for a Bundle/Intent).
  */
 class SnipBottomSheet : BottomSheetDialogFragment() {
 
@@ -84,7 +80,7 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                 text = label
                 setOnClickListener {
                     if (type == SnipType.CODE) {
-                        // Show the language sub-selector (don't run yet).
+                        // Show the language sub-selector first (don't run yet).
                         codeLangRow.visibility = if (codeLangRow.visibility == View.VISIBLE)
                             View.GONE else View.VISIBLE
                     } else {
@@ -94,7 +90,6 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             })
         }
         // Code language sub-selector (hidden until Code Snip is tapped).
-        // 6 language buttons + the theme is derived via CodeTheme.forLanguage.
         codeLangRow = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
@@ -108,7 +103,6 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
         val langGrid = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        // 6 language buttons in a row (wraps if narrow — tablet width is fine).
         val langButtons = listOf(
             CodeLanguage.TYPESCRIPT to "TS",
             CodeLanguage.JAVASCRIPT to "JS",
@@ -134,12 +128,19 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Build the engine chain (Gemini → GLM → PaddleOCR; disabled engines
-        // skipped). Uses [SnipSettings.shared] so the SnipSettingsBottomSheet's
-        // engine-disable toggles affect this live chain.
+        // skipped). [SnipSettings.shared] so the settings sheet's toggles
+        // affect this live chain.
         engine = FallbackSnipEngine(
             listOf(GeminiSnipEngine(), GLMSnipEngine(), PaddleOCRSnipEngine()),
             SnipSettings.shared,
         )
+        // Default the paste target to a standard 700×990-dp page when the
+        // canvas didn't provide its real page size (overlay-capture flow).
+        if (pasteTargetWidthPx <= 0f || pasteTargetHeightPx <= 0f) {
+            val d = resources.displayMetrics.density
+            pasteTargetWidthPx = 700f * d
+            pasteTargetHeightPx = 990f * d
+        }
     }
 
     private fun runSnip(type: SnipType, codeLanguage: CodeLanguage?) {
@@ -181,39 +182,61 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             bmp.getPixels(pixels, 0, w, 0, 0, w, h)
             val img = SnipImage(w, h, pixels)
 
-            // 2. Preprocess: binarize → line-detect → crop per line → upscale.
-            val bw = SnipPreprocessor.binarize(img)
-            val bands = SnipPreprocessor.detectLineBands(bw, minHeight = 1)
-
-            // DIAGRAM snips skip the OCR engine entirely — they're traced directly
-            // from the image (no text recognition needed). Spec §7.3.4d:
-            // "traced result converted to native pen strokes."
+            // DIAGRAM snips skip the OCR engine entirely — they're traced
+            // directly from the image (spec §7.3.4d: "traced result converted
+            // to native pen strokes"). The trace runs on a downscaled copy
+            // (Zhang-Suen thinning is O(passes × pixels) — a full-screen
+            // capture would take tens of seconds), then the traced group is
+            // rescaled to a sensible on-page size.
             if (type == SnipType.DIAGRAM) {
-                val strokes = DiagramTracer.trace(img)
-                if (strokes.isNotEmpty()) {
+                val factor = SnipPreprocessor.downscaleFactorFor(w, h, maxDim = 1600)
+                val small = SnipPreprocessor.downscale(img, factor)
+                val traced = DiagramTracer.trace(small)
+                if (traced.isNotEmpty()) {
+                    // Scale from trace-space → page-space so the pasted diagram
+                    // fits on the page (target: ~90% page width / ~70% height).
+                    val (scaled, bbox) = StrokeGroupScaler.fit(
+                        traced, targetW = pasteTargetWidthPx * 0.9f,
+                        targetH = pasteTargetHeightPx * 0.7f,
+                    )
                     return@runCatching ClipboardItem.StrokeGroup(
-                        strokes = strokes,
-                        bbox = floatArrayOf(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
+                        strokes = scaled,
+                        bbox = bbox,
                     )
                 }
                 throw RuntimeException("Diagram tracing produced no strokes")
             }
 
-            val crops = if (bands.isNotEmpty()) {
-                bands.map { band -> SnipPreprocessor.cropLine(bw, band) }
-                    .map { crop -> SnipPreprocessor.upscale(crop, 2) }
-            } else {
-                listOf(SnipPreprocessor.upscale(bw, 2))
+            // 2. Preprocess for OCR: binarize → (TEXT/EQUATION only) line
+            //    detection + per-line crops + 2× upscale. CODE sends the whole
+            //    image in ONE crop — per-line tight crops strip the leading
+            //    whitespace that code indentation depends on — and does NOT
+            //    upscale (2× on a full-screen capture would allocate a ~96MB
+            //    pixel array; the engines handle native resolution fine).
+            val bw = SnipPreprocessor.binarize(img)
+            val crops = when (type) {
+                SnipType.CODE -> listOf(bw)
+                else -> {
+                    val bands = SnipPreprocessor.detectLineBands(bw, minHeight = 1)
+                    if (bands.isNotEmpty()) {
+                        bands.map { band -> SnipPreprocessor.cropLine(bw, band) }
+                            .map { crop -> SnipPreprocessor.upscale(crop, 2) }
+                    } else {
+                        // No text rows detected (blank/odd capture) → send the
+                        // whole binarized image once, WITHOUT upscaling (a 2×
+                        // of a full-screen capture would allocate ~96MB).
+                        listOf(bw)
+                    }
+                }
             }
 
-            // 3. For each line crop → convert to PNG bytes → engine.recognize.
-            val eng = engine ?: return@runCatching Result.failure<ClipboardItem>(
-                RuntimeException("No engine")
-            ).getOrThrow()
+            // 3. For each crop → PNG bytes → engine.recognize.
+            val eng = engine ?: throw RuntimeException("No engine")
             val perLineResults = mutableListOf<SnipResult>()
             for (crop in crops) {
-                // SnipImage → Bitmap → PNG bytes.
-                val cropBmp = Bitmap.createBitmap(crop.width, crop.height, Bitmap.Config.ARGB_8888)
+                val cropBmp = Bitmap.createBitmap(
+                    crop.width, crop.height, Bitmap.Config.ARGB_8888,
+                )
                 cropBmp.setPixels(crop.pixels, 0, crop.width, 0, 0, crop.width, crop.height)
                 val baos = java.io.ByteArrayOutputStream()
                 cropBmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
@@ -225,65 +248,71 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
             if (perLineResults.isEmpty()) throw RuntimeException("All engines failed")
 
             // 4. Map SnipResult → ClipboardItem.
-            // For EQUATION snips (spec §7.3.4b): the OCR'd LaTeX is shown to
-            // the user for editing/re-rendering → on Confirm, the (possibly
-            // edited) LaTeX is traced to strokes → StrokeGroup. Falls back to
-            // a Patrick Hand italic textbox (showing the LaTeX) if the trace
-            // fails or the user cancels (never silently drop content).
             if (type == SnipType.EQUATION) {
-                val ocrLatex = LatexCleaner.joinMultiLine(
-                    perLineResults.map { r -> (r as? SnipResult.LaTeX)?.latex
-                        ?: (r as? SnipResult.Text)?.text ?: "" }
-                )
-                if (ocrLatex.isNotBlank()) {
-                    // §7.3.4b edit step: switch to Main for the dialog.
-                    val edited = withContext(Dispatchers.Main) {
-                        LatexEditDialog.edit(ocrLatex, requireContext())
-                    }
-                    // User cancelled → textbox fallback (the LaTeX is preserved).
-                    if (edited == null) {
-                        return@runCatching ClipboardItem.TextBox(
-                            text = ocrLatex,
-                            fontFamily = FontFamily.PATRICK_HAND,
-                            bold = false, italic = true, underline = 0,
-                            x = 50f, y = 50f,
-                            bbox = floatArrayOf(0f, 0f, 400f, 200f),
-                        )
-                    }
-                    val strokes = LatexToStrokes.convert(edited, requireContext())
-                    if (strokes != null && strokes.isNotEmpty()) {
-                        return@runCatching ClipboardItem.StrokeGroup(
-                            strokes = strokes,
-                            bbox = floatArrayOf(0f, 0f, 600f, 400f),
-                        )
-                    }
-                    // Fallback: Patrick Hand italic textbox (never drop content).
-                    return@runCatching ClipboardItem.TextBox(
-                        text = edited,
-                        fontFamily = FontFamily.PATRICK_HAND,
-                        bold = false, italic = true, underline = 0,
-                        x = 50f, y = 50f,
-                        bbox = floatArrayOf(0f, 0f, 400f, 200f),
-                    )
-                }
+                return@runCatching equationResult(perLineResults)
             }
-
             mapResultToClipboard(perLineResults, type, codeLanguage)
         }
     }
 
     /**
+     * The EQUATION branch (spec §7.3.4b): OCR'd LaTeX → user edit/re-render
+     * dialog → [LatexToStrokes] → **page-scaled** [ClipboardItem.StrokeGroup].
+     * Falls back to a Patrick Hand italic textbox (showing the LaTeX) when the
+     * user cancels or the trace fails — content is never silently dropped.
+     */
+    private suspend fun equationResult(perLineResults: List<SnipResult>): ClipboardItem {
+        val ocrLatex = LatexCleaner.joinMultiLine(
+            perLineResults.map { r -> (r as? SnipResult.LaTeX)?.latex
+                ?: (r as? SnipResult.Text)?.text ?: "" }
+        )
+        if (ocrLatex.isBlank()) {
+            return ClipboardItem.TextBox(
+                text = "", fontFamily = FontFamily.PATRICK_HAND,
+                bold = false, italic = true, underline = 0,
+                x = 50f, y = 50f, bbox = floatArrayOf(0f, 0f, 400f, 200f),
+            )
+        }
+        // §7.3.4b edit step: the dialog must run on the UI thread.
+        val edited = withContext(Dispatchers.Main) {
+            LatexEditDialog.edit(ocrLatex, requireContext())
+        }
+        // User cancelled → textbox fallback (the LaTeX is preserved, not lost).
+        if (edited == null) {
+            return ClipboardItem.TextBox(
+                text = ocrLatex, fontFamily = FontFamily.PATRICK_HAND,
+                bold = false, italic = true, underline = 0,
+                x = 50f, y = 50f, bbox = floatArrayOf(0f, 0f, 400f, 200f),
+            )
+        }
+        val strokes = LatexToStrokes.convert(edited, requireContext())
+        if (strokes != null && strokes.isNotEmpty()) {
+            // Scale the traced group (KaTeX renders at a fixed 1080-px width)
+            // so the pasted equation reads naturally on the page (~55% width).
+            val (scaled, bbox) = StrokeGroupScaler.fit(
+                strokes, targetW = pasteTargetWidthPx * 0.55f,
+                targetH = pasteTargetHeightPx * 0.4f,
+            )
+            return ClipboardItem.StrokeGroup(strokes = scaled, bbox = bbox)
+        }
+        // Trace failed → Patrick Hand italic textbox (never drop content).
+        return ClipboardItem.TextBox(
+            text = edited, fontFamily = FontFamily.PATRICK_HAND,
+            bold = false, italic = true, underline = 0,
+            x = 50f, y = 50f, bbox = floatArrayOf(0f, 0f, 400f, 200f),
+        )
+    }
+
+    /**
      * Map the recognition result(s) to a ClipboardItem for ThunderClipboard.
      *
-     * **Default font = Patrick Hand** (index 4) for TEXT, CODE, + the
-     * EQUATION textbox fallback. The user can change the textbox font
-     * afterward via the textbox editor.
+     * **Default font = Patrick Hand** for TEXT + CODE (the user can change the
+     * textbox font afterward via the textbox editor).
      *
-     * For CODE snips, [codeLanguage] (user-selected) is carried in the
-     * [ClipboardItem.TextBox.codeLanguage] field → the textbox renderer
-     * applies [CodeFormatter] syntax colours on top of the base Patrick Hand
-     * font. The colours are font-agnostic spans, so a font change to
-     * JetBrains Mono (monospace) survives.
+     * For CODE snips, [codeLanguage] (user-selected) is carried in
+     * [ClipboardItem.TextBox.codeLanguage] → the textbox renderer applies
+     * [CodeFormatter] syntax colours on top of the base font. The colours are
+     * font-agnostic spans, so a font change to JetBrains Mono survives.
      */
     private fun mapResultToClipboard(
         results: List<SnipResult>,
@@ -297,7 +326,7 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                         is SnipResult.Text -> r.text
                         is SnipResult.Code -> r.rawCode
                         is SnipResult.LaTeX -> r.latex
-                        is SnipResult.Strokes -> "(strokes)"
+                        is SnipResult.Strokes -> ""
                     }
                 }
                 ClipboardItem.TextBox(
@@ -309,19 +338,20 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                 )
             }
             SnipType.CODE -> {
-                // Join per-line code → a single TextBox. Carry the language so
-                // the textbox renderer can apply [CodeFormatter] colours.
-                val code = results.joinToString("\n") { r ->
-                    when (r) {
-                        is SnipResult.Code -> r.rawCode
-                        is SnipResult.Text -> r.text
-                        is SnipResult.LaTeX -> r.latex
-                        is SnipResult.Strokes -> "(strokes)"
+                // Join the recognized code → one TextBox. Markdown fences are
+                // stripped defensively — vision models often wrap their answer
+                // in ```lang … ``` despite the prompt saying not to.
+                val code = stripCodeFences(
+                    results.joinToString("\n") { r ->
+                        when (r) {
+                            is SnipResult.Code -> r.rawCode
+                            is SnipResult.Text -> r.text
+                            is SnipResult.LaTeX -> r.latex
+                            is SnipResult.Strokes -> ""
+                        }
                     }
-                }
-                // Prefer the user-selected language (displayName), then the
-                // engine's string hint. Normalise both to String? so the
-                // textbox renderer can look up the CodeLanguage by name.
+                )
+                // Prefer the user-selected language, then the engine's hint.
                 val langName: String? = codeLanguage?.displayName
                     ?: (results.firstOrNull { it is SnipResult.Code }
                         as? SnipResult.Code)?.language
@@ -335,10 +365,8 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                 )
             }
             SnipType.EQUATION -> {
-                // Phase 9c: LaTeX → KaTeX → centerline trace → StrokeGroup.
-                // The textbox fallback (Patrick Hand italic) is handled in
-                // runSnipPipeline above; this branch is only reached if the
-                // LaTeX was blank — keep a Patrick Hand placeholder.
+                // Unreachable (equationResult handles this type) — kept as a
+                // safe branch in case of future routing changes.
                 val latex = results.joinToString("\n") { r ->
                     (r as? SnipResult.LaTeX)?.latex ?: (r as? SnipResult.Text)?.text ?: ""
                 }
@@ -351,10 +379,9 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
                 )
             }
             SnipType.DIAGRAM -> {
-                // Phase 9d: diagram trace → StrokeGroup (handled in
-                // runSnipPipeline). Not reached here.
+                // Unreachable (handled at the top of runSnipPipeline).
                 ClipboardItem.TextBox(
-                    text = "(diagram tracing — Phase 9d)",
+                    text = "",
                     fontFamily = FontFamily.PATRICK_HAND,
                     bold = false, italic = false, underline = 0,
                     x = 50f, y = 50f,
@@ -364,9 +391,45 @@ class SnipBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * Remove markdown code fences a model may have added around its answer
+     * (delegates to the pure, tested [SnipTextCleaner.stripCodeFences]).
+     */
+    private fun stripCodeFences(code: String): String =
+        SnipTextCleaner.stripCodeFences(code)
+
+    override fun onDismiss(dialog: android.content.DialogInterface) {
+        super.onDismiss(dialog)
+        // Let the capture activity (when we're shown from the overlay flow)
+        // finish itself once the whole snip interaction is over.
+        onDismissed?.invoke()
+        onDismissed = null
+    }
+
     companion object {
         /** Static holder for the captured bitmap (too large for Bundle/Intent). */
         @Volatile
         var bitmap: Bitmap? = null
+
+        /**
+         * Optional one-shot callback fired when this sheet is dismissed — used
+         * by [SnipCaptureActivity] (the overlay-capture host) to finish itself
+         * AFTER the pipeline completes instead of racing a fragment commit
+         * against activity destruction (the old bug: the sheet never showed).
+         */
+        @Volatile
+        var onDismissed: (() -> Unit)? = null
+
+        /**
+         * The paste-target page size in px (the canvas page the result will be
+         * pasted onto). Set by [com.thundernotes.ui.canvas.CanvasActivity]
+         * before showing the sheet; defaults to the standard 700×990-dp page
+         * (computed from the context when the sheet opens) so the overlay flow
+         * (no canvas context) still scales sensibly.
+         */
+        @Volatile
+        var pasteTargetWidthPx: Float = 0f
+        @Volatile
+        var pasteTargetHeightPx: Float = 0f
     }
 }

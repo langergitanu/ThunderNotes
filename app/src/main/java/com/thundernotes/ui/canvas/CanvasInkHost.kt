@@ -24,6 +24,27 @@ import java.util.UUID
  * The real ink canvas surface — a [FrameLayout] that hosts AndroidX Ink's
  * [InProgressStrokesView] and routes touch input into real pen strokes.
  *
+ * ── NEWCOMER PRIMER: what is AndroidX Ink? ──────────────────────────────
+ * AndroidX Ink (`androidx.ink`, currently alpha) is Google's official
+ * Jetpack library for stylus note-taking apps. It solves the hardest part of
+ * ink apps for you:
+ *   - **Low-latency rendering**: strokes are drawn on a hardware-accelerated
+ *     GL surface with front-buffer rendering (the ink appears under the pen
+ *     tip with almost no delay, like Samsung Notes/Notein). Hand-writing this
+ *     is months of work; the library gives it in one View.
+ *   - **Two-part stroke lifecycle**: while you draw, the stroke lives in an
+ *     [InProgressStrokesView] (fast, temporary); when you lift the pen, the
+ *     view hands the finished `androidx.ink.strokes.Stroke` back via a
+ *     listener, and YOUR app owns it from then on (store/render/save it).
+ *   - **Brush model**: a `Brush` = brush family (marker/pen/highlighter
+ *     stroke texture) + color + size in dp + epsilon (taper smoothness).
+ *     `StockBrushes` are the ready-made families.
+ * This class is the ONLY place that talks to that library directly —
+ * everything downstream works with our own pure [StrokeRecord] model, so the
+ * ink library could be swapped without touching persistence, the document,
+ * or the UI.
+ *
+ * ── What this class does ────────────────────────────────────────────────
  * Built on the same public Jetpack `androidx.ink` library Notein uses
  * (Notein README §0/§2 — "Notein is built on Google's official androidx.ink;
  * it is NOT a hand-rolled ink engine"), so we inherit the same low-latency,
@@ -37,6 +58,13 @@ import java.util.UUID
  *    `androidx.ink.strokes.Stroke`; we capture a [StrokeRecord] (brush fields
  *    from the active config + x/y tracked from the MotionEvents + per-point
  *    attrs from MotionEvent pressure/time) and hand it to [onStrokeFinished].
+ *
+ * **Touch routing** (how one surface serves six tools): this FrameLayout
+ * intercepts ALL touches first ([onInterceptTouchEvent] returns true when
+ * Ink is available) and dispatches by the selected tool — PEN/HIGHLIGHTER
+ * feed Ink directly; ERASER/LASSO/SHAPE/TEXT/FILLER never reach Ink at all
+ * (they are handled by the callbacks the owning activity installs, e.g.
+ * [onErasePoint], [onLassoEnd], [onTextTap]).
  *
  * **Tool mapping** ([EditorBrushConfig] → androidx.ink):
  *  - PEN/HIGHLIGHTER → `StockBrushes.pressurePen()` / `.highlighter()` family

@@ -34,6 +34,16 @@ import com.thundernotes.data.entity.UnderlineType
  * 2 sans-serif (Noto Sans, Inter) + 2 serif (STIX Two Text, Noto Serif) +
  * 6 handwriting (Patrick Hand, Short Stack, Comic Neue, Caveat, Kalam,
  * Edu AU VIC WA NT Hand) + JetBrains Mono for code textboxes.
+ *
+ * ── NEWCOMER PRIMER: what is a BottomSheetDialogFragment? ──────────────
+ * A [BottomSheetDialogFragment] is a Dialog that slides up from the bottom
+ * and DIMS the rest of the screen — used all over this app for contextual
+ * menus + editors (this sheet, the snip-type selector, all library
+ * 3-dot sheets). Key lifecycle facts: `onCreateView` builds its content
+ * (NOT in the activity's XML); `show(fragmentManager, tag)` slides it in;
+ * `dismiss()` slides it out; and it survives rotation, unlike a plain
+ * AlertDialog. Communication with the host happens through a callback
+ * property set before `show()` (see [onApply]) — simple + explicit.
  */
 class TextboxEditorBottomSheet : BottomSheetDialogFragment() {
 

@@ -5,8 +5,19 @@ package com.thundernotes.snip
  * pluggable `SnipEngine` interface, and the chain is tried in the order above
  * until one returns a result").
  *
+ * ── NEWCOMER PRIMER: the strategy + chain-of-responsibility patterns ────
+ * **Strategy**: each engine (Gemini / GLM / PaddleOCR) implements this one
+ * interface, so the pipeline code never names a concrete provider — adding
+ * a 4th engine = one new class, zero edits elsewhere. **Chain of
+ * responsibility**: [FallbackSnipEngine] holds an ordered list of engines
+ * and calls them one-by-one until `recognize()` succeeds — the user gets
+ * online recognition when keys exist, and silently falls back offline
+ * otherwise. `isEnabled()` is the gate: keyless engines are skipped
+ * entirely (no wasted network call), and [SnipSettings] lets the user
+ * disable an engine they dislike.
+ *
  * Implementations:
- *  - [GeminiSnipEngine] — online, Gemini 3 Flash (BYO key, multi-account).
+ *  - [GeminiSnipEngine] — online, Gemini Flash (BYO key, multi-account).
  *  - [GLMSnipEngine] — online, GLM-4.6V (BYO key, multi-account).
  *  - [PaddleOCRSnipEngine] — offline, PaddleOCR-VL-1.6 (model downloaded on-device).
  *  - [FallbackSnipEngine] — tries a list of engines in order until one succeeds.

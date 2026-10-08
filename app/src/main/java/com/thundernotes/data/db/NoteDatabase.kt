@@ -33,6 +33,24 @@ import java.io.File
 /**
  * Per-note Room database.
  *
+ * ── NEWCOMER PRIMER: what is Room? ──────────────────────────────────────
+ * Room is Google's SQLite object-mapping library. You write three things:
+ *   1. **@Entity data classes** (see `data/entity/`) — each maps to one SQL
+ *      table; each property is a column (`@ColumnInfo(name=…)`), one
+ *      property is the `@PrimaryKey`.
+ *   2. **@Dao interfaces** (see `data/dao/`) — method declarations that Room
+ *      turns into SQL at compile time (`@Query("SELECT …")`, `@Insert` …).
+ *      Compile-time-checked: a typo in a column name fails the BUILD, not
+ *      the runtime.
+ *   3. **@Database class** (this file) — declares the entity list + version
+ *      + exposes the DAOs. `Room.databaseBuilder(...).build()` opens the DB.
+ * **Migrations:** when you add/rename a column you bump the DB `version`
+ * and write a `Migration(old, new)` with the `ALTER TABLE` SQL — otherwise
+ * Room throws `IllegalStateException` on existing files. Schema JSON is
+ * exported to `app/schemas/` (see `ksp { room.schemaLocation }` in
+ * build.gradle.kts) so each version is diffable/reviewable.
+ *
+ * ── What this particular DB is ───────────────────────────────────────────
  * Lives INSIDE the `.thunder` ZIP file as `note.sqlite`. There is one
  * NoteDatabase per open note; it is opened from the extracted `note.sqlite`
  * file by `format.ThunderFile.openForEditing()` (phase 3+) which:
@@ -50,9 +68,10 @@ import java.io.File
  * (single-file DB) so the ZIP always carries exactly `note.sqlite`. Slightly
  * slower for very large notes but ThunderNotes targets <1000-page notes.
  *
- * **Schema evolution:** when this schema changes after release, we will write
- * a proper `Migration` from version N to N+1. For the unreleased initial
- * schema, `fallbackToDestructiveMigrationOnDowngrade` covers development.
+ * **Schema evolution:** when this schema changes after release, write a
+ * proper `Migration` from version N to N+1 (see [MIGRATION_1_2] for the
+ * pattern) + register it in [open]. Downgrades fall back destructively
+ * (development convenience only).
  */
 @Database(
     entities = [
@@ -69,7 +88,7 @@ import java.io.File
         SpacerEntity::class,
         PdfInfoEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class NoteDatabase : RoomDatabase() {
@@ -88,6 +107,19 @@ abstract class NoteDatabase : RoomDatabase() {
 
     companion object {
         /**
+         * v1 → v2 (schema 2026-10): `textboxes.code_language` — stores the
+         * language of a CODE-snipped textbox so its syntax highlighting
+         * survives save + reload (before v2 the column didn't exist and
+         * reloaded code textboxes rendered as plain text).
+         */
+        private val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Nullable TEXT column with no default — plain ALTER suffices.
+                db.execSQL("ALTER TABLE textboxes ADD COLUMN code_language TEXT")
+            }
+        }
+
+        /**
          * Open a per-note database from a staged `note.sqlite` file path.
          *
          * @param context any app context (used for Room's init)
@@ -101,6 +133,7 @@ abstract class NoteDatabase : RoomDatabase() {
                 sqliteFile.absolutePath
             )
                 .setJournalMode(JournalMode.TRUNCATE)
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
         }

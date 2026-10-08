@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * CRUD for [TextBoxEntity] — typed text content on the canvas.
+ *
+ * How to read a DAO: every method below is one SQL statement that Room
+ * generates at COMPILE time from the annotation (`@Query("SELECT …")` is
+ * checked against the entity columns — a typo fails the build). `suspend fun`
+ * = runs on a background dispatcher automatically (never block the UI
+ * thread); returning `Flow<…>` = the query re-emits whenever the table
+ * changes (live UI updates). `OnConflictStrategy.REPLACE` turns an insert
+ * into an upsert — the auto-save path uses it to overwrite edited rows.
  */
 @Dao
 interface TextBoxDao {

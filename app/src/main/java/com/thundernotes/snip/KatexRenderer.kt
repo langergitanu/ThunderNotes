@@ -7,10 +7,13 @@ import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 /**
@@ -18,20 +21,43 @@ import kotlin.coroutines.resume
  * (spec §7.8 / thunder-format-proposal Part D: "KaTeX render (offscreen
  * WebView, OFFLINE assets, black-on-white, high-DPI)").
  *
- * Creates a WebView, loads a minimal HTML page with KaTeX (CDN for Phase 9c;
- * offline assets bundled in `assets/katex/` is a refinement), renders the
- * LaTeX string, + captures the rendered bitmap.
+ * How it works, step by step:
+ *  1. Creates a WebView and **attaches it to the host activity's window**
+ *     (the decor view) as an INVISIBLE child — Chromium only runs page
+ *     layout reliably for views attached to a window; a never-attached
+ *     WebView can render with 0×0 layout on some devices.
+ *  2. Loads a minimal HTML page via [WebView.loadDataWithBaseURL] with the
+ *     base URL `file:///android_asset/katex/` — the bundled KaTeX CSS/JS
+ *     are then referenced with **relative** URLs. (Loading them with
+ *     absolute `file://` URLs from a `data:` page is blocked by Chromium
+ *     — "Not allowed to load local resource" — which would make `katex`
+ *     undefined and silently trace the error message into strokes.)
+ *  3. The page's inline script runs `katex.render(...)`, then calls the
+ *     `Android.onRendered()` [JavascriptInterface] bridge back into Kotlin.
+ *  4. After a short settle delay (KaTeX webfonts load asynchronously), the
+ *     WebView is re-measured at its real content height and drawn into a
+ *     [Bitmap] (pure black text on a white background — always, regardless
+ *     of the canvas theme, per spec §7.8.1).
+ *  5. The temp WebView is detached + destroyed — each render uses a fresh
+ *     WebView so a failed render never poisons the next one.
  *
  * Android-only (WebView). The pure centerline tracer ([CenterlineTracer])
  * is unit-tested; this renderer is build-verifiable.
  */
 object KatexRenderer {
 
-    private const val FIXED_WIDTH = 1080  // high-DPI render width (px).
+    /** Render width in px — wide enough that glyphs trace cleanly (≈1px stroke). */
+    private const val FIXED_WIDTH = 1080
+
+    /** Milliseconds to wait after onRendered before capturing — lets webfonts settle. */
+    private const val SETTLE_DELAY_MS = 350L
+
+    /** Safety-net timeout: if the JS bridge never fires, capture whatever is there. */
+    private const val TIMEOUT_MS = 5000L
 
     /**
      * Render [latex] to a black-on-white bitmap. Returns null on failure.
-     * Must be called on the main thread (WebView requirement).
+     * Thread-safe: hops to the main thread internally (WebView is main-only).
      */
     suspend fun render(latex: String, context: Context): Bitmap? =
         suspendCancellableCoroutine { cont ->
@@ -49,49 +75,59 @@ object KatexRenderer {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun createAndRender(latex: String, context: Context, onDone: (Bitmap?) -> Unit) {
-        val webView = WebView(context)
+        val appCtx = context.applicationContext
+        val webView = WebView(appCtx)
         webView.settings.javaScriptEnabled = true
-        // §7.8 offline assets: allow file:// access for the bundled KaTeX
-        // CSS/JS/fonts in assets/katex/.
+        // KaTeX ships in assets/katex/ — the base URL below makes relative
+        // refs resolve there (offline, no network needed).
         webView.settings.allowFileAccess = true
-        webView.settings.allowContentAccess = true
-        webView.layoutParams = android.widget.FrameLayout.LayoutParams(
-            FIXED_WIDTH, android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+        webView.layoutParams = FrameLayout.LayoutParams(
+            FIXED_WIDTH, ViewGroup.LayoutParams.WRAP_CONTENT,
         )
 
-        // JavaScript interface for the render-complete callback.
+        // Runs at most once: the JS bridge (fast path) and the timeout safety
+        // net can race — this flag guarantees a single result + single
+        // teardown + exactly one onDone call.
+        val finished = AtomicBoolean(false)
+        fun complete(bmp: Bitmap?) {
+            if (finished.compareAndSet(false, true)) {
+                runCatching {
+                    (webView.parent as? ViewGroup)?.removeView(webView)
+                    webView.destroy()
+                }
+                onDone(bmp)
+            }
+        }
+
+        // Bridge: the page's JS calls Android.onRendered() once katex.render
+        // has run (the page catches render errors itself, so the bridge
+        // ALWAYS fires — with either the equation or an error message).
         class RenderInterface {
             @JavascriptInterface
             fun onRendered() {
-                // KaTeX has rendered — capture the bitmap after a short delay
-                // (to let the layout settle).
                 Handler(Looper.getMainLooper()).postDelayed({
-                    captureBitmap(webView, onDone)
-                }, 200)
+                    if (!finished.get()) {
+                        captureBitmap(webView) { bmp -> complete(bmp) }
+                    }
+                }, SETTLE_DELAY_MS)
             }
         }
         webView.addJavascriptInterface(RenderInterface(), "Android")
+        webView.webViewClient = object : WebViewClient() {}  // defaults — no URL hijacking
 
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                // The KaTeX JS has loaded — the inline script will call
-                // Android.onRendered() after katex.render().
-            }
-        }
-
-        // Build the HTML with the bundled offline KaTeX (§7.8: "KaTeX in an
-        // offscreen WebView, assets bundled"). The CSS + JS + fonts ship in
-        // assets/katex/ — loaded via file:///android_asset/katex/ so no network
-        // is needed. The font @font-face URLs in katex.min.css are relative
-        // (fonts/KaTeX_*.woff2) → resolve under the same asset base.
+        // Escape the LaTeX for safe embedding inside a JS string literal.
         val escapedLatex = latex
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
+            .replace("</", "<\\/")   // never allow "</script>" to close the tag
+
+        // Minimal page: white background, black text, 32px font, display mode.
+        // CSS + JS are RELATIVE to the base URL (assets/katex/) — see class doc.
         val html = """<!DOCTYPE html>
 <html><head>
-<link rel="stylesheet" href="file:///android_asset/katex/katex.min.css">
-<script src="file:///android_asset/katex/katex.min.js"></script>
+<link rel="stylesheet" href="katex.min.css">
+<script src="katex.min.js"></script>
 <style>
 body { margin:0; padding:32px; background:#FFFFFF; color:#000000;
        font-size:32px; -webkit-font-smoothing:none; }
@@ -103,28 +139,53 @@ body { margin:0; padding:32px; background:#FFFFFF; color:#000000;
 try {
   katex.render("$escapedLatex", document.getElementById('render'),
     { displayMode:true, throwOnError:false, output:'html' });
-} catch(e) {
-  document.getElementById('render').textContent = e.message;
+} catch (e) {
+  try { document.getElementById('render').textContent = String(e.message || e); } catch (e2) {}
 }
 Android.onRendered();
 </script>
 </body></html>"""
 
-        // Measure + layout the WebView at the fixed width.
-        webView.measure(
-            View.MeasureSpec.makeMeasureSpec(FIXED_WIDTH, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-        )
-        webView.layout(0, 0, FIXED_WIDTH, webView.measuredHeight.coerceAtLeast(100))
+        // Attach INVISIBLE to the host window so Chromium lays the page out
+        // (never-attached WebViews can stall with no layout pass).
+        val host: ViewGroup? = (context as? android.app.Activity)
+            ?.window?.decorView as? ViewGroup
+        if (host != null) {
+            webView.visibility = View.INVISIBLE
+            host.addView(webView)
+        } else {
+            // No window to attach to (e.g. a Service context) — fall back to
+            // manual measure/layout, which works on most devices.
+            webView.measure(
+                View.MeasureSpec.makeMeasureSpec(FIXED_WIDTH, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            webView.layout(0, 0, FIXED_WIDTH, webView.measuredHeight.coerceAtLeast(100))
+        }
 
-        // Load the HTML (base64 data URL to avoid file:// permission issues).
-        val encoded = android.util.Base64.encodeToString(html.toByteArray(), android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE)
-        webView.loadData("data:text/html;base64,$encoded", "text/html", "utf-8")
+        // Load with the asset base URL → relative CSS/JS/font refs resolve
+        // offline. (loadData + absolute file:// refs is blocked by Chromium.)
+        webView.loadDataWithBaseURL(
+            "file:///android_asset/katex/", html, "text/html", "utf-8", null,
+        )
+
+        // Safety net: if the JS bridge never fires (renderer crash, asset
+        // problem), don't hang forever — capture whatever is there + finish.
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!finished.get()) {
+                captureBitmap(webView) { bmp -> complete(bmp) }
+            }
+        }, TIMEOUT_MS)
     }
 
+    /**
+     * Draw the (laid-out) WebView into a new [Bitmap] at its real content
+     * height. Re-measures first so multi-line equations aren't clipped.
+     * Any stray non-opaque pixel is forced to white so the tracer's
+     * binarizer sees a clean background (§7.8.1 "always black-on-white").
+     */
     private fun captureBitmap(webView: WebView, onDone: (Bitmap?) -> Unit) {
         try {
-            // Re-measure to get the actual content height after KaTeX rendered.
             webView.measure(
                 View.MeasureSpec.makeMeasureSpec(FIXED_WIDTH, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -135,6 +196,13 @@ Android.onRendered();
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
             webView.draw(canvas)
+            val px = IntArray(w * h)
+            bmp.getPixels(px, 0, w, 0, 0, w, h)
+            var swept = false
+            for (i in px.indices) {
+                if (px[i] ushr 24 != 0xFF) { px[i] = 0xFFFFFFFF.toInt(); swept = true }
+            }
+            if (swept) bmp.setPixels(px, 0, w, 0, 0, w, h)
             onDone(bmp)
         } catch (e: Exception) {
             onDone(null)

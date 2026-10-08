@@ -12,6 +12,13 @@ import android.view.View
  * Draws the rectangular lasso drag (spec §6.10 Row 3e Rectangular Lasso) as a
  * translucent fill + dashed border, on top of the ink surface. The activity
  * calls [setRect] during a LASSO-tool drag + [clear] on release.
+ *
+ * A minimal example of the custom-View "state + invalidate" loop: the only
+ * state is the current [rect]; [setRect] stores it + calls `invalidate()`,
+ * which asks Android to call [onDraw] on the next frame; onDraw paints the
+ * rect with [fillPaint]/[borderPaint] (the border dashes come from
+ * [DashPathEffect]). Cheap enough to run at drag rate (no allocations in
+ * onDraw — the Paints are pre-built exactly for that reason).
  */
 class LassoOverlayView @JvmOverloads constructor(
     context: Context,

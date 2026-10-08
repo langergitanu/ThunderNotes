@@ -13,6 +13,16 @@ import kotlinx.serialization.json.Json
 /**
  * Read + write `.thunder` files (ZIP containers).
  *
+ * ── NEWCOMER PRIMER: why a ZIP container? ───────────────────────────────
+ * A note is more than a flat byte blob: it has a database (strokes,
+ * textboxes), embedded images, and a thumbnail. The industry-standard trick
+ * (used by .docx, .apk, and Notein's `.in`) is a ZIP renamed with a custom
+ * extension — each piece becomes one ZIP entry, and a small JSON manifest
+ * describes the contents (page count, version, checksum). Reading it is
+ * just unzipping; writing is re-zipping. `RandomAccessFile` + `ZipFile`
+ * would allow random access, but notes are small enough that streaming
+ * [ZipInputStream]/[ZipOutputStream] is simpler + sufficient.
+ *
  * A `.thunder` file is a ZIP archive with this layout (per
  * `docs/thunder-format-proposal.md` Part A):
  *

@@ -22,6 +22,18 @@ data class PageRecord(
  * The pure, in-memory canvas document: an ordered list of [PageRecord]s,
  * an undo/redo stack, the current page index, and the zoom level.
  *
+ * ── NEWCOMER PRIMER: the "pure model + command pattern" design ──────────
+ * This class has NO Android imports on purpose: it runs in plain JVM unit
+ * tests (see `app/src/test/…/CanvasDocumentTest`). The UI (CanvasActivity)
+ * calls a mutating method, then reads the returned/updated state and syncs
+ * the screen. Undo/redo is the classic **command pattern**: every mutation
+ * is recorded as a small immutable value (`DocAction.AddStroke(pageId, s)`)
+ * pushed on a stack; **undo** pops it and applies the inverse; **redo**
+ * re-applies. Because the action carries everything needed to both apply
+ * and invert it, unlimited undo/redo costs one small object per edit.
+ * `lastUndoneAction`/`lastRedoneAction` tell the VIEW layer exactly what
+ * changed so it can update only the affected pixels (no full re-render).
+ *
  * **No Android/AndroidX-Ink dependency** — fully unit-testable. The
  * [CanvasActivity][com.thundernotes.ui.canvas.CanvasActivity] + the
  * [InProgressStrokesView][androidx.ink.authoring.InProgressStrokesView]

@@ -18,6 +18,23 @@ import kotlinx.coroutines.launch
 /**
  * All Folders page (spec §6.3 FoldersLibraryPage).
  * Grid of all active folders + title-only search + Create Folder button.
+ *
+ * ── NEWCOMER PRIMER: the standard library-fragment pattern ──────────────
+ * Every library screen (Notes / Folders / Trash / Bookmarks / Templates)
+ * follows this same five-piece recipe — learn it once here, then any
+ * library screen reads the same:
+ *   1. **ViewBinding** — `FragmentFoldersLibraryBinding` is generated from
+ *      the fragment's XML; `_binding` is nulled in onDestroyView because
+ *      fragments outlive their views (don't touch views after destroy!).
+ *   2. **ViewModel** — `FoldersLibraryViewModel` exposes `StateFlow<List<…>>`;
+ *      the fragment NEVER queries the DB itself.
+ *   3. **RecyclerView + Adapter** — the grid/list; `submitList` swaps data.
+ *   4. **repeatOnLifecycle(STARTED)** — collects the VM's flow while the UI
+ *      is visible and CANCELS collection when hidden (no wasted work, no
+ *      leaks — the modern replacement for observing LiveData).
+ *   5. **Child-fragment sheets** — the 3-dot menu opens a
+ *      `FolderOverflowBottomSheet` (a BottomSheetDialogFragment) which talks
+ *      to the same repository; actions come back as new flow emissions.
  */
 class FoldersLibraryFragment : Fragment() {
 

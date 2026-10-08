@@ -92,10 +92,14 @@ class LatexInputBottomSheet : BottomSheetDialogFragment() {
                     if (strokes == null || strokes.isEmpty()) {
                         throw RuntimeException("KaTeX render or trace produced no strokes")
                     }
-                    ClipboardItem.StrokeGroup(
-                        strokes = strokes,
-                        bbox = floatArrayOf(0f, 0f, 600f, 400f),
+                    // Scale the traced group (KaTeX renders at a fixed 1080-px
+                    // width) so the pasted equation fits the target page — same
+                    // treatment the Equation Snip gets in SnipBottomSheet.
+                    val (scaled, bbox) = com.thundernotes.snip.StrokeGroupScaler.fit(
+                        strokes,
+                        targetW = pasteW(), targetH = pasteH(),
                     )
+                    ClipboardItem.StrokeGroup(strokes = scaled, bbox = bbox)
                 }
             }
             result.fold(
@@ -113,4 +117,16 @@ class LatexInputBottomSheet : BottomSheetDialogFragment() {
             )
         }
     }
+
+    /** Target page width for scaling (px) — the canvas page if known, else 700dp. */
+    private fun pasteW(): Float =
+        if (com.thundernotes.snip.SnipBottomSheet.pasteTargetWidthPx > 0f)
+            com.thundernotes.snip.SnipBottomSheet.pasteTargetWidthPx * 0.55f
+        else 700f * resources.displayMetrics.density * 0.55f
+
+    /** Target page height for scaling (px) — the canvas page if known, else 990dp. */
+    private fun pasteH(): Float =
+        if (com.thundernotes.snip.SnipBottomSheet.pasteTargetHeightPx > 0f)
+            com.thundernotes.snip.SnipBottomSheet.pasteTargetHeightPx * 0.4f
+        else 990f * resources.displayMetrics.density * 0.4f
 }

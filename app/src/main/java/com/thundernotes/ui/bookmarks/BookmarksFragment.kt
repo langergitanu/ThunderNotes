@@ -30,6 +30,10 @@ import kotlinx.coroutines.launch
  * Shows all bookmarked notes + folders in a combined list. Uses the existing
  * [NoteAdapter] + [FolderAdapter] in two RecyclerViews (notes grid + folders
  * list stacked vertically).
+ *
+ * Built on the standard library-fragment pattern (ViewBinding + ViewModel +
+ * RecyclerView + repeatOnLifecycle) — see FoldersLibraryFragment's NEWCOMER
+ * PRIMER for the five-piece recipe this screen repeats.
  */
 class BookmarksFragment : Fragment() {
 

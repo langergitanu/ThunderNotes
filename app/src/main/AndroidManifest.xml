@@ -3,22 +3,24 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- ─── Permissions ───────────────────────────────────────────────────────
-         INTERNET                  — snip API calls (Gemini / GLM) + future sync
-         ACCESS_NETWORK_STATE      — detect online before snip chain
-         SYSTEM_ALERT_WINDOW       — AI-snip floating button (overlay on other apps)
-         FOREGROUND_SERVICE        — for the snip overlay service
+         INTERNET                     — snip API calls (Gemini / GLM) + future sync
+         ACCESS_NETWORK_STATE         — detect online before snip chain
+         SYSTEM_ALERT_WINDOW          — AI-snip floating button (overlay on other apps)
+         FOREGROUND_SERVICE           — for both snip services
+         FOREGROUND_SERVICE_SPECIAL_USE — the overlay-button service type (Android 14+)
          FOREGROUND_SERVICE_MEDIA_PROJECTION — screen capture for snip
-         READ_MEDIA_IMAGES         — add images from gallery to canvas
-         POST_NOTIFICATIONS        — Android 13+ foreground-service notification
-         RECEIVE_BOOT_COMPLETED    — restore snip overlay after reboot (optional)
-         WAKE_LOCK                 — keep CPU awake during long OCR runs
-         READ_EXTERNAL_STORAGE     — legacy (<= API 28) gallery access (maxSdk 28)
+         READ_MEDIA_IMAGES            — add images from gallery to canvas
+         POST_NOTIFICATIONS           — Android 13+ foreground-service notification
+         RECEIVE_BOOT_COMPLETED       — restore snip overlay after reboot (optional)
+         WAKE_LOCK                    — keep CPU awake during long OCR runs
+         READ_EXTERNAL_STORAGE        — legacy (<= API 28) gallery access (maxSdk 28)
     ─────────────────────────────────────────────────────────────────────────── -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -119,19 +121,42 @@
         </intent-filter>
         -->
 
-        <!-- ─── AI-snip overlay service (§7.3.1 — phase 9j) ─────────────────
+        <!-- ─── AI-snip overlay service (§7.3.1) ───────────────────────────
              Foreground service hosting the SYSTEM_ALERT_WINDOW floating snip
              button. Survives app backgrounding as long as the user has granted
              overlay permission. The button is draggable; on tap it launches the
              SnipCaptureActivity which requests MediaProjection + captures the
-             screen → SnipBottomSheet pipeline.
+             screen → region selection → SnipBottomSheet pipeline.
+
+             FGS type = specialUse (NOT mediaProjection): this service never
+             captures anything itself, and Android 14+ only allows the
+             mediaProjection type to START after capture consent — using it
+             here crashed the app at launch. The subtype property documents
+             the special use for Play review (required by API 34+).
         -->
         <service
             android:name=".snip.SnipOverlayService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection"
-            android:stopWithTask="false" />
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent floating AI-snip capture button shown over other apps while ThunderNotes is running." />
+        </service>
+
+        <!-- ─── Snip projection service (Android 14+ compliance) ──────────
+             Short-lived foreground service holding the mediaProjection FGS
+             type DURING a screen capture only (started from
+             SnipCaptureActivity.onActivityResult, right after the user grants
+             the capture consent dialog, and stopped when the frame is read).
+             Android 14+ requires a running mediaProjection-type FGS before
+             createVirtualDisplay() is legal. -->
+        <service
+            android:name=".snip.SnipProjectionService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <!-- SnipCaptureActivity — the MediaProjection capture host (launched
              from the floating overlay button; transparent activity, no UI). -->

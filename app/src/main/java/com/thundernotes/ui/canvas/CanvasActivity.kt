@@ -51,22 +51,64 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * CanvasActivity — the full-screen note editor (Phase 6).
+ * CanvasActivity — the full-screen note editor: the single largest file in
+ * the app (~1900 lines) and the place where every canvas feature is wired
+ * together.
  *
- * Per the architecture plan + MainActivity's documented intent, the canvas
- * lives in its OWN Activity (not the NavHost) because it needs the whole
- * screen for the pen tray + page surface + AI-snip overlay, with the sidebar
- * hidden.
+ * ── NEWCOMER PRIMER: what is an Activity + this file's layout? ──────────
+ * An [AppCompatActivity] is one screen of the app (here: the note editor).
+ * `onCreate` builds the view tree from `res/layout/activity_canvas.xml`
+ * (via ViewBinding — `binding.btnPaste` is a typesafe handle to the button
+ * with id `btnPaste` in that XML). Each `binding.x.setOnClickListener { … }`
+ * below is one button of the spec's canvas UI getting its behaviour.
  *
- * **This phase (Phase 6) ships the editor shell:**
- *   - Top bar with editable note title + page indicator
- *   - Workflow row (undo / redo / zoom − % + / add page / AI-snip)
- *   - Pen tray (6 tools) + secondary row (color swatches + stroke widths)
- *     whose visibility follows the active tool
- *   - Scrollable page surface with a lined-paper placeholder card
+ * ── How the canvas surface is layered (per page) ─────────────────────────
+ * Each page is inflated from `res/layout/item_canvas_page.xml` and holds a
+ * stack of transparent sibling views, bottom→top:
+ *   1. `CanvasInkHost`           — the AndroidX-Ink GL surface (live drawing)
+ *   2. `CompletedStrokesView`    — finished strokes re-rendered after
+ *                                  undo/redo/paste/reload (custom View)
+ *   3. `textboxLayer`            — FrameLayout of TextViews (typed content)
+ *   4. `lassoOverlay`            — selection rectangle preview (custom View)
+ *   5. `gridlineOverlay`         — the m×n magnetic grid (custom View)
+ *   6. `rulerOverlay`            — the rotatable ruler guide (custom View)
+ * Because every page owns its own six views, the activity keeps **parallel
+ * per-page registries** (`pageHosts`, `pageCompletedViews`,
+ * `pageTextboxLayers`, …) all indexed by the SAME page index. Adding a page
+ * = inflating one item + appending to every registry (see [addPageItem]);
+ * removing a page = removing from every registry in the same order
+ * ([removePageView]). If you add a per-page view, extend BOTH functions.
  *
- * **Deferred to Phase 7:** AndroidX Ink [InProgressStrokesView] hosting real
- * strokes. Today the page card shows a placeholder label.
+ * Pages stack vertically inside `pagesContainer` (with dotted separators —
+ * spec §6.10 "no gap between pages, infinite-canvas feel") inside the
+ * `pageScroll` ScrollView; the current page is re-synced from the scroll
+ * position ([syncCurrentPageFromScroll]) so every edit lands on the page the
+ * user is actually looking at.
+ *
+ * ── The three cooperating layers ─────────────────────────────────────────
+ *   - **Model**  — [CanvasDocument] (pure Kotlin, unit-tested): pages,
+ *     strokes, textboxes + the undo/redo action stack. No Android types.
+ *   - **ViewModel** — [NoteEditorViewModel]: exposes the UI state as a
+ *     StateFlow + owns the auto-save engine (open session → incremental DAO
+ *     writes → debounced ZIP flush).
+ *   - **View** — this file: renders the model, translates taps into model
+ *     ops, and keeps the on-screen views in sync after every model change.
+ * Rule of thumb: logic that needs Android → here; logic that doesn't →
+ * CanvasDocument (testable). Views are NEVER the source of truth — a
+ * pasted/undone/reloaded stroke is re-rendered from the record, not trusted
+ * to stay on screen.
+ *
+ * ── Where to find things in this file (section map) ─────────────────────
+ *   - `onCreate`/`render`      : wiring every toolbar button + state refresh
+ *   - `addPageItem`            : building one page's view stack + registries
+ *   - `handlePaste`            : the glowing-paste-button drop flow (§7.3)
+ *   - `handleTextTap`/`renderTextbox` : textbox creation + code highlighting
+ *   - `handleUndo`/`handleRedo`: action-driven visual sync (§6.10 Row 2)
+ *   - `handleLassoEnd`         : lasso selection → 9-function menu (§7.2)
+ *   - `handleShapeEnd`         : shape tool → inscribed geometry (§6.10.9a)
+ *   - `rebuildFromLoad`        : full rebuild after opening a saved note
+ *   - `onNoteReadyForSession`  : opens the .thunder session + auto-save loop
+ *   - Theme toggle / export / split view / minimap follow further down.
  *
  * Opened with an optional `EXTRA_NOTE_ID`; empty/absent → create a fresh note.
  */
@@ -439,13 +481,24 @@ class CanvasActivity : AppCompatActivity(),
         // Split view (§6.10 Row 1: two files side-by-side).
         binding.btnSplit.setOnClickListener { handleSplitToggle() }
         binding.btnAiSnip.setOnClickListener {
-            // Phase 9b: capture the canvas surface → SnipBottomSheet → pipeline.
+            // §7.3.4 snip flow: capture the visible canvas surface → region
+            // selection + confirmation (SnipRegionDialogFragment) → snip-type
+            // selector (SnipBottomSheet) → engine pipeline → ThunderClipboard.
             val bmp = captureCanvas()
             if (bmp == null) {
                 Toast.makeText(this, "Capture failed", Toast.LENGTH_SHORT).show()
             } else {
-                com.thundernotes.snip.SnipBottomSheet.bitmap = bmp
-                com.thundernotes.snip.SnipBottomSheet().show(supportFragmentManager, "snip")
+                // Tell the pipeline what page size the result will be pasted
+                // onto (equation/diagram stroke groups are scaled to fit it).
+                val root = pageRoots.getOrNull(viewModel.uiState.value.currentPageIndex)
+                com.thundernotes.snip.SnipBottomSheet.pasteTargetWidthPx =
+                    (root?.width ?: dp(700)).toFloat()
+                com.thundernotes.snip.SnipBottomSheet.pasteTargetHeightPx =
+                    (root?.height ?: dp(990)).toFloat()
+                com.thundernotes.snip.SnipBottomSheet.onDismissed = null  // we host the sheet
+                com.thundernotes.snip.SnipRegionDialogFragment.bitmap = bmp
+                com.thundernotes.snip.SnipRegionDialogFragment()
+                    .show(supportFragmentManager, "snip_region")
             }
         }
         // ─── Phase 9g: Row 2 top-right cluster (spec §6.10.5) ───────────
@@ -871,9 +924,20 @@ class CanvasActivity : AppCompatActivity(),
         // injector writes to document.currentPage.
         document.goToPage(viewModel.uiState.value.currentPageIndex)
         val idx = viewModel.uiState.value.currentPageIndex
+        // Drop point: the upper-middle area of the CURRENT page (near where
+        // the user is working, instead of the old hard-coded 0,0 top-left
+        // corner). The item's own bbox offsets are subtracted so the group is
+        // CENTERED on the drop point, not bottom-right of it.
+        val pageRoot = pageRoots.getOrNull(idx)
+        val pageW = (pageRoot?.width ?: dp(700)).toFloat()
+        val pageH = (pageRoot?.height ?: dp(990)).toFloat()
+        val itemW = (item.bbox[2] - item.bbox[0]).coerceAtLeast(1f)
+        val itemH = (item.bbox[3] - item.bbox[1]).coerceAtLeast(1f)
+        val dropX = ((pageW - itemW) / 2f).coerceAtLeast(0f)
+        val dropY = (pageH * 0.18f - itemH / 2f).coerceAtLeast(0f)
         when (item) {
             is ClipboardItem.StrokeGroup -> {
-                val records = injector.inject(item, dropX = 0f, dropY = 0f)
+                val records = injector.inject(item, dropX = dropX, dropY = dropY)
                 // Render each injected stroke on the current page's completed-strokes layer.
                 pageCompletedViews.getOrNull(idx)?.let { cv ->
                     records.forEach { cv.addFromRecord(it) }
@@ -885,7 +949,9 @@ class CanvasActivity : AppCompatActivity(),
                 // Phase 9g: the textbox injection path is now wired — pasted
                 // TEXT/CODE snip outputs land on the canvas. The injector adds
                 // the TextBoxRecord to the document + returns it for rendering.
-                val tb = injector.injectTextbox(item, dropX = 0f, dropY = 0f)
+                // Textboxes anchor at their top-left, so don't add the item
+                // bbox offset — just drop at the computed point.
+                val tb = injector.injectTextbox(item, dropX = dropX, dropY = dropY)
                 if (tb != null) {
                     renderTextbox(idx, tb)
                     viewModel.persistTextboxUpsert(tb)
@@ -1566,6 +1632,26 @@ class CanvasActivity : AppCompatActivity(),
         })
         loaded.forEachIndexed { i, p ->
             addPageItem(pageNumber = i + 1)
+            // §7.4 writing-space growth restore: re-apply the persisted page
+            // height (Add Writing Space grows it; the value is saved per page
+            // in the .thunder DB). Without this the page card snaps back to
+            // the 990-dp default on reload while the (page-local) strokes
+            // stayed put — the "content restores but the page looks clipped"
+            // bug.
+            if (p.pageHeightPx > 0) {
+                val root = pageRoots.getOrNull(i)
+                if (root != null) {
+                    val lp = root.layoutParams
+                    if (lp is LinearLayout.LayoutParams) {
+                        lp.height = p.pageHeightPx
+                        root.layoutParams = lp
+                    } else if (lp is ViewGroup.MarginLayoutParams) {
+                        lp.height = p.pageHeightPx
+                        root.layoutParams = lp
+                    }
+                }
+                pageHeightPxById[p.pageId] = p.pageHeightPx
+            }
             val cv = pageCompletedViews.getOrNull(i)
             p.strokes.forEach { cv?.addFromRecord(it) }
             p.textboxes.forEach { renderTextbox(i, it) }

@@ -58,8 +58,11 @@ object DiagramTracer {
         // 6. Drop polylines shorter than 3px (spur cleanup, spec §7.8).
         val cleaned = splitPolylines.filter { polylineLength(it) >= 3f }
 
-        // 7. Build StrokeRecords.
-        return CenterlineTracer.toStrokeRecords(cleaned, pageId = "diagram")
+        // 7. Build StrokeRecords. §7.8.2 width measurement: pass the binarized
+        //    source (the ORIGINAL ink thickness, not the 1px skeleton) so each
+        //    traced stroke's brush size is measured via the distance transform
+        //    instead of falling back to a fixed 3f.
+        return CenterlineTracer.toStrokeRecords(cleaned, pageId = "diagram", sourceImage = bw)
     }
 
     // ─── Edge detection (remove filled interiors) ──────────────────────────
